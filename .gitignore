@@ -1,0 +1,6 @@
+digital-twin-app/node_modules
+digital-twin-app/dist
+digital-twin-backend/node_modules
+digital-twin-backend/dist
+digital-twin-backend/venv
+*.pyc
