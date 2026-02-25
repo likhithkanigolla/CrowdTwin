@@ -41,12 +41,12 @@ export default function MapContainer({ currentMode, onBuildingSelect, onBuilding
         const query = `
       [out:json][timeout:30];
       (
-        way["building"](around:900,${centerLat},${centerLng});
-        relation["building"](around:900,${centerLat},${centerLng});
-        way["landuse"~"grass|forest|meadow"](around:900,${centerLat},${centerLng});
-        way["natural"~"grassland|wood|tree_row"](around:900,${centerLat},${centerLng});
-        way["leisure"~"park|garden"](around:900,${centerLat},${centerLng});
-        way["highway"](around:900,${centerLat},${centerLng});
+        way["building"](around:350,${centerLat},${centerLng});
+        relation["building"](around:350,${centerLat},${centerLng});
+        way["landuse"~"grass|forest|meadow"](around:350,${centerLat},${centerLng});
+        way["natural"~"grassland|wood|tree_row"](around:350,${centerLat},${centerLng});
+        way["leisure"~"park|garden"](around:350,${centerLat},${centerLng});
+        way["highway"](around:350,${centerLat},${centerLng});
       );
       out body;>;out skel qt;
     `;

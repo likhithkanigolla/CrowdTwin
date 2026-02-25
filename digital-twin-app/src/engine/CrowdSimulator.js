@@ -9,7 +9,7 @@
 import { NavigationGraph } from './NavigationGraph';
 
 const MAX_AGENTS = 2000;
-const AGENT_SPEED_MS = 0.000015; // Degrees per millisecond (roughly walking speed at this scale)
+const AGENT_SPEED_MS = 0.000003; // Much slower walking speed
 
 // Cohort definitions with colors encoded as MapLibre CSS strings
 export const COHORTS = [
@@ -37,6 +37,21 @@ function getScheduledCategory(cohortId, hour) {
   let target = keys[0];
   for (const k of keys) { if (hour >= k) target = k; }
   return sched[target];
+}
+
+// Agent polygon geometry — renders agents as small squares instead of dots
+function agentPolygon(lng, lat, size = 0.00003) {
+  const s = size;
+  return {
+    type: 'Polygon',
+    coordinates: [[
+      [lng - s, lat - s],
+      [lng + s, lat - s],
+      [lng + s, lat + s],
+      [lng - s, lat + s],
+      [lng - s, lat - s],
+    ]],
+  };
 }
 
 export class CrowdSimulator {
@@ -77,6 +92,9 @@ export class CrowdSimulator {
     // Create MapLibre sources and layers for agents
     this._createLayers();
 
+    // Populate initial agents at starting simulation time
+    this._populateInitialAgents();
+
     // Start animation loop
     this.running = true;
     this._animate(performance.now());
@@ -97,6 +115,60 @@ export class CrowdSimulator {
     return list[Math.floor(Math.random() * list.length)];
   }
 
+  _populateInitialAgents() {
+    // Spawn initial agent population at starting simulation time
+    const hour = Math.floor(this.simTime);
+    const initialAgentsPerCohort = 25; // Start with decent population
+
+    COHORTS.forEach(cohort => {
+      const srcCategory = getScheduledCategory(cohort.id, hour);
+      const dstCategory = getScheduledCategory(cohort.id, hour);
+
+      // Spawn initial agents starting from their current location category
+      for (let i = 0; i < initialAgentsPerCohort && this.agents.length < MAX_AGENTS; i++) {
+        const startBuilding = this._getBuildingForCategory(srcCategory);
+        let endBuilding = this._getBuildingForCategory(dstCategory);
+        if (!startBuilding || !endBuilding) continue;
+
+        // Occasionally vary destination for realism
+        if (Math.random() > 0.7) {
+          endBuilding = this._getBuildingForCategory(dstCategory);
+        }
+
+        const startLng = startBuilding.properties.center[0] + (Math.random() - 0.5) * 0.00003;
+        const startLat = startBuilding.properties.center[1] + (Math.random() - 0.5) * 0.00003;
+        const endLng = endBuilding.properties.center[0] + (Math.random() - 0.5) * 0.00003;
+        const endLat = endBuilding.properties.center[1] + (Math.random() - 0.5) * 0.00003;
+
+        const pathPoints = this.navGraph.findPath(
+          { lng: startLng, lat: startLat },
+          { lng: endLng, lat: endLat }
+        );
+
+        if (pathPoints.length < 2) continue;
+
+        // Place agent at a random point along the path to create realistic distribution
+        const pathIndex = Math.floor(Math.random() * Math.max(1, pathPoints.length - 2));
+        const startPos = pathPoints[pathIndex];
+
+        this.agents.push({
+          id: `agent_${Date.now()}_${Math.random()}`,
+          cohortId: cohort.id,
+          color: cohort.color,
+          path: pathPoints.slice(pathIndex),
+          pathIndex: 0,
+          lng: startPos.lng,
+          lat: startPos.lat,
+          progress: Math.random() * 0.5,
+          speed: AGENT_SPEED_MS * (0.7 + Math.random() * 0.6),
+          walkPhase: Math.random() * Math.PI * 2
+        });
+      }
+    });
+
+    console.log(`CrowdSimulator: Initialized ${this.agents.length} agents`);
+  }
+
   _spawnAgentsForTime(hour) {
     if (this.agents.length >= MAX_AGENTS) return;
 
@@ -109,7 +181,7 @@ export class CrowdSimulator {
       const srcCat = getScheduledCategory(cohort.id, prevHour);
       const dstCat = getScheduledCategory(cohort.id, hour);
       const isMigrating = srcCat !== dstCat;
-      const spawnCount = isMigrating ? 3 : 1;
+      const spawnCount = isMigrating ? 2 : 0; // Only spawn new agents when migrating
 
       for (let i = 0; i < spawnCount && this.agents.length < MAX_AGENTS; i++) {
         const b1 = this._getBuildingForCategory(srcCat);
@@ -124,10 +196,10 @@ export class CrowdSimulator {
         }
         if (b2 === b1) continue;
 
-        const startLng = b1.properties.center[0] + (Math.random() - 0.5) * 0.0003;
-        const startLat = b1.properties.center[1] + (Math.random() - 0.5) * 0.0003;
-        const endLng   = b2.properties.center[0] + (Math.random() - 0.5) * 0.0003;
-        const endLat   = b2.properties.center[1] + (Math.random() - 0.5) * 0.0003;
+        const startLng = b1.properties.center[0] + (Math.random() - 0.5) * 0.00003;
+        const startLat = b1.properties.center[1] + (Math.random() - 0.5) * 0.00003;
+        const endLng   = b2.properties.center[0] + (Math.random() - 0.5) * 0.00003;
+        const endLat   = b2.properties.center[1] + (Math.random() - 0.5) * 0.00003;
 
         // Get A* path — returns array of {lng, lat}
         const pathPoints = this.navGraph.findPath(
@@ -215,7 +287,7 @@ export class CrowdSimulator {
 
     const features = this.agents.map(agent => ({
       type: 'Feature',
-      geometry: { type: 'Point', coordinates: [agent.lng, agent.lat] },
+      geometry: agentPolygon(agent.lng, agent.lat),
       properties: { cohortId: agent.cohortId, color: agent.color }
     }));
 
@@ -234,31 +306,26 @@ export class CrowdSimulator {
       data: { type: 'FeatureCollection', features: [] }
     });
 
-    // Glow/halo ring underneath
+    // Main agent polygon with glow effect
     this.map.addLayer({
       id: 'crowd-agents-glow',
-      type: 'circle',
+      type: 'fill',
       source: 'crowd-agents',
       paint: {
-        'circle-radius': 6,
-        'circle-color': ['get', 'color'],
-        'circle-opacity': 0.25,
-        'circle-blur': 1.0
+        'fill-color': ['get', 'color'],
+        'fill-opacity': 0.3
       }
     });
 
-    // Main agent dot
+    // Agent polygon outline
     this.map.addLayer({
       id: 'crowd-agents-dot',
-      type: 'circle',
+      type: 'line',
       source: 'crowd-agents',
       paint: {
-        'circle-radius': 3,
-        'circle-color': ['get', 'color'],
-        'circle-opacity': 0.95,
-        'circle-stroke-width': 0.5,
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-opacity': 0.5
+        'line-color': ['get', 'color'],
+        'line-width': 1.5,
+        'line-opacity': 0.95
       }
     });
   }
