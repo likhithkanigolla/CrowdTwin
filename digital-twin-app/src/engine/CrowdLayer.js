@@ -14,8 +14,8 @@ export const CrowdLayer = function(id) {
   this.sunLight.castShadow = true;
   this.scene.add(this.sunLight);
   
-  this.ambientLight = new THREE.AmbientLight(0x404040, 1.0); // Soft white light
-  this.scene.add(this.ambientLight);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+  scene.add(ambient);
 
   // Streetlights (Point lights that simulate light scatter)
   this.streetLights = new THREE.Group();

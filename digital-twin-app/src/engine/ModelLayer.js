@@ -28,10 +28,11 @@ export class ModelLayer {
         this.map      = null;
 
         // Lighting
-        this.sunLight = new THREE.DirectionalLight(0xffffff, 1.8);
+        this.sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
         this.sunLight.position.set(100, 100, 100);
         this.scene.add(this.sunLight);
-        this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        this.scene.add(new THREE.HemisphereLight(0xffffbb, 0x080820, 0.5));
 
         this.peopleInstances = null;
         this.treeInstances   = null;

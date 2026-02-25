@@ -39,20 +39,6 @@ function getScheduledCategory(cohortId, hour) {
   return sched[target];
 }
 
-// Agent polygon geometry — renders agents as small squares instead of dots
-function agentPolygon(lng, lat, size = 0.00003) {
-  const s = size;
-  return {
-    type: 'Polygon',
-    coordinates: [[
-      [lng - s, lat - s],
-      [lng + s, lat - s],
-      [lng + s, lat + s],
-      [lng - s, lat + s],
-      [lng - s, lat - s],
-    ]],
-  };
-}
 
 export class CrowdSimulator {
   constructor() {
@@ -331,51 +317,61 @@ export class CrowdSimulator {
     }
   }
 
-  _updateLayer() {
-    if (!this.map || !this.map.getSource('crowd-agents')) return;
+_updateLayer() {
+  if (!this.map || !this.map.getSource('crowd-agents')) return;
 
-    const features = this.agents.map(agent => ({
-      type: 'Feature',
-      geometry: agentPolygon(agent.lng, agent.lat),
-      properties: { cohortId: agent.cohortId, color: agent.color }
-    }));
+  const features = this.agents.map(agent => ({
+    type: 'Feature',
+    geometry: {
+      type: 'Point',
+      coordinates: [agent.lng, agent.lat]
+    },
+    properties: {
+      cohortId: agent.cohortId,
+      color: agent.color,
+      icon: this._getHumanEmoji(agent.cohortId)
+    }
+  }));
 
-    this.map.getSource('crowd-agents').setData({
-      type: 'FeatureCollection',
-      features
-    });
-  }
+  this.map.getSource('crowd-agents').setData({
+    type: 'FeatureCollection',
+    features
+  });
+}
 
-  _createLayers() {
-    if (this.map.getSource('crowd-agents')) return;
+_getHumanEmoji(cohortId) {
+  const EMOJIS = ['🚶','🚶‍♂️','🚶‍♀️'];
+  return EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+}
 
-    // One GeoJSON source for all agents
-    this.map.addSource('crowd-agents', {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] }
-    });
+_createLayers() {
+  if (this.map.getSource('crowd-agents')) return;
 
-    // Main agent polygon with glow effect
-    this.map.addLayer({
-      id: 'crowd-agents-glow',
-      type: 'fill',
-      source: 'crowd-agents',
-      paint: {
-        'fill-color': ['get', 'color'],
-        'fill-opacity': 0.3
-      }
-    });
+  this.map.addSource('crowd-agents', {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] }
+  });
 
-    // Agent polygon outline
-    this.map.addLayer({
-      id: 'crowd-agents-dot',
-      type: 'line',
-      source: 'crowd-agents',
-      paint: {
-        'line-color': ['get', 'color'],
-        'line-width': 1.5,
-        'line-opacity': 0.95
-      }
-    });
-  }
+  this.map.addLayer({
+    id: 'crowd-agents-layer',
+    type: 'symbol',
+    source: 'crowd-agents',
+    layout: {
+      'text-field': ['get', 'icon'],
+      'text-size': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        14, 12,
+        18, 22
+      ],
+      'text-allow-overlap': true
+    },
+    paint: {
+      'text-color': ['get', 'color'],
+      'text-halo-color': '#ffffff',
+      'text-halo-width': 1
+    }
+  });
+}
 }

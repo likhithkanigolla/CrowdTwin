@@ -70,26 +70,23 @@ const sampleTreePositionsFromRing = (ring, targetCount) => {
     return points;
 };
 
-const buildTriangleTreeFeatures = (treePositions, size = 0.000018) => {
-    const features = treePositions.map((t, idx) => {
-        const half = size * 0.5;
-        const h = size;
-        return {
-            type: 'Feature',
-            properties: { id: idx },
-            geometry: {
-                type: 'Polygon',
-                coordinates: [[
-                    [t.lng, t.lat + h],
-                    [t.lng - half, t.lat - half],
-                    [t.lng + half, t.lat - half],
-                    [t.lng, t.lat + h],
-                ]]
-            }
-        };
-    });
+const TREE_EMOJIS = ['🌳', '🌲', '🌴'];
 
-    return { type: 'FeatureCollection', features };
+const buildTreePointFeatures = (treePositions) => {
+    return {
+        type: 'FeatureCollection',
+        features: treePositions.map((t, idx) => ({
+            type: 'Feature',
+            properties: {
+                id: idx,
+                icon: TREE_EMOJIS[Math.floor(Math.random() * TREE_EMOJIS.length)]
+            },
+            geometry: {
+                type: 'Point',
+                coordinates: [t.lng, t.lat]
+            }
+        }))
+    };
 };
 
 const createRectangleFeature = (centerLng, centerLat, halfLng, halfLat, properties) => ({
@@ -275,12 +272,12 @@ export default function MapContainer({ currentMode, onBuildingSelect, onBuilding
                 try {
                     map.addLayer({
                         id: 'greenAreas-layer', type: 'fill', source: 'greenAreas',
-                        paint: { 'fill-color': '#052e16', 'fill-opacity': 0.7 }
+                        paint: { 'fill-color': '#dcfce7', 'fill-opacity': 0.6 } // Use a light green, semi-transparent fill
                     }, 'waterway');
                 } catch (e) {
                     map.addLayer({
                         id: 'greenAreas-layer', type: 'fill', source: 'greenAreas',
-                        paint: { 'fill-color': '#052e16', 'fill-opacity': 0.7 }
+                        paint: { 'fill-color': '#dcfce7', 'fill-opacity': 0.6 }
                     });
                 }
 
@@ -355,12 +352,12 @@ export default function MapContainer({ currentMode, onBuildingSelect, onBuilding
             greenAreas.features.forEach(feature => {
                 if (feature.geometry.type === 'Polygon') {
                     const outerRing = feature.geometry.coordinates[0];
-                    const targetCount = Math.max(80, Math.min(1000, outerRing.length * 22));
+                    const targetCount = Math.max(20, Math.min(150, outerRing.length * 6));
                     treePositions.push(...sampleTreePositionsFromRing(outerRing, targetCount));
                 } else if (feature.geometry.type === 'MultiPolygon') {
                     feature.geometry.coordinates.forEach(poly => {
                         const outerRing = poly[0];
-                        const targetCount = Math.max(60, Math.min(700, outerRing.length * 18));
+                        const targetCount = Math.max(20, Math.min(150, outerRing.length * 6));
                         treePositions.push(...sampleTreePositionsFromRing(outerRing, targetCount));
                     });
                 }
@@ -372,18 +369,55 @@ export default function MapContainer({ currentMode, onBuildingSelect, onBuilding
             }
 
             // Always draw visible white triangle trees as a map overlay fallback
-            const triangleTrees = buildTriangleTreeFeatures(treePositions);
-            if (map.getSource('tree-triangles')) {
-                map.getSource('tree-triangles').setData(triangleTrees);
+            const treePoints = buildTreePointFeatures(treePositions);
+
+            const isPointInsideAnyBuilding = (point, buildings) => {
+                for (const b of buildings.features) {
+                    if (!b.geometry) continue;
+
+                    if (b.geometry.type === 'Polygon') {
+                        if (isPointInRing(point, b.geometry.coordinates[0])) {
+                            return true;
+                        }
+                    }
+
+                    if (b.geometry.type === 'MultiPolygon') {
+                        for (const poly of b.geometry.coordinates) {
+                            if (isPointInRing(point, poly[0])) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            };
+
+            if (map.getSource('tree-emoji')) {
+                map.getSource('tree-emoji').setData(treePoints);
             } else {
-                map.addSource('tree-triangles', { type: 'geojson', data: triangleTrees });
+                map.addSource('tree-emoji', {
+                    type: 'geojson',
+                    data: treePoints
+                });
                 map.addLayer({
-                    id: 'tree-triangles-layer',
-                    type: 'fill',
-                    source: 'tree-triangles',
+                    id: 'tree-emoji-layer',
+                    type: 'symbol',
+                    source: 'tree-emoji',
+                    layout: {
+                        'text-field': ['get', 'icon'],
+                        'text-size': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            14, 14,
+                            18, 24
+                        ],
+                        'text-allow-overlap': false
+                    },
                     paint: {
-                        'fill-color': '#ffffff',
-                        'fill-opacity': 0.92
+                        'text-color': '#166534',
+                        'text-halo-color': '#dcfce7',
+                        'text-halo-width': 1.2
                     }
                 });
             }
@@ -401,7 +435,8 @@ export default function MapContainer({ currentMode, onBuildingSelect, onBuilding
 
         mapRef.current = new maplibregl.Map({
             container: mapContainerRef.current,
-            style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+            // style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+            style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
             center: [lng, lat],
             zoom: 16.5,
             pitch: 58,
@@ -434,10 +469,12 @@ export default function MapContainer({ currentMode, onBuildingSelect, onBuilding
             map.setLight({
                 anchor: 'map',
                 color: isDay
-                    ? (hour < 8 ? '#ffb347' : hour > 17 ? '#ff7f50' : '#ffffff')
-                    : '#0d0d1a',
-                intensity: isDay ? Math.max(0.05, dayCurve * 0.9) : 0.02,
-                position: [1.5, 180 - (dayCurve * 90), Math.max(10, dayCurve * 70)]
+                    ? '#ffffff'
+                    : '#1e293b',
+                intensity: isDay
+                    ? 0.6 + (dayCurve * 0.6)
+                    : 0.15,
+                position: [1.5, 180 - (dayCurve * 120), 60]
             });
         } catch (e) { /* style may not have light support */ }
 
