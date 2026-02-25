@@ -12,7 +12,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import maplibregl from 'maplibre-gl';
 
 const MAX_PEOPLE = 2000;
-const MAX_TREES  = 600;
+const MAX_TREES  = 5000;
 const PERSON_VISUAL_SCALE = 8.0; // How many times larger than real height (for visibility from above)
 const TREE_VISUAL_SCALE   = 12.0;
 
@@ -74,38 +74,15 @@ export class ModelLayer {
     }
 
     _loadTrees() {
-        this._loader.load(
-            '/models/tree.glb',
-            (gltf) => {
-                const geo = this._extractMergedGeometry(gltf.scene);
-                if (!geo) {
-                    this._buildProceduralTree();
-                    return;
-                }
-
-                this._normalizeGeometry(geo, 1.0);
-
-                this._treeMat = new THREE.MeshLambertMaterial({ vertexColors: true });
-                this.treeInstances = new THREE.InstancedMesh(geo, this._treeMat, MAX_TREES);
-                this.treeInstances.instanceMatrix.setUsage(THREE.StaticDrawUsage);
-                this.treeInstances.count = 0;
-                this.scene.add(this.treeInstances);
-
-                console.log('✅ ModelLayer: tree.glb loaded');
-                if (this.map) this.map.triggerRepaint();
-            },
-            undefined,
-            () => {
-                console.log('ModelLayer: tree.glb not found, using procedural trees');
-                this._buildProceduralTree();
-            }
-        );
+        this._buildProceduralTree();
+        console.log('✅ ModelLayer: using procedural white triangle trees');
+        if (this.map) this.map.triggerRepaint();
     }
 
     _buildProceduralTree() {
-        const geo = new THREE.ConeGeometry(0.5, 1.0, 6);
+        const geo = new THREE.ConeGeometry(0.5, 1.0, 3);
         geo.translate(0, 0.5, 0);
-        this._treeMat = new THREE.MeshLambertMaterial({ color: 0x15803d });
+        this._treeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
         this.treeInstances = new THREE.InstancedMesh(geo, this._treeMat, MAX_TREES);
         this.treeInstances.instanceMatrix.setUsage(THREE.StaticDrawUsage);
         this.treeInstances.count = 0;

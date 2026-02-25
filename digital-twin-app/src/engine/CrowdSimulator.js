@@ -169,6 +169,55 @@ export class CrowdSimulator {
     console.log(`CrowdSimulator: Initialized ${this.agents.length} agents`);
   }
 
+  populateGreenAreas(greenAreasGeoJSON) {
+    // Populate green areas with stationary agents
+    const agentsPerPolygon = 80; // Dense coverage
+    const stationaryColor = '#10b981'; // Green color for idle agents
+
+    greenAreasGeoJSON.features.forEach(feature => {
+      if (feature.geometry.type === 'Polygon') {
+        const coords = feature.geometry.coordinates[0];
+        
+        // Calculate bounding box
+        let minLng = Infinity, maxLng = -Infinity;
+        let minLat = Infinity, maxLat = -Infinity;
+        coords.forEach(([lng, lat]) => {
+          if (lng < minLng) minLng = lng;
+          if (lng > maxLng) maxLng = lng;
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+        });
+
+        // Scatter agents within the polygon area
+        for (let i = 0; i < agentsPerPolygon && this.agents.length < MAX_AGENTS; i++) {
+          const lng = minLng + Math.random() * (maxLng - minLng);
+          const lat = minLat + Math.random() * (maxLat - minLat);
+
+          // Create stationary agent (path with same start and end)
+          this.agents.push({
+            id: `green_agent_${Date.now()}_${Math.random()}`,
+            cohortId: 'recreation',
+            color: stationaryColor,
+            path: [
+              { lng, lat },
+              { lng: lng + 0.00001, lat: lat + 0.00001 },
+              { lng, lat }
+            ],
+            pathIndex: 0,
+            lng: lng,
+            lat: lat,
+            progress: 0,
+            speed: 0.0000001, // Extremely slow - basically stationary
+            walkPhase: Math.random() * Math.PI * 2,
+            isStationary: true
+          });
+        }
+      }
+    });
+
+    console.log(`CrowdSimulator: Populated green areas`);
+  }
+
   _spawnAgentsForTime(hour) {
     if (this.agents.length >= MAX_AGENTS) return;
 

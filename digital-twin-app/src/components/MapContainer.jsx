@@ -26,6 +26,141 @@ const BUILDING_PAINT = {
     'fill-extrusion-vertical-gradient': true,
 };
 
+const isPointInRing = (point, ring) => {
+    const [x, y] = point;
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0], yi = ring[i][1];
+        const xj = ring[j][0], yj = ring[j][1];
+        const intersects = ((yi > y) !== (yj > y))
+            && (x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1e-12) + xi);
+        if (intersects) inside = !inside;
+    }
+    return inside;
+};
+
+const sampleTreePositionsFromRing = (ring, targetCount) => {
+    if (!ring || ring.length < 3 || targetCount <= 0) return [];
+
+    let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+    ring.forEach(([lng, lat]) => {
+        if (lng < minLng) minLng = lng;
+        if (lng > maxLng) maxLng = lng;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+    });
+
+    if (!Number.isFinite(minLng) || !Number.isFinite(maxLng) || !Number.isFinite(minLat) || !Number.isFinite(maxLat)) {
+        return [];
+    }
+
+    const points = [];
+    const maxAttempts = targetCount * 16;
+    let attempts = 0;
+
+    while (points.length < targetCount && attempts < maxAttempts) {
+        attempts += 1;
+        const lng = minLng + Math.random() * (maxLng - minLng);
+        const lat = minLat + Math.random() * (maxLat - minLat);
+        if (isPointInRing([lng, lat], ring)) {
+            points.push({ lng, lat });
+        }
+    }
+
+    return points;
+};
+
+const buildTriangleTreeFeatures = (treePositions, size = 0.000018) => {
+    const features = treePositions.map((t, idx) => {
+        const half = size * 0.5;
+        const h = size;
+        return {
+            type: 'Feature',
+            properties: { id: idx },
+            geometry: {
+                type: 'Polygon',
+                coordinates: [[
+                    [t.lng, t.lat + h],
+                    [t.lng - half, t.lat - half],
+                    [t.lng + half, t.lat - half],
+                    [t.lng, t.lat + h],
+                ]]
+            }
+        };
+    });
+
+    return { type: 'FeatureCollection', features };
+};
+
+const createRectangleFeature = (centerLng, centerLat, halfLng, halfLat, properties) => ({
+    type: 'Feature',
+    properties,
+    geometry: {
+        type: 'Polygon',
+        coordinates: [[
+            [centerLng - halfLng, centerLat - halfLat],
+            [centerLng + halfLng, centerLat - halfLat],
+            [centerLng + halfLng, centerLat + halfLat],
+            [centerLng - halfLng, centerLat + halfLat],
+            [centerLng - halfLng, centerLat - halfLat],
+        ]]
+    }
+});
+
+const buildFallbackGeojson = (centerLng, centerLat) => {
+    const features = [
+        createRectangleFeature(centerLng - 0.00055, centerLat + 0.00042, 0.00018, 0.00012, {
+            building: 'yes',
+            name: 'Academic Block A',
+            'building:levels': '4'
+        }),
+        createRectangleFeature(centerLng + 0.00045, centerLat + 0.00025, 0.00016, 0.00011, {
+            building: 'yes',
+            name: 'Hostel Block 1',
+            'building:levels': '5'
+        }),
+        createRectangleFeature(centerLng + 0.0002, centerLat - 0.00038, 0.00014, 0.0001, {
+            building: 'yes',
+            name: 'Canteen',
+            'building:levels': '2'
+        }),
+        createRectangleFeature(centerLng - 0.00025, centerLat + 0.0001, 0.0004, 0.00022, {
+            landuse: 'grass'
+        }),
+        createRectangleFeature(centerLng + 0.00052, centerLat - 0.00022, 0.00035, 0.0002, {
+            leisure: 'park'
+        }),
+        {
+            type: 'Feature',
+            properties: { highway: 'secondary' },
+            geometry: {
+                type: 'LineString',
+                coordinates: [
+                    [centerLng - 0.001, centerLat - 0.0008],
+                    [centerLng - 0.0004, centerLat - 0.0002],
+                    [centerLng + 0.0004, centerLat + 0.00015],
+                    [centerLng + 0.001, centerLat + 0.0008],
+                ]
+            }
+        },
+        {
+            type: 'Feature',
+            properties: { highway: 'tertiary' },
+            geometry: {
+                type: 'LineString',
+                coordinates: [
+                    [centerLng - 0.0009, centerLat + 0.00075],
+                    [centerLng - 0.0002, centerLat + 0.00035],
+                    [centerLng + 0.00045, centerLat - 0.00005],
+                    [centerLng + 0.00095, centerLat - 0.00045],
+                ]
+            }
+        }
+    ];
+
+    return { type: 'FeatureCollection', features };
+};
+
 export default function MapContainer({ currentMode, onBuildingSelect, onBuildingsLoaded, simTime }) {
     const mapContainerRef = useRef(null);
     const mapRef = useRef(null);
@@ -52,20 +187,42 @@ export default function MapContainer({ currentMode, onBuildingSelect, onBuilding
     `;
 
         try {
-            const formData = new URLSearchParams();
-            formData.append('data', query);
-            const response = await fetch('https://overpass-api.de/api/interpreter', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: formData
-            });
+            const endpoints = [
+                'https://overpass-api.de/api/interpreter',
+                'https://overpass.kumi.systems/api/interpreter'
+            ];
 
-            if (!response.ok) throw new Error(`Overpass API Error: ${response.status}`);
-            const contentType = response.headers.get("content-type");
-            if (!contentType?.includes("application/json")) throw new Error('Overpass did not return JSON');
+            let geojson = null;
+            for (const endpoint of endpoints) {
+                try {
+                    const formData = new URLSearchParams();
+                    formData.append('data', query);
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: formData
+                    });
 
-            const data = await response.json();
-            const geojson = osmtogeojson(data);
+                    if (!response.ok) throw new Error(`status ${response.status}`);
+
+                    const contentType = response.headers.get('content-type') || '';
+                    if (!contentType.includes('application/json')) throw new Error('non-json response');
+
+                    const data = await response.json();
+                    const parsed = osmtogeojson(data);
+                    if (parsed?.features?.length) {
+                        geojson = parsed;
+                        break;
+                    }
+                } catch (endpointErr) {
+                    console.warn(`Overpass endpoint failed (${endpoint}):`, endpointErr);
+                }
+            }
+
+            if (!geojson?.features?.length) {
+                console.warn('Overpass unavailable or empty response; using fallback map data.');
+                geojson = buildFallbackGeojson(centerLng, centerLat);
+            }
 
             const buildings = { type: "FeatureCollection", features: [] };
             const greenAreas = { type: "FeatureCollection", features: [] };
@@ -190,18 +347,45 @@ export default function MapContainer({ currentMode, onBuildingSelect, onBuilding
             sim.modelLayer = modelLayerRef.current || null; // GLTF instances updated each frame
             sim.init(map, pathways, buildings);
 
-            // Plant trees in ModelLayer
+            // Populate green areas with stationary agents
+            sim.populateGreenAreas(greenAreas);
+
+            // Build tree positions from green areas
+            let treePositions = [];
+            greenAreas.features.forEach(feature => {
+                if (feature.geometry.type === 'Polygon') {
+                    const outerRing = feature.geometry.coordinates[0];
+                    const targetCount = Math.max(80, Math.min(1000, outerRing.length * 22));
+                    treePositions.push(...sampleTreePositionsFromRing(outerRing, targetCount));
+                } else if (feature.geometry.type === 'MultiPolygon') {
+                    feature.geometry.coordinates.forEach(poly => {
+                        const outerRing = poly[0];
+                        const targetCount = Math.max(60, Math.min(700, outerRing.length * 18));
+                        treePositions.push(...sampleTreePositionsFromRing(outerRing, targetCount));
+                    });
+                }
+            });
+
+            // Plant trees in ModelLayer (if available)
             if (modelLayerRef.current) {
-                const treePositions = [];
-                greenAreas.features.forEach(feature => {
-                    if (feature.geometry.type === 'Polygon') {
-                        const coords = feature.geometry.coordinates[0];
-                        for (let i = 0; i < coords.length; i += 3) {
-                            treePositions.push({ lng: coords[i][0], lat: coords[i][1] });
-                        }
+                modelLayerRef.current.placeTrees(treePositions);
+            }
+
+            // Always draw visible white triangle trees as a map overlay fallback
+            const triangleTrees = buildTriangleTreeFeatures(treePositions);
+            if (map.getSource('tree-triangles')) {
+                map.getSource('tree-triangles').setData(triangleTrees);
+            } else {
+                map.addSource('tree-triangles', { type: 'geojson', data: triangleTrees });
+                map.addLayer({
+                    id: 'tree-triangles-layer',
+                    type: 'fill',
+                    source: 'tree-triangles',
+                    paint: {
+                        'fill-color': '#ffffff',
+                        'fill-opacity': 0.92
                     }
                 });
-                modelLayerRef.current.placeTrees(treePositions);
             }
 
         } catch (err) {
