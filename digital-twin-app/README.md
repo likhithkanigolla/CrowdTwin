@@ -1,16 +1,65 @@
-# React + Vite
+# Digital Twin Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite frontend for the campus digital twin.
 
-Currently, two official plugins are available:
+## Backend integration
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Frontend API calls use `VITE_API_BASE_URL` (default: `/api`).
+- Vite dev server proxies `/api/*` to `http://localhost:8000/*`.
+- This allows running frontend and backend on different ports without hardcoded URLs in components.
 
-## React Compiler
+## Run locally
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Start backend (`digital-twin-backend`):
 
-## Expanding the ESLint configuration
+	```bash
+	pip install -r requirements.txt
+	uvicorn main:app --reload --host 0.0.0.0 --port 8000
+	```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+2. Start frontend (`digital-twin-app`):
+
+	```bash
+	npm install
+	npm run dev
+	```
+
+3. Open the frontend URL shown by Vite (typically `http://localhost:5173`).
+
+## Optional env config
+
+Create `.env` in `digital-twin-app`:
+
+```env
+VITE_API_BASE_URL=/api
+```
+
+For direct backend URL (without Vite proxy), set for example:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+## AI-powered suggestions (backend)
+
+`/suggest-building` now uses an LLM when configured, and automatically falls back to a deterministic dynamic heuristic when AI is unavailable.
+
+Set these environment variables before starting backend:
+
+```env
+AI_PROVIDER=gemini
+AI_API_KEY=your_api_key
+AI_MODEL=gemini-2.5-flash-lite
+AI_PROVIDER_URL=https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
+```
+
+OpenAI-compatible alternative:
+
+```env
+AI_PROVIDER=openai
+AI_API_KEY=your_api_key
+AI_MODEL=gpt-4o-mini
+AI_PROVIDER_URL=https://api.openai.com/v1/chat/completions
+```
+
+If `AI_API_KEY` is missing, backend still returns non-random suggestions based on attendee count, capacity/occupancy, and simulated zone load.

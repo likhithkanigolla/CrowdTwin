@@ -4,3 +4,5 @@ digital-twin-backend/node_modules
 digital-twin-backend/dist
 digital-twin-backend/venv
 *.pyc
+.env
+/__pycache__/

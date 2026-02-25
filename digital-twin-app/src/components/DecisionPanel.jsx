@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createEvent, fetchCongestion, suggestBuilding } from '../api';
 
 const SEVERITY_COLORS = {
     critical: '#ef4444',
@@ -24,19 +25,16 @@ export default function DecisionPanel({ availableBuildings, simTime }) {
 
     // Auto-fetch congestion alerts when simTime changes
     useEffect(() => {
-        const fetchCongestion = async () => {
+        const loadCongestion = async () => {
             try {
-                const resp = await fetch(`http://localhost:8000/congestion?sim_time=${simTime}`);
-                if (resp.ok) {
-                    const data = await resp.json();
-                    setCongestionAlerts(data.alerts || []);
-                    setCategoryOccupancy(data.category_occupancy || {});
-                }
+                const data = await fetchCongestion(simTime);
+                setCongestionAlerts(data.alerts || []);
+                setCategoryOccupancy(data.category_occupancy || {});
             } catch (err) {
                 // Backend might not be running, ignore
             }
         };
-        fetchCongestion();
+        loadCongestion();
     }, [Math.floor(simTime)]); // Only update when hour changes
 
     const getSuggestion = async () => {
@@ -46,16 +44,12 @@ export default function DecisionPanel({ availableBuildings, simTime }) {
         }
         setLoading(true);
         try {
-            const resp = await fetch('http://localhost:8000/suggest-building', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: eventName || 'New Event',
-                    attendees: parseInt(attendees),
-                    buildings: availableBuildings
-                })
+            const data = await suggestBuilding({
+                name: eventName || 'New Event',
+                attendees: parseInt(attendees, 10),
+                buildings: availableBuildings,
+                sim_time: simTime,
             });
-            const data = await resp.json();
             setSuggestion(data);
         } catch (err) {
             console.error(err);
@@ -68,15 +62,11 @@ export default function DecisionPanel({ availableBuildings, simTime }) {
     const scheduleEvent = async () => {
         if (!suggestion) return;
         try {
-            await fetch('http://localhost:8000/events', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: eventName || 'New Event',
-                    building_name: suggestion.suggested_building,
-                    attendees: parseInt(attendees),
-                    time: new Date().toISOString()
-                })
+            await createEvent({
+                name: eventName || 'New Event',
+                building_name: suggestion.suggested_building,
+                attendees: parseInt(attendees, 10),
+                time: new Date().toISOString()
             });
             alert(`Event scheduled at ${suggestion.suggested_building}!`);
             setSuggestion(null);
