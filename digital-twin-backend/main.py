@@ -1,8 +1,11 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from pydantic import BaseModel
 from typing import List, Optional
+import csv
 import json
 import os
+from datetime import datetime, timedelta
+from io import StringIO
 from urllib import request as urllib_request
 from urllib import error as urllib_error
 from urllib import parse as urllib_parse
@@ -48,9 +51,230 @@ class Event(BaseModel):
 
 events_db = []
 
+MOVEMENT_GROUPS = [
+    ("UG1", "UG1_Capacity", "UG1_loc"),
+    ("UG2", "UG2_Capacity", "UG2_loc"),
+    ("UG3", "UG3_Capacity", "UG3_loc"),
+    ("UG4", "UG4_Capacity", "UG4_loc"),
+    ("Faculty", "Faculty_Capacity", "Faculty_loc"),
+    ("Staff", "Staff_Capacity", "Staff_loc"),
+]
+
+DATE_FORMATS = ["%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"]
+TIME_FORMATS = ["%H:%M", "%H.%M", "%I:%M %p", "%I %p"]
+DEFAULT_START_TIME = "09:00"
+DEFAULT_END_BUFFER_MINUTES = 60
+
 @app.get("/")
 def read_root():
     return {"status": "Digital Twin Backend Running"}
+
+
+def _normalize_csv_row(row: dict[str, Optional[str]]) -> dict[str, str]:
+    return {k.strip(): (v or "").strip() for k, v in row.items() if k and k.strip()}
+
+
+def _try_parse_date(value: str, row_idx: int) -> datetime.date:
+    for fmt in DATE_FORMATS:
+        try:
+            return datetime.strptime(value, fmt).date()
+        except ValueError:
+            continue
+    raise ValueError(f"Row {row_idx}: could not parse Date '{value}'. Expected format YYYY-MM-DD, DD/MM/YYYY or MM/DD/YYYY.")
+
+
+def _try_parse_time(value: str, row_idx: int, column_name: str) -> datetime.time:
+    for fmt in TIME_FORMATS:
+        try:
+            return datetime.strptime(value, fmt).time()
+        except ValueError:
+            continue
+    raise ValueError(f"Row {row_idx}: could not parse {column_name} '{value}'. Expected HH:MM or hh:mm AM/PM.")
+
+
+def _parse_datetime_field(date_value: str, time_value: str, row_idx: int, column_name: str, fallback: str) -> datetime:
+    if not date_value:
+        raise ValueError(f"Row {row_idx}: Date cannot be empty.")
+
+    time_candidate = time_value or fallback
+    parsed_date = _try_parse_date(date_value, row_idx)
+    parsed_time = _try_parse_time(time_candidate, row_idx, column_name)
+    return datetime.combine(parsed_date, parsed_time)
+
+
+def _calculate_lead_minutes(duration_minutes: float) -> int:
+    if duration_minutes <= 0:
+        return 15
+    value = round(duration_minutes / 2)
+    return max(5, min(30, value))
+
+
+def _classify_priority(share: float) -> str:
+    if share >= 0.35:
+        return "critical"
+    if share >= 0.25:
+        return "high"
+    if share >= 0.1:
+        return "medium"
+    return "low"
+
+
+def _slugify(value: str) -> str:
+    stripped = "".join(ch.lower() if ch.isalnum() else "_" for ch in value)
+    return stripped.strip("_") or "venue"
+
+
+def _clean_location(value: str) -> str:
+    clean = value.strip()
+    return clean or "Unknown origin"
+
+
+def _parse_capacity_value(raw_value: str) -> int:
+    if not raw_value:
+        return 0
+    try:
+        parsed = float(raw_value)
+        return int(round(parsed))
+    except ValueError:
+        return 0
+
+
+def _build_flow_id(date_str: str, venue: str, group: str, start_dt: datetime) -> str:
+    venue_code = _slugify(venue)
+    time_code = start_dt.strftime("%H%M")
+    return f"{date_str}_{venue_code}_{group}_{time_code}"
+
+
+def _build_movements_for_row(row: dict[str, str], row_idx: int) -> tuple[list[dict], dict]:
+    date_value = row.get("Date", "")
+    venue = row.get("Venue", "")
+    if not venue:
+        raise ValueError(f"Row {row_idx}: Venue cannot be empty.")
+
+    start_time = row.get("Start_time", "")
+    end_time = row.get("End_time", "")
+    start_dt = _parse_datetime_field(date_value, start_time, row_idx, "Start_time", DEFAULT_START_TIME)
+    if end_time:
+        try:
+            end_dt = _parse_datetime_field(date_value, end_time, row_idx, "End_time", DEFAULT_START_TIME)
+        except ValueError:
+            end_dt = start_dt + timedelta(minutes=DEFAULT_END_BUFFER_MINUTES)
+    else:
+        end_dt = start_dt + timedelta(minutes=DEFAULT_END_BUFFER_MINUTES)
+
+    if end_dt <= start_dt:
+        end_dt = start_dt + timedelta(minutes=DEFAULT_END_BUFFER_MINUTES)
+
+    duration_minutes = max(1.0, (end_dt - start_dt).total_seconds() / 60.0)
+
+    total_capacity = _parse_capacity_value(row.get("Total_Capacity", ""))
+    group_capacities = []
+    group_capacity_total = 0
+
+    for group_name, cap_column, loc_column in MOVEMENT_GROUPS:
+        capacity = _parse_capacity_value(row.get(cap_column, ""))
+        if capacity <= 0:
+            continue
+        location = _clean_location(row.get(loc_column, ""))
+        group_capacities.append((group_name, capacity, location))
+        group_capacity_total += capacity
+
+    if not group_capacities:
+        raise ValueError(f"Row {row_idx}: At least one group must have a positive capacity.")
+
+    effective_total = total_capacity if total_capacity > 0 else group_capacity_total
+    if effective_total <= 0:
+        effective_total = group_capacity_total
+
+    lead_minutes = _calculate_lead_minutes(duration_minutes)
+    departure_dt = start_dt - timedelta(minutes=lead_minutes)
+
+    movements = []
+    for group_name, capacity, location in group_capacities:
+        share = round(capacity / max(effective_total, 1), 2)
+        movement = {
+            "flow_id": _build_flow_id(date_value, venue, group_name, start_dt),
+            "row_index": row_idx,
+            "date": date_value,
+            "venue": venue,
+            "group": group_name,
+            "from_location": location,
+            "attendees": capacity,
+            "total_capacity": effective_total,
+            "start_time": start_dt.strftime("%H:%M"),
+            "end_time": end_dt.strftime("%H:%M"),
+            "departure_time": departure_dt.strftime("%H:%M"),
+            "arrival_time": start_dt.strftime("%H:%M"),
+            "duration_minutes": int(duration_minutes),
+            "share_of_total": share,
+            "priority": _classify_priority(share),
+            "venue_slug": _slugify(venue),
+        }
+        movements.append(movement)
+
+    dominant = max(movements, key=lambda item: item["share_of_total"])
+    unused_capacity = max(0, effective_total - group_capacity_total)
+
+    row_summary = {
+        "row_index": row_idx,
+        "date": date_value,
+        "venue": venue,
+        "start_time": start_dt.strftime("%H:%M"),
+        "end_time": end_dt.strftime("%H:%M"),
+        "total_capacity": effective_total,
+        "groups_scheduled": len(movements),
+        "dominant_group": dominant["group"],
+        "dominant_share": dominant["share_of_total"],
+        "unused_capacity": unused_capacity,
+    }
+
+    return movements, row_summary
+
+
+async def _build_movement_plan_from_csv(file: UploadFile) -> dict:
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Uploaded CSV is empty.")
+
+    text = contents.decode("utf-8-sig")
+    reader = csv.DictReader(StringIO(text))
+    if not reader.fieldnames:
+        raise HTTPException(status_code=400, detail="CSV file is missing a header row.")
+
+    normalized_headers = {header.strip() for header in reader.fieldnames if header and header.strip()}
+    expected_columns = {"Date", "Start_time", "End_time", "Venue", "Total_Capacity"}
+    expected_columns.update({col for _, col, _ in MOVEMENT_GROUPS})
+    expected_columns.update({loc for _, _, loc in MOVEMENT_GROUPS})
+
+    missing_columns = expected_columns - normalized_headers
+    if missing_columns:
+        raise HTTPException(
+            status_code=400,
+            detail=f"CSV is missing required columns: {', '.join(sorted(missing_columns))}."
+        )
+
+    rows = list(reader)
+    if not rows:
+        raise HTTPException(status_code=400, detail="CSV file contains no data rows.")
+
+    plan_entries = []
+    summaries = []
+    for row_idx, raw_row in enumerate(rows, start=1):
+        normalized_row = _normalize_csv_row(raw_row)
+        try:
+            movements, summary = _build_movements_for_row(normalized_row, row_idx)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+        plan_entries.extend(movements)
+        summaries.append(summary)
+
+    return {
+        "imported_rows": len(rows),
+        "total_movements": len(plan_entries),
+        "movements": plan_entries,
+        "row_summaries": summaries,
+    }
 
 
 def infer_building_category(building_name: str) -> str:
@@ -321,6 +545,17 @@ def create_event(event: Event):
 @app.get("/events")
 def get_events():
     return {"events": events_db}
+
+
+@app.post("/movement-plan")
+async def upload_movement_plan(file: UploadFile = File(...)):
+    filename = (file.filename or "").lower()
+    if not filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Uploaded file must be a CSV.")
+
+    plan = await _build_movement_plan_from_csv(file)
+    await file.close()
+    return plan
 
 
 # --- Real-time Congestion Prediction based on SimulationDB schedule ---
