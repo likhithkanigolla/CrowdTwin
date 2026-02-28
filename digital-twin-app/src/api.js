@@ -54,3 +54,43 @@ export async function createEvent(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export async function uploadMovementPlan(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  let lastError;
+
+  for (let index = 0; index < API_BASE_CANDIDATES.length; index += 1) {
+    const base = API_BASE_CANDIDATES[index];
+    const isLast = index === API_BASE_CANDIDATES.length - 1;
+
+    try {
+      const response = await fetch(buildUrl(base, '/movement-plan'), {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        if (!isLast && (response.status === 404 || response.status >= 500)) {
+          continue;
+        }
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `Upload failed (${response.status})`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+      if (!isLast) {
+        continue;
+      }
+    }
+  }
+
+  throw lastError || new Error('Upload failed');
+}
+
+export async function fetchSchedule() {
+  return requestJson('/schedule');
+}

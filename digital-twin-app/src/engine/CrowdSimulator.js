@@ -8,8 +8,8 @@
 
 import { NavigationGraph } from './NavigationGraph';
 
-const MAX_AGENTS = 2000;
-const AGENT_SPEED_MS = 0.000003; // Much slower walking speed
+const MAX_AGENTS = 200;
+const AGENT_SPEED_MS = 0.00000003; // Much slower walking speed
 
 // Cohort definitions with colors encoded as MapLibre CSS strings
 export const COHORTS = [
@@ -21,8 +21,8 @@ export const COHORTS = [
   { id: 'staff',   name: 'Staff',           color: '#a78bfa', darkColor: '#7c3aed', count: 15 },
 ];
 
-// Schedule: what area category each cohort is heading to at each hour
-const SCHEDULES = {
+// Default schedule (will be overridden by backend if available)
+const DEFAULT_SCHEDULES = {
   ug1:     { 0:'hostel',7:'hostel',8:'academic',12:'canteen',13:'academic',17:'recreation',19:'canteen',21:'hostel' },
   ug2:     { 0:'hostel',8:'canteen',9:'academic',12:'canteen',14:'academic',16:'recreation',20:'hostel',22:'academic' },
   ug3:     { 0:'hostel',9:'academic',13:'canteen',14:'academic',18:'hostel',20:'canteen',22:'academic' },
@@ -31,12 +31,34 @@ const SCHEDULES = {
   staff:   { 0:'admin',6:'gate',7:'canteen',10:'academic',14:'canteen',16:'gate',17:'admin' },
 };
 
+let SCHEDULES = DEFAULT_SCHEDULES;
+let SCHEDULE_BY_TIME = {}; // Will store backend schedule data
+
+export function setSchedules(schedules, scheduleByTime) {
+  SCHEDULES = schedules || DEFAULT_SCHEDULES;
+  SCHEDULE_BY_TIME = scheduleByTime || {};
+}
+
 function getScheduledCategory(cohortId, hour) {
   const sched = SCHEDULES[cohortId] || SCHEDULES.ug1;
   const keys = Object.keys(sched).map(Number).sort((a,b) => a-b);
   let target = keys[0];
   for (const k of keys) { if (hour >= k) target = k; }
   return sched[target];
+}
+
+function getScheduledBuilding(cohortId, hour) {
+  // Try to find scheduled venue from backend schedule
+  const timeKey = `${String(hour).padStart(2, '0')}:00`;
+  if (SCHEDULE_BY_TIME[timeKey] && SCHEDULE_BY_TIME[timeKey][cohortId]) {
+    return SCHEDULE_BY_TIME[timeKey][cohortId];
+  }
+  return null;
+}
+
+function getBuildingStayDuration(venueInfo) {
+  if (!venueInfo || !venueInfo.duration_minutes) return 60 * 1000; // Default 60 seconds = 60 minutes game time
+  return venueInfo.duration_minutes * 1000; // Convert to milliseconds
 }
 
 
@@ -414,14 +436,14 @@ _getHumanEmoji(cohortId) {
           'interpolate',
           ['linear'],
           ['zoom'],
-          14, 14,
-          18, 24
+          14, 10,
+          18, 16
         ],
         'text-allow-overlap': true,
         'text-keep-upright': true
       },
       paint: {
-        'text-color': '#000000',
+        'text-color': ['get', 'color'],
         'text-halo-color': '#ffffff',
         'text-halo-width': 1.5,
         'text-opacity': 0.95

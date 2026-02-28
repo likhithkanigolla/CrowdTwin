@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, File, UploadFile
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import csv
 import json
 import os
@@ -31,6 +31,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Create uploads directory if it doesn't exist
+UPLOADS_DIR = "uploads"
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+# Global variable to store the current movement schedule
+current_schedule: Optional[Dict[str, Any]] = None
 
 class Building(BaseModel):
     name: str
@@ -68,6 +75,42 @@ DEFAULT_END_BUFFER_MINUTES = 60
 @app.get("/")
 def read_root():
     return {"status": "Digital Twin Backend Running"}
+
+
+@app.on_event("startup")
+def _restore_schedule_on_startup():
+    """Restore the last uploaded CSV on backend restart."""
+    global current_schedule
+    filepath = os.path.join(UPLOADS_DIR, "current_movement_plan.csv")
+    if not os.path.exists(filepath):
+        return
+    try:
+        with open(filepath, 'r', encoding='utf-8-sig') as f:
+            text = f.read()
+        plan = _build_movement_plan_from_rows(text)
+        cohort_schedule_by_time = {}
+        for movement in plan.get("movements", []):
+            time_key = movement.get("start_time", "")
+            cohort = movement.get("group", "").lower().replace(" ", "_")
+            if time_key not in cohort_schedule_by_time:
+                cohort_schedule_by_time[time_key] = {}
+            cohort_schedule_by_time[time_key][cohort] = {
+                "venue": movement.get("venue", ""),
+                "from_location": movement.get("from_location", ""),
+                "attendees": movement.get("attendees", 0),
+                "start_time": movement.get("start_time", ""),
+                "end_time": movement.get("end_time", ""),
+                "duration_minutes": movement.get("duration_minutes", 0)
+            }
+        current_schedule = {
+            "date": plan.get("row_summaries", [{}])[0].get("date", "") if plan.get("row_summaries") else "",
+            "schedule_by_time": cohort_schedule_by_time,
+            "movements": plan.get("movements", []),
+            "row_summaries": plan.get("row_summaries", [])
+        }
+        print(f"Restored schedule from {filepath}")
+    except Exception as e:
+        print(f"Could not restore schedule: {e}")
 
 
 def _normalize_csv_row(row: dict[str, Optional[str]]) -> dict[str, str]:
@@ -231,12 +274,8 @@ def _build_movements_for_row(row: dict[str, str], row_idx: int) -> tuple[list[di
     return movements, row_summary
 
 
-async def _build_movement_plan_from_csv(file: UploadFile) -> dict:
-    contents = await file.read()
-    if not contents:
-        raise HTTPException(status_code=400, detail="Uploaded CSV is empty.")
-
-    text = contents.decode("utf-8-sig")
+def _build_movement_plan_from_rows(text: str) -> dict:
+    """Parse CSV text and build movement plan. Raises HTTPException on errors."""
     reader = csv.DictReader(StringIO(text))
     if not reader.fieldnames:
         raise HTTPException(status_code=400, detail="CSV file is missing a header row.")
@@ -275,6 +314,15 @@ async def _build_movement_plan_from_csv(file: UploadFile) -> dict:
         "movements": plan_entries,
         "row_summaries": summaries,
     }
+
+
+async def _build_movement_plan_from_csv(file: UploadFile) -> dict:
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Uploaded CSV is empty.")
+
+    text = contents.decode("utf-8-sig")
+    return _build_movement_plan_from_rows(text)
 
 
 def infer_building_category(building_name: str) -> str:
@@ -549,13 +597,79 @@ def get_events():
 
 @app.post("/movement-plan")
 async def upload_movement_plan(file: UploadFile = File(...)):
+    global current_schedule
+    
     filename = (file.filename or "").lower()
     if not filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Uploaded file must be a CSV.")
 
-    plan = await _build_movement_plan_from_csv(file)
+    # Read raw contents first so we can both save and parse
+    raw_contents = await file.read()
+    if not raw_contents:
+        raise HTTPException(status_code=400, detail="Uploaded CSV is empty.")
+
+    # Save the uploaded CSV file (replaces previous one)
+    filepath = os.path.join(UPLOADS_DIR, "current_movement_plan.csv")
+    with open(filepath, 'wb') as f:
+        f.write(raw_contents)
+
+    # Re-create a mock UploadFile-like object for the parser using a fresh StringIO
+    text = raw_contents.decode("utf-8-sig")
+    plan = _build_movement_plan_from_rows(text)
     await file.close()
-    return plan
+    
+    # Build cohort schedules from movements data
+    cohort_schedule_by_time = {}
+    
+    movements = plan.get("movements", [])
+    for movement in movements:
+        cohort = movement.get("group", "").lower().replace(" ", "_")
+        venue = movement.get("venue", "")
+        start_time = movement.get("start_time", "")
+        end_time = movement.get("end_time", "")
+        from_location = movement.get("from_location", "")
+        attendees = movement.get("attendees", 0)
+        
+        time_key = start_time
+        if time_key not in cohort_schedule_by_time:
+            cohort_schedule_by_time[time_key] = {}
+        
+        cohort_schedule_by_time[time_key][cohort] = {
+            "venue": venue,
+            "from_location": from_location,
+            "attendees": attendees,
+            "start_time": start_time,
+            "end_time": end_time,
+            "duration_minutes": movement.get("duration_minutes", 0)
+        }
+    
+    # Store the schedule globally for the frontend to fetch
+    current_schedule = {
+        "date": plan.get("row_summaries", [{}])[0].get("date", "") if plan.get("row_summaries") else "",
+        "schedule_by_time": cohort_schedule_by_time,
+        "movements": movements,
+        "row_summaries": plan.get("row_summaries", [])
+    }
+    
+    return {
+        "imported_rows": plan.get("imported_rows"),
+        "total_movements": plan.get("total_movements"),
+        "row_summaries": plan.get("row_summaries", []),
+        "schedule_by_time": cohort_schedule_by_time,
+        "message": "Movement plan uploaded and stored successfully"
+    }
+
+
+@app.get("/schedule")
+def get_schedule():
+    """Retrieve the current movement schedule for the frontend"""
+    if current_schedule is None:
+        return {
+            "schedule_by_time": {},
+            "movements": [],
+            "message": "No schedule loaded yet. Upload a CSV first."
+        }
+    return current_schedule
 
 
 # --- Real-time Congestion Prediction based on SimulationDB schedule ---
