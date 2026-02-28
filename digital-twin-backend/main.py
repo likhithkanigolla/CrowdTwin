@@ -71,13 +71,67 @@ def get_events():
 
 @app.post("/movement-plan")
 async def upload_movement_plan(file: UploadFile = File(...)):
+    global current_schedule
+    
     filename = (file.filename or "").lower()
     if not filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Uploaded file must be a CSV.")
 
     plan = await build_movement_plan_from_csv(file)
     await file.close()
-    return plan
+    
+    # Build cohort schedules from movements data
+    cohort_schedule_by_time = {}
+    
+    movements = plan.get("movements", [])
+    for movement in movements:
+        cohort = movement.get("group", "").lower().replace(" ", "_")
+        venue = movement.get("venue", "")
+        start_time = movement.get("start_time", "")
+        end_time = movement.get("end_time", "")
+        from_location = movement.get("from_location", "")
+        attendees = movement.get("attendees", 0)
+        
+        time_key = start_time
+        if time_key not in cohort_schedule_by_time:
+            cohort_schedule_by_time[time_key] = {}
+        
+        cohort_schedule_by_time[time_key][cohort] = {
+            "venue": venue,
+            "from_location": from_location,
+            "attendees": attendees,
+            "start_time": start_time,
+            "end_time": end_time,
+            "duration_minutes": movement.get("duration_minutes", 0)
+        }
+    
+    # Store the schedule globally for the frontend to fetch
+    current_schedule = {
+        "date": plan.get("row_summaries", [{}])[0].get("date", "") if plan.get("row_summaries") else "",
+        "schedule_by_time": cohort_schedule_by_time,
+        "movements": movements,
+        "row_summaries": plan.get("row_summaries", [])
+    }
+    
+    return {
+        "imported_rows": plan.get("imported_rows"),
+        "total_movements": plan.get("total_movements"),
+        "row_summaries": plan.get("row_summaries", []),
+        "schedule_by_time": cohort_schedule_by_time,
+        "message": "Movement plan uploaded and stored successfully"
+    }
+
+
+@app.get("/schedule")
+def get_schedule():
+    """Retrieve the current movement schedule for the frontend"""
+    if current_schedule is None:
+        return {
+            "schedule_by_time": {},
+            "movements": [],
+            "message": "No schedule loaded yet. Upload a CSV first."
+        }
+    return current_schedule
 
 
 @app.get("/congestion")

@@ -3,14 +3,19 @@ import ModeToggle from './components/ModeToggle';
 import MapContainer from './components/MapContainer';
 import BuildingPanel from './components/BuildingPanel';
 import DecisionPanel from './components/DecisionPanel';
+import CSVUploadPanel from './components/CSVUploadPanel';
+import { useSchedule } from './hooks/useSchedule';
 
 // How fast time runs:  1 real second = N simulated minutes
-const SIM_SPEED_MINUTES_PER_SECOND = 2; // 1s real = 2 min sim by default
+const SIM_SPEED_MINUTES_PER_SECOND = 1; // 1s real = 1 min sim by default
 
 function App() {
   const [currentMode, setMode] = useState('visualize');
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [availableBuildings, setAvailableBuildings] = useState([]);
+
+  // Load schedule from backend on mount
+  useSchedule();
 
   const [simTime, setSimTime] = useState(7.75);
   const [isRunning, setIsRunning] = useState(true);
@@ -60,7 +65,33 @@ function App() {
       <div className="ui-layer">
         <ModeToggle currentMode={currentMode} setMode={setMode} />
 
+        <CSVUploadPanel />
+
         {/* Virtual Clock Panel */}
+        {currentMode === 'visualize' && (
+        <div className="glass-panel" style={{
+          position: 'absolute',
+          top: '80px',
+          right: '20px',
+          padding: '12px 16px',
+          width: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          alignItems: 'center',
+          zIndex: 100
+        }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 600 }}>
+            🕐 Time
+          </span>
+          <span style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+            {formatTime(simTime)}
+          </span>
+        </div>
+        )}
+
+        {/* Virtual Clock Panel - Full controls for Simulate mode */}
+        {currentMode === 'simulate' && (
         <div className="glass-panel" style={{
           position: 'absolute',
           top: '80px',
@@ -140,6 +171,7 @@ function App() {
             </div>
           </div>
         </div>
+        )}
 
         {selectedBuilding && (
           <BuildingPanel

@@ -166,7 +166,7 @@ export default function MapContainer({ currentMode, onBuildingSelect, onBuilding
     const [loading, setLoading] = useState(false);
 
     const [lng, setLng] = useState(78.3483);
-    const [lat, setLat] = useState(17.4455);
+    const [lat, setLat] = useState(17.445);
 
     const fetchOverpassData = async (map, centerLng, centerLat) => {
         setLoading(true);
@@ -438,7 +438,7 @@ export default function MapContainer({ currentMode, onBuildingSelect, onBuilding
             // style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
             style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
             center: [lng, lat],
-            zoom: 16.5,
+            zoom: 17,
             pitch: 58,
             bearing: -20,
             antialias: true,
