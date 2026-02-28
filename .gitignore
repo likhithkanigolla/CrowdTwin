@@ -6,3 +6,4 @@ digital-twin-backend/venv
 *.pyc
 .env
 /__pycache__/
+venv/
