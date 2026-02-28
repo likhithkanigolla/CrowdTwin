@@ -136,19 +136,28 @@ export class CrowdSimulator {
         // Place agent at a random point along the path to create realistic distribution
         const pathIndex = Math.floor(Math.random() * Math.max(1, pathPoints.length - 2));
         const startPos = pathPoints[pathIndex];
+        const groupId = `group_${Date.now()}_${Math.random()}`;
 
-        this.agents.push({
-          id: `agent_${Date.now()}_${Math.random()}`,
-          cohortId: cohort.id,
-          color: cohort.color,
-          path: pathPoints.slice(pathIndex),
-          pathIndex: 0,
-          lng: startPos.lng,
-          lat: startPos.lat,
-          progress: Math.random() * 0.5,
-          speed: AGENT_SPEED_MS * (0.7 + Math.random() * 0.6),
-          walkPhase: Math.random() * Math.PI * 2
-        });
+        // Create a small group of 2-4 people
+        const groupSize = 2 + Math.floor(Math.random() * 3);
+        for (let g = 0; g < groupSize; g++) {
+          this.agents.push({
+            id: `agent_${Date.now()}_${Math.random()}`,
+            cohortId: cohort.id,
+            color: cohort.color,
+            path: pathPoints.slice(pathIndex),
+            pathIndex: 0,
+            lng: startPos.lng + (Math.random() - 0.5) * 0.00002,
+            lat: startPos.lat + (Math.random() - 0.5) * 0.00002,
+            progress: Math.random() * 0.5,
+            speed: AGENT_SPEED_MS * (0.7 + Math.random() * 0.6),
+            walkPhase: Math.random() * Math.PI * 2,
+            state: 'MOVING',
+            targetBuilding: null,
+            insideUntil: null,
+            groupId: groupId
+          });
+        }
       }
     });
 
@@ -195,7 +204,11 @@ export class CrowdSimulator {
             progress: 0,
             speed: 0.0000001, // Extremely slow - basically stationary
             walkPhase: Math.random() * Math.PI * 2,
-            isStationary: true
+            isStationary: true,
+            state: 'MOVING',
+            targetBuilding: null,
+            insideUntil: null,
+            groupId: null
           });
         }
       }
@@ -244,18 +257,27 @@ export class CrowdSimulator {
 
         if (pathPoints.length < 2) continue;
 
-        this.agents.push({
-          id: `agent_${Date.now()}_${Math.random()}`,
-          cohortId: cohort.id,
-          color: cohort.color,
-          path: pathPoints,
-          pathIndex: 0,
-          lng: pathPoints[0].lng,
-          lat: pathPoints[0].lat,
-          progress: 0,
-          speed: AGENT_SPEED_MS * (0.7 + Math.random() * 0.6), // variation in walking speed
-          walkPhase: Math.random() * Math.PI * 2
-        });
+        // Create group of 2-4 people
+        const groupSize = 2 + Math.floor(Math.random() * 3);
+        const groupId = `group_${Date.now()}_${Math.random()}`;
+        for (let g = 0; g < groupSize; g++) {
+          this.agents.push({
+            id: `agent_${Date.now()}_${Math.random()}`,
+            cohortId: cohort.id,
+            color: cohort.color,
+            path: pathPoints,
+            pathIndex: 0,
+            lng: pathPoints[0].lng + (Math.random() - 0.5) * 0.00002,
+            lat: pathPoints[0].lat + (Math.random() - 0.5) * 0.00002,
+            progress: 0,
+            speed: AGENT_SPEED_MS * (0.7 + Math.random() * 0.6), // variation in walking speed
+            walkPhase: Math.random() * Math.PI * 2,
+            state: 'MOVING',
+            targetBuilding: b2,
+            insideUntil: null,
+            groupId: groupId
+          });
+        }
       }
     });
   }
@@ -277,6 +299,31 @@ export class CrowdSimulator {
     // Update agent positions
     const toRemove = [];
     this.agents.forEach((agent, idx) => {
+      // Handle INSIDE state
+      if (agent.state === 'INSIDE') {
+        if (performance.now() > agent.insideUntil) {
+          // Exit building → go somewhere else
+          const newCategory = getScheduledCategory(agent.cohortId, Math.floor(this.simTime));
+          const newTarget = this._getBuildingForCategory(newCategory);
+
+          if (newTarget) {
+            const pathPoints = this.navGraph.findPath(
+              { lng: agent.lng, lat: agent.lat },
+              { lng: newTarget.properties.center[0], lat: newTarget.properties.center[1] }
+            );
+
+            if (pathPoints.length > 1) {
+              agent.path = pathPoints;
+              agent.pathIndex = 0;
+              agent.state = 'MOVING';
+              agent.targetBuilding = newTarget;
+            }
+          }
+        }
+        return; // Skip movement update while INSIDE
+      }
+
+      // MOVING state logic
       const target = agent.path[agent.pathIndex + 1];
       if (!target) { toRemove.push(idx); return; }
 
@@ -291,14 +338,16 @@ export class CrowdSimulator {
         agent.lat = target.lat;
         agent.pathIndex++;
         if (agent.pathIndex >= agent.path.length - 1) {
-          toRemove.push(idx);
+          // Reached destination → enter building
+          agent.state = 'INSIDE';
+          agent.insideUntil = performance.now() + (2000 + Math.random() * 6000); // Stay 2-8 seconds
         }
       } else {
         // Move toward waypoint
         const ratio = step / dist;
         agent.lng += dlng * ratio;
         agent.lat += dlat * ratio;
-        // Store facing angle for 3D model rotation
+        // Store facing angle for emoji rotation
         agent.angle = Math.atan2(dlat, dlng);
       }
     });
@@ -308,7 +357,7 @@ export class CrowdSimulator {
       this.agents.splice(toRemove[i], 1);
     }
 
-    // Update MapLibre GeoJSON layer (circle dots)
+    // Update MapLibre GeoJSON layer with visible agents
     this._updateLayer();
 
     // Update GLTF 3D model instances (if ModelLayer attached)
@@ -317,61 +366,66 @@ export class CrowdSimulator {
     }
   }
 
-_updateLayer() {
-  if (!this.map || !this.map.getSource('crowd-agents')) return;
+  _updateLayer() {
+    if (!this.map || !this.map.getSource('crowd-agents')) return;
 
-  const features = this.agents.map(agent => ({
-    type: 'Feature',
-    geometry: {
-      type: 'Point',
-      coordinates: [agent.lng, agent.lat]
-    },
-    properties: {
-      cohortId: agent.cohortId,
-      color: agent.color,
-      icon: this._getHumanEmoji(agent.cohortId)
-    }
-  }));
+    // Only render agents that are MOVING (hide INSIDE agents)
+    const visibleAgents = this.agents.filter(a => a.state !== 'INSIDE');
 
-  this.map.getSource('crowd-agents').setData({
-    type: 'FeatureCollection',
-    features
-  });
-}
+    const features = visibleAgents.map(agent => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [agent.lng, agent.lat]
+      },
+      properties: {
+        cohortId: agent.cohortId,
+        color: agent.color,
+        icon: this._getHumanEmoji(agent.cohortId)
+      }
+    }));
+
+    this.map.getSource('crowd-agents').setData({
+      type: 'FeatureCollection',
+      features
+    });
+  }
 
 _getHumanEmoji(cohortId) {
   const EMOJIS = ['🚶','🚶‍♂️','🚶‍♀️'];
   return EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
 }
 
-_createLayers() {
-  if (this.map.getSource('crowd-agents')) return;
+  _createLayers() {
+    if (this.map.getSource('crowd-agents')) return;
 
-  this.map.addSource('crowd-agents', {
-    type: 'geojson',
-    data: { type: 'FeatureCollection', features: [] }
-  });
+    this.map.addSource('crowd-agents', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] }
+    });
 
-  this.map.addLayer({
-    id: 'crowd-agents-layer',
-    type: 'symbol',
-    source: 'crowd-agents',
-    layout: {
-      'text-field': ['get', 'icon'],
-      'text-size': [
-        'interpolate',
-        ['linear'],
-        ['zoom'],
-        14, 12,
-        18, 22
-      ],
-      'text-allow-overlap': true
-    },
-    paint: {
-      'text-color': ['get', 'color'],
-      'text-halo-color': '#ffffff',
-      'text-halo-width': 1
-    }
-  });
-}
+    this.map.addLayer({
+      id: 'crowd-agents-layer',
+      type: 'symbol',
+      source: 'crowd-agents',
+      layout: {
+        'text-field': ['get', 'icon'],
+        'text-size': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          14, 14,
+          18, 24
+        ],
+        'text-allow-overlap': true,
+        'text-keep-upright': true
+      },
+      paint: {
+        'text-color': '#000000',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1.5,
+        'text-opacity': 0.95
+      }
+    });
+  }
 }
