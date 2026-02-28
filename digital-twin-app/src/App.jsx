@@ -2,17 +2,33 @@ import { useState, useEffect, useRef } from 'react';
 import ModeToggle from './components/ModeToggle';
 import MapContainer from './components/MapContainer';
 import BuildingPanel from './components/BuildingPanel';
-import DecisionPanel from './components/DecisionPanel';
+import RightSidePanel from './components/RightSidePanel';
 import CSVUploadPanel from './components/CSVUploadPanel';
 import { useSchedule } from './hooks/useSchedule';
 
 // How fast time runs:  1 real second = N simulated minutes
 const SIM_SPEED_MINUTES_PER_SECOND = 1; // 1s real = 1 min sim by default
 
+// Default focus area as polygon points
+const DEFAULT_POLYGON = {
+  points: [
+    { lat: 17.444367264099508, lng: 78.34452457988155 },
+    { lat: 17.448797391748382, lng: 78.34838358854786 },
+    { lat: 17.445193097471517, lng: 78.35201607258138 },
+    { lat: 17.44226793257296, lng: 78.3496861051025 }
+  ]
+};
+
 function App() {
   const [currentMode, setMode] = useState('visualize');
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [availableBuildings, setAvailableBuildings] = useState([]);
+  const [actuationEvents, setActuationEvents] = useState([]);
+
+  // Focus area state (lifted from MapContainer)
+const [areaPoints, setAreaPoints] = useState([]);
+const [selectedArea, setSelectedArea] = useState(null);
+const [isPlacingPoints, setIsPlacingPoints] = useState(false);
 
   // Load schedule from backend on mount
   useSchedule();
@@ -46,146 +62,80 @@ function App() {
     return `${displayHrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')} ${suffix}`;
   };
 
-  const SPEED_OPTIONS = [
-    { label: '1×', value: 1 },
-    { label: '5×', value: 5 },
-    { label: '15×', value: 15 },
-    { label: '60×', value: 60 },
-  ];
+  // Focus area helpers
+  const togglePointPlacement = () => {
+    setIsPlacingPoints(prev => !prev);
+    if (isPlacingPoints) {
+      setAreaPoints([]);
+    }
+  };
+
+  const useDefaultArea = () => {
+    setSelectedArea(DEFAULT_POLYGON);
+    setAreaPoints([]);
+    setIsPlacingPoints(false);
+  };
+
+  const clearAreaSelection = () => {
+    setSelectedArea(null);
+    setAreaPoints([]);
+    setIsPlacingPoints(false);
+  };
 
   return (
-    <>
-      <MapContainer
-        currentMode={currentMode}
-        onBuildingSelect={setSelectedBuilding}
-        onBuildingsLoaded={setAvailableBuildings}
-        simTime={simTime}
-      />
+    <div className="app-layout">
+      {/* 80% Map Section */}
+      <div className="map-section">
+        <MapContainer
+          currentMode={currentMode}
+          onBuildingSelect={setSelectedBuilding}
+          onBuildingsLoaded={setAvailableBuildings}
+          simTime={simTime}
+          isPlacingPoints={isPlacingPoints}
+          setIsPlacingPoints={setIsPlacingPoints}
+          areaPoints={areaPoints}
+          setAreaPoints={setAreaPoints}
+          selectedArea={selectedArea}
+          setSelectedArea={setSelectedArea}
+        />
 
-      <div className="ui-layer">
-        <ModeToggle currentMode={currentMode} setMode={setMode} />
+        <div className="ui-layer">
+          <ModeToggle currentMode={currentMode} setMode={setMode} />
 
-        <CSVUploadPanel />
-
-        {/* Virtual Clock Panel */}
-        {currentMode === 'visualize' && (
-        <div className="glass-panel" style={{
-          position: 'absolute',
-          top: '80px',
-          right: '20px',
-          padding: '12px 16px',
-          width: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          alignItems: 'center',
-          zIndex: 100
-        }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 600 }}>
-            🕐 Time
-          </span>
-          <span style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-            {formatTime(simTime)}
-          </span>
+          {selectedBuilding && (
+            <BuildingPanel
+              building={selectedBuilding}
+              mode={currentMode}
+              simTime={simTime}
+            />
+          )}
         </div>
-        )}
-
-        {/* Virtual Clock Panel - Full controls for Simulate mode */}
-        {currentMode === 'simulate' && (
-        <div className="glass-panel" style={{
-          position: 'absolute',
-          top: '80px',
-          right: '20px',
-          padding: '16px',
-          width: '300px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          zIndex: 100
-        }}>
-          {/* Time display */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600 }}>
-              🕐 Virtual Time
-            </span>
-            <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-              {formatTime(simTime)}
-            </span>
-          </div>
-
-          {/* Timeline scrubber */}
-          <input
-            type="range"
-            min="0"
-            max="23.99"
-            step="0.0833"
-            value={simTime}
-            onChange={(e) => { setSimTime(parseFloat(e.target.value)); }}
-            style={{ width: '100%', cursor: 'pointer', accentColor: 'var(--accent-blue)' }}
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '-6px' }}>
-            <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>12 AM</span>
-          </div>
-
-          {/* Controls row */}
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {/* Play/Pause */}
-            <button
-              onClick={() => setIsRunning(r => !r)}
-              style={{
-                padding: '6px 14px',
-                background: isRunning ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
-                border: `1px solid ${isRunning ? '#ef4444' : '#10b981'}`,
-                color: isRunning ? '#ef4444' : '#10b981',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                minWidth: '70px'
-              }}
-            >
-              {isRunning ? '⏸ Pause' : '▶ Play'}
-            </button>
-
-            {/* Speed buttons */}
-            <div style={{ display: 'flex', gap: '4px', flex: 1 }}>
-              {SPEED_OPTIONS.map(opt => (
-                <button
-                  key={opt.label}
-                  onClick={() => { setSpeed(opt.value); setIsRunning(true); }}
-                  style={{
-                    flex: 1,
-                    padding: '6px 0',
-                    background: speed === opt.value && isRunning ? 'var(--accent-blue)' : 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    color: speed === opt.value && isRunning ? 'white' : 'var(--text-secondary)',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: '0.75rem'
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        )}
-
-        {selectedBuilding && (
-          <BuildingPanel
-            building={selectedBuilding}
-            mode={currentMode}
-            simTime={simTime}
-          />
-        )}
-
-        {(currentMode === 'actuate' || currentMode === 'simulate') && (
-          <DecisionPanel availableBuildings={availableBuildings} simTime={simTime} />
-        )}
       </div>
-    </>
+
+      {/* 20% Panel Section */}
+      <div className="panel-section">
+        <RightSidePanel
+          mode={currentMode}
+          simTime={simTime}
+          setSimTime={setSimTime}
+          isRunning={isRunning}
+          setIsRunning={setIsRunning}
+          speed={speed}
+          setSpeed={setSpeed}
+          formatTime={formatTime}
+          availableBuildings={availableBuildings}
+          actuationEvents={actuationEvents}
+          setActuationEvents={setActuationEvents}
+          isPlacingPoints={isPlacingPoints}
+          areaPoints={areaPoints}
+          selectedArea={selectedArea}
+          togglePointPlacement={togglePointPlacement}
+          useDefaultArea={useDefaultArea}
+          clearAreaSelection={clearAreaSelection}
+        />
+        <CSVUploadPanel />
+      </div>
+    </div>
   );
 }
 

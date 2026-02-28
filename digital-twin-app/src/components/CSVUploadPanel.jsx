@@ -38,16 +38,12 @@ function CSVUploadPanel() {
   };
 
   return (
-    <div className="glass-panel" style={{
-      position: 'absolute',
-      bottom: '20px',
-      right: '20px',
+    <div style={{
       padding: '16px',
-      width: '320px',
+      borderTop: '1px solid rgba(255,255,255,0.1)',
       display: 'flex',
       flexDirection: 'column',
-      gap: '12px',
-      zIndex: 100
+      gap: '12px'
     }}>
       <div style={{
         display: 'flex',

@@ -8,8 +8,9 @@
 
 import { NavigationGraph } from './NavigationGraph';
 
-const MAX_AGENTS = 200;
+const MAX_AGENTS = 4000;
 const AGENT_SPEED_MS = 0.00000003; // Much slower walking speed
+const SCHEDULE_FOLLOW_RATIO = 0.80; // 80% follow schedule, 20% keep moving
 
 // Cohort definitions with colors encoded as MapLibre CSS strings
 export const COHORTS = [
@@ -56,11 +57,80 @@ function getScheduledBuilding(cohortId, hour) {
   return null;
 }
 
+// Find the current active schedule slot for a cohort at a given time (in hours, e.g. 8.5 = 8:30)
+function getCurrentScheduleSlot(cohortId, simTime) {
+  const timeKeys = Object.keys(SCHEDULE_BY_TIME).sort();
+  let bestSlot = null;
+  
+  for (const timeKey of timeKeys) {
+    const slotData = SCHEDULE_BY_TIME[timeKey]?.[cohortId];
+    if (!slotData) continue;
+    
+    // Parse start and end times
+    const startParts = slotData.start_time?.split(':') || [];
+    const endParts = slotData.end_time?.split(':') || [];
+    
+    if (startParts.length < 2 || endParts.length < 2) continue;
+    
+    const startHour = parseInt(startParts[0], 10) + parseInt(startParts[1], 10) / 60;
+    const endHour = parseInt(endParts[0], 10) + parseInt(endParts[1], 10) / 60;
+    
+    // Check if current simTime falls within this slot
+    if (simTime >= startHour && simTime < endHour) {
+      // Keep the most recent applicable slot (in case of overlaps)
+      if (!bestSlot || startHour > bestSlot.startHour) {
+        bestSlot = {
+          ...slotData,
+          startHour,
+          endHour,
+          timeKey
+        };
+      }
+    }
+  }
+  
+  return bestSlot;
+}
+
+// Check if we have any CSV schedule loaded
+function hasCSVSchedule() {
+  return Object.keys(SCHEDULE_BY_TIME).length > 0;
+}
+
+// Calculate when agent should leave building (in game time hours)
+function getScheduleEndTime(cohortId, simTime) {
+  const slot = getCurrentScheduleSlot(cohortId, simTime);
+  if (slot) {
+    return slot.endHour;
+  }
+  // Default: stay for 1 hour
+  return simTime + 1;
+}
+
 function getBuildingStayDuration(venueInfo) {
   if (!venueInfo || !venueInfo.duration_minutes) return 60 * 1000; // Default 60 seconds = 60 minutes game time
   return venueInfo.duration_minutes * 1000; // Convert to milliseconds
 }
 
+
+// Helper to check if point is inside a polygon (ray casting algorithm)
+function isPointInFocusArea(point, focusArea) {
+  if (!focusArea || !focusArea.length || focusArea.length < 3) return true; // No focus area = allow all
+  
+  const [lng, lat] = point;
+  let inside = false;
+  
+  for (let i = 0, j = focusArea.length - 1; i < focusArea.length; j = i++) {
+    const [xi, yi] = focusArea[i];
+    const [xj, yj] = focusArea[j];
+    
+    if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  
+  return inside;
+}
 
 export class CrowdSimulator {
   constructor() {
@@ -74,10 +144,21 @@ export class CrowdSimulator {
     this.animFrame = null;
     this.lastTimestamp = null;
     this.spawnCounter = 0;
+    this.focusArea = null; // Selected polygon area for constraining movement
   }
 
-  init(map, pathwaysGeoJSON, buildingsGeoJSON) {
+  init(map, pathwaysGeoJSON, buildingsGeoJSON, selectedArea = null) {
     this.map = map;
+    
+    // Store focus area for constraining agent movement
+    // selectedArea is { points: [{lat, lng}] } format
+    // Convert to [[lng, lat]] format for point-in-polygon test
+    const points = selectedArea?.points || selectedArea;
+    if (points && Array.isArray(points) && points.length >= 3) {
+      this.focusArea = points.map(p => [p.lng, p.lat]);
+    } else {
+      this.focusArea = null;
+    }
 
     // Build navigation graph from OSM pathways
     this.navGraph = new NavigationGraph();
@@ -120,7 +201,77 @@ export class CrowdSimulator {
   _getBuildingForCategory(category) {
     const list = this.categoryMap[category] || this.categoryMap['other'] || this.categoryMap.fallback;
     if (!list || list.length === 0) return null;
-    return list[Math.floor(Math.random() * list.length)];
+    
+    // Filter to only buildings inside focus area
+    const validBuildings = this.focusArea && this.focusArea.length >= 3
+      ? list.filter(b => {
+          const center = b.properties?.center;
+          if (!center) return false;
+          return isPointInFocusArea(center, this.focusArea);
+        })
+      : list;
+    
+    if (validBuildings.length === 0) return null;
+    return validBuildings[Math.floor(Math.random() * validBuildings.length)];
+  }
+
+  // Get a completely random building for non-schedule followers
+  _getRandomBuilding() {
+    if (!this.buildings || this.buildings.length === 0) return null;
+    
+    // Filter to only buildings inside focus area
+    const validBuildings = this.focusArea && this.focusArea.length >= 3
+      ? this.buildings.filter(b => {
+          const center = b.properties?.center;
+          if (!center) return false;
+          return isPointInFocusArea(center, this.focusArea);
+        })
+      : this.buildings;
+    
+    if (validBuildings.length === 0) return null;
+    return validBuildings[Math.floor(Math.random() * validBuildings.length)];
+  }
+
+  // Calculate stay duration based on schedule - returns END TIME in game hours (simTime)
+  // Schedule followers stay until the schedule slot ends
+  _getScheduleBasedStayDuration(cohortId, currentSimTime) {
+    // First try to use actual CSV schedule
+    const slot = getCurrentScheduleSlot(cohortId, currentSimTime);
+    if (slot && slot.endHour) {
+      console.log(`Agent ${cohortId} should stay until ${slot.endHour.toFixed(2)} (current: ${currentSimTime.toFixed(2)}), venue: ${slot.venue}`);
+      return slot.endHour; // Return end time in game hours
+    }
+    
+    // Fall back to simple schedule
+    const sched = SCHEDULES[cohortId] || SCHEDULES.ug1;
+    const keys = Object.keys(sched).map(Number).sort((a, b) => a - b);
+    
+    // Find next schedule change hour
+    let nextChangeHour = 24; // Default to end of day
+    for (const k of keys) {
+      if (k > currentSimTime) {
+        nextChangeHour = k;
+        break;
+      }
+    }
+    
+    return nextChangeHour; // Return end time in game hours
+  }
+
+  // Check if schedule changed and agent needs to move
+  _shouldAgentMove(agent, currentSimTime) {
+    if (!agent.followsSchedule) return true; // Non-schedule followers always move
+    
+    // Check if current schedule slot has ended
+    if (agent.insideUntilSimTime !== undefined && currentSimTime < agent.insideUntilSimTime) {
+      return false; // Stay inside until scheduled end time
+    }
+    
+    // Schedule slot ended - check if there's a new destination
+    const prevCategory = getScheduledCategory(agent.cohortId, Math.floor(agent.lastScheduleHour || 0));
+    const currentCategory = getScheduledCategory(agent.cohortId, Math.floor(currentSimTime));
+    
+    return prevCategory !== currentCategory || currentSimTime >= (agent.insideUntilSimTime || 0);
   }
 
   _populateInitialAgents() {
@@ -138,8 +289,11 @@ export class CrowdSimulator {
         let endBuilding = this._getBuildingForCategory(dstCategory);
         if (!startBuilding || !endBuilding) continue;
 
-        // Occasionally vary destination for realism
-        if (Math.random() > 0.7) {
+        // 80% of agents follow schedule, 20% keep moving
+        const followsSchedule = Math.random() < SCHEDULE_FOLLOW_RATIO;
+
+        // Occasionally vary destination for realism (only non-schedule followers)
+        if (!followsSchedule && Math.random() > 0.7) {
           endBuilding = this._getBuildingForCategory(dstCategory);
         }
 
@@ -163,21 +317,28 @@ export class CrowdSimulator {
         // Create a small group of 2-4 people
         const groupSize = 2 + Math.floor(Math.random() * 3);
         for (let g = 0; g < groupSize; g++) {
+          // Schedule followers start INSIDE their scheduled building
+          const isInside = followsSchedule && Math.random() > 0.3; // 70% of schedule followers start inside
+          
           this.agents.push({
             id: `agent_${Date.now()}_${Math.random()}`,
             cohortId: cohort.id,
             color: cohort.color,
             path: pathPoints.slice(pathIndex),
             pathIndex: 0,
-            lng: startPos.lng + (Math.random() - 0.5) * 0.00002,
-            lat: startPos.lat + (Math.random() - 0.5) * 0.00002,
+            lng: isInside ? startBuilding.properties.center[0] + (Math.random() - 0.5) * 0.00002 : startPos.lng + (Math.random() - 0.5) * 0.00002,
+            lat: isInside ? startBuilding.properties.center[1] + (Math.random() - 0.5) * 0.00002 : startPos.lat + (Math.random() - 0.5) * 0.00002,
             progress: Math.random() * 0.5,
             speed: AGENT_SPEED_MS * (0.7 + Math.random() * 0.6),
             walkPhase: Math.random() * Math.PI * 2,
-            state: 'MOVING',
-            targetBuilding: null,
-            insideUntil: null,
-            groupId: groupId
+            state: isInside ? 'INSIDE' : 'MOVING',
+            targetBuilding: startBuilding,
+            currentBuilding: isInside ? startBuilding : null,
+            insideUntil: (isInside && !followsSchedule) ? performance.now() + 5000 : null,
+            insideUntilSimTime: (isInside && followsSchedule) ? this._getScheduleBasedStayDuration(cohort.id, this.simTime) : null,
+            groupId: groupId,
+            followsSchedule: followsSchedule,
+            lastScheduleHour: this.simTime
           });
         }
       }
@@ -209,6 +370,11 @@ export class CrowdSimulator {
         for (let i = 0; i < agentsPerPolygon && this.agents.length < MAX_AGENTS; i++) {
           const lng = minLng + Math.random() * (maxLng - minLng);
           const lat = minLat + Math.random() * (maxLat - minLat);
+          
+          // Skip if outside focus area
+          if (this.focusArea && this.focusArea.length >= 3 && !isPointInFocusArea([lng, lat], this.focusArea)) {
+            continue;
+          }
 
           // Create stationary agent (path with same start and end)
           this.agents.push({
@@ -229,8 +395,12 @@ export class CrowdSimulator {
             isStationary: true,
             state: 'MOVING',
             targetBuilding: null,
+            currentBuilding: null,
             insideUntil: null,
-            groupId: null
+            insideUntilSimTime: null,
+            groupId: null,
+            followsSchedule: false,
+            lastScheduleHour: 0
           });
         }
       }
@@ -282,6 +452,8 @@ export class CrowdSimulator {
         // Create group of 2-4 people
         const groupSize = 2 + Math.floor(Math.random() * 3);
         const groupId = `group_${Date.now()}_${Math.random()}`;
+        const followsSchedule = Math.random() < SCHEDULE_FOLLOW_RATIO;
+        
         for (let g = 0; g < groupSize; g++) {
           this.agents.push({
             id: `agent_${Date.now()}_${Math.random()}`,
@@ -296,8 +468,12 @@ export class CrowdSimulator {
             walkPhase: Math.random() * Math.PI * 2,
             state: 'MOVING',
             targetBuilding: b2,
+            currentBuilding: null,
             insideUntil: null,
-            groupId: groupId
+            insideUntilSimTime: null,
+            groupId: groupId,
+            followsSchedule: followsSchedule,
+            lastScheduleHour: this.simTime
           });
         }
       }
@@ -320,25 +496,54 @@ export class CrowdSimulator {
 
     // Update agent positions
     const toRemove = [];
+    const currentHour = Math.floor(this.simTime);
+    
     this.agents.forEach((agent, idx) => {
       // Handle INSIDE state
       if (agent.state === 'INSIDE') {
-        if (performance.now() > agent.insideUntil) {
-          // Exit building → go somewhere else
-          const newCategory = getScheduledCategory(agent.cohortId, Math.floor(this.simTime));
-          const newTarget = this._getBuildingForCategory(newCategory);
+        // Schedule followers check if schedule slot has ended (using game time)
+        if (agent.followsSchedule) {
+          const shouldMove = this._shouldAgentMove(agent, this.simTime);
+          if (shouldMove) {
+            // Schedule slot ended - time to move to new location
+            const newCategory = getScheduledCategory(agent.cohortId, currentHour);
+            const newTarget = this._getBuildingForCategory(newCategory);
 
-          if (newTarget) {
-            const pathPoints = this.navGraph.findPath(
-              { lng: agent.lng, lat: agent.lat },
-              { lng: newTarget.properties.center[0], lat: newTarget.properties.center[1] }
-            );
+            if (newTarget && newTarget !== agent.currentBuilding) {
+              const pathPoints = this.navGraph.findPath(
+                { lng: agent.lng, lat: agent.lat },
+                { lng: newTarget.properties.center[0], lat: newTarget.properties.center[1] }
+              );
 
-            if (pathPoints.length > 1) {
-              agent.path = pathPoints;
-              agent.pathIndex = 0;
-              agent.state = 'MOVING';
-              agent.targetBuilding = newTarget;
+              if (pathPoints.length > 1) {
+                agent.path = pathPoints;
+                agent.pathIndex = 0;
+                agent.state = 'MOVING';
+                agent.targetBuilding = newTarget;
+                agent.lastScheduleHour = currentHour;
+                console.log(`Agent ${agent.cohortId} leaving building at simTime ${this.simTime.toFixed(2)}, scheduled until ${agent.insideUntilSimTime?.toFixed(2)}`);
+              }
+            }
+          }
+        } else {
+          // Non-schedule followers exit after short time (wall clock based)
+          // They can go to ANY random building
+          if (performance.now() > agent.insideUntil) {
+            // Get a random building from all available buildings
+            const newTarget = this._getRandomBuilding();
+
+            if (newTarget && newTarget !== agent.currentBuilding) {
+              const pathPoints = this.navGraph.findPath(
+                { lng: agent.lng, lat: agent.lat },
+                { lng: newTarget.properties.center[0], lat: newTarget.properties.center[1] }
+              );
+
+              if (pathPoints.length > 1) {
+                agent.path = pathPoints;
+                agent.pathIndex = 0;
+                agent.state = 'MOVING';
+                agent.targetBuilding = newTarget;
+              }
             }
           }
         }
@@ -362,7 +567,18 @@ export class CrowdSimulator {
         if (agent.pathIndex >= agent.path.length - 1) {
           // Reached destination → enter building
           agent.state = 'INSIDE';
-          agent.insideUntil = performance.now() + (2000 + Math.random() * 6000); // Stay 2-8 seconds
+          agent.currentBuilding = agent.targetBuilding;
+          agent.lastScheduleHour = this.simTime;
+          
+          // Schedule followers stay until schedule slot ends (game time based)
+          // Non-followers stay briefly then move again (wall clock based)
+          if (agent.followsSchedule) {
+            agent.insideUntilSimTime = this._getScheduleBasedStayDuration(agent.cohortId, this.simTime);
+            agent.insideUntil = null; // Not used for schedule followers
+          } else {
+            agent.insideUntil = performance.now() + (2000 + Math.random() * 4000); // 2-6 seconds
+            agent.insideUntilSimTime = null;
+          }
         }
       } else {
         // Move toward waypoint
@@ -392,7 +608,15 @@ export class CrowdSimulator {
     if (!this.map || !this.map.getSource('crowd-agents')) return;
 
     // Only render agents that are MOVING (hide INSIDE agents)
-    const visibleAgents = this.agents.filter(a => a.state !== 'INSIDE');
+    // Also filter to only show agents within focus area
+    const visibleAgents = this.agents.filter(a => {
+      if (a.state === 'INSIDE') return false;
+      // If focus area is defined, only show agents inside it
+      if (this.focusArea && this.focusArea.length >= 3) {
+        return isPointInFocusArea([a.lng, a.lat], this.focusArea);
+      }
+      return true;
+    });
 
     const features = visibleAgents.map(agent => ({
       type: 'Feature',
