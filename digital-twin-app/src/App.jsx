@@ -26,23 +26,42 @@ function App() {
   const [actuationEvents, setActuationEvents] = useState([]);
 
   // Focus area state (lifted from MapContainer)
-const [areaPoints, setAreaPoints] = useState([]);
-const [selectedArea, setSelectedArea] = useState(null);
-const [isPlacingPoints, setIsPlacingPoints] = useState(false);
+  const [areaPoints, setAreaPoints] = useState([]);
+  const [selectedArea, setSelectedArea] = useState(null);
+  const [isPlacingPoints, setIsPlacingPoints] = useState(false);
 
   // Load schedule from backend on mount
   useSchedule();
 
   const [simTime, setSimTime] = useState(7.75);
-  const [isRunning, setIsRunning] = useState(true);
+  const [isRunning, setIsRunning] = useState(false); // False by default - only run in simulation
   const [speed, setSpeed] = useState(SIM_SPEED_MINUTES_PER_SECOND);
   const intervalRef = useRef(null);
 
-  // Auto-running clock
+  // Live occupancy from CrowdSimulator
+  const simulatorRef = useRef(null);
+  const [liveCategoryOccupancy, setLiveCategoryOccupancy] = useState({});
+
+  // Poll the simulator for live occupancy data every second
+  useEffect(() => {
+    const pollOccupancy = setInterval(() => {
+      if (simulatorRef.current && simulatorRef.current.running) {
+        const occ = simulatorRef.current.getBuildingOccupancy();
+        setLiveCategoryOccupancy(occ.categoryOccupancy);
+      }
+    }, 1000);
+
+    return () => clearInterval(pollOccupancy);
+  }, []);
+
+  // Auto-running clock (only in simulation mode)
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
 
-    if (!isRunning) return;
+    // Timer should only run in simulation mode and when isRunning is true
+    if (!isRunning || currentMode !== 'simulate') {
+      return;
+    }
 
     intervalRef.current = setInterval(() => {
       setSimTime(prev => {
@@ -52,7 +71,7 @@ const [isPlacingPoints, setIsPlacingPoints] = useState(false);
     }, 1000); // tick every real second
 
     return () => clearInterval(intervalRef.current);
-  }, [isRunning, speed]);
+  }, [isRunning, speed, currentMode]);
 
   const formatTime = (decimalHours) => {
     const hrs = Math.floor(decimalHours) % 24;
@@ -82,6 +101,46 @@ const [isPlacingPoints, setIsPlacingPoints] = useState(false);
     setIsPlacingPoints(false);
   };
 
+  // Handle simulator actions from RightSidePanel
+  const handleSimulatorAction = (action) => {
+    if (!simulatorRef.current) return;
+    
+    const sim = simulatorRef.current;
+    
+    switch (action.type) {
+      case 'start_simulation':
+        // Clear existing agents and start custom simulation
+        sim.clearAgents();
+        
+        // Set road closures
+        if (action.roadClosures) {
+          action.roadClosures.forEach(road => {
+            sim.setRoadClosure(road.road_id, road.status);
+          });
+        }
+        
+        // Start the custom simulation with the schedule
+        sim.startCustomSimulation(action.schedule, action.initialPopulation);
+        break;
+        
+      case 'stop_simulation':
+        sim.stopCustomSimulation();
+        sim.clearAgents();
+        break;
+        
+      case 'road_closure':
+        sim.setRoadClosure(action.road_id, action.status);
+        break;
+        
+      case 'clear_road':
+        sim.setRoadClosure(action.road_id, 'open');
+        break;
+        
+      default:
+        console.log('Unknown simulator action:', action.type);
+    }
+  };
+
   return (
     <div className="app-layout">
       {/* 80% Map Section */}
@@ -90,6 +149,7 @@ const [isPlacingPoints, setIsPlacingPoints] = useState(false);
           currentMode={currentMode}
           onBuildingSelect={setSelectedBuilding}
           onBuildingsLoaded={setAvailableBuildings}
+          onSimulatorReady={(sim) => { simulatorRef.current = sim; }}
           simTime={simTime}
           isPlacingPoints={isPlacingPoints}
           setIsPlacingPoints={setIsPlacingPoints}
@@ -126,6 +186,8 @@ const [isPlacingPoints, setIsPlacingPoints] = useState(false);
           availableBuildings={availableBuildings}
           actuationEvents={actuationEvents}
           setActuationEvents={setActuationEvents}
+          liveCategoryOccupancy={liveCategoryOccupancy}
+          onSimulatorAction={handleSimulatorAction}
           isPlacingPoints={isPlacingPoints}
           areaPoints={areaPoints}
           selectedArea={selectedArea}

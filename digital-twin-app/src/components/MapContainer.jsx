@@ -5,6 +5,7 @@ import osmtogeojson from 'osmtogeojson';
 import { CrowdSimulator, COHORTS } from '../engine/CrowdSimulator';
 import { ModelLayer } from '../engine/ModelLayer';
 import { SimulationDB } from '../engine/SimulationDB';
+import { getAvailableRoads, registerRoads } from '../api';
 
 // Subtle semantic colors — not too vivid, realistic-looking at night
 const SEMANTIC_COLORS = {
@@ -25,6 +26,9 @@ const BUILDING_PAINT = {
     'fill-extrusion-opacity': 0.75,
     'fill-extrusion-vertical-gradient': true,
 };
+
+// Camera emoji for visualization mode
+const CAMERA_EMOJI = '📹';
 
 const isPointInRing = (point, ring) => {
     const [x, y] = point;
@@ -60,8 +64,8 @@ const sampleTreePositionsFromRing = (ring, targetCount) => {
 
     while (points.length < targetCount && attempts < maxAttempts) {
         attempts += 1;
-        const lng = minLng + Math.random() * (maxLng - minLng);
-        const lat = minLat + Math.random() * (maxLat - minLat);
+        const lng = minLng + stableRandom() * (maxLng - minLng);
+        const lat = minLat + stableRandom() * (maxLat - minLat);
         if (isPointInRing([lng, lat], ring)) {
             points.push({ lng, lat });
         }
@@ -72,25 +76,107 @@ const sampleTreePositionsFromRing = (ring, targetCount) => {
 
 const TREE_EMOJIS = ['🌳', '🌲', '🌴'];
 
-// Generate streetlight positions along pathways at regular intervals
-const generateStreetlightPositions = (pathways, intervalMeters = 30) => {
+const stableRandom = (() => {
+    let seed = 123456789;
+    return () => {
+        seed = (1664525 * seed + 1013904223) >>> 0;
+        return seed / 4294967296;
+    };
+})();
+
+// Generate camera positions at building entrances and along roads
+const generateCameraPositions = (buildings, pathways, intervalMeters = 80) => {
     const positions = [];
     const metersPerDegLat = 111320;
-    
-    pathways.features.forEach(feature => {
+    let cameraId = 0;
+
+    // Place cameras at building entrances (centers)
+    buildings.features.forEach(feature => {
+        const center = feature.properties?.center;
+        const name = feature.properties?.name || feature.properties?.['addr:housename'] || 'Building';
+        if (center) {
+            positions.push({
+                id: `cam_bldg_${cameraId++}`,
+                lng: center[0],
+                lat: center[1],
+                type: 'building_entrance',
+                name: `${name} Entrance`,
+                direction: 'bidirectional'
+            });
+        }
+    });
+
+    // Place cameras along roads at intervals
+    pathways.features.forEach((feature, pathIdx) => {
         if (feature.geometry.type !== 'LineString') return;
         const coords = feature.geometry.coordinates;
-        
-        // Calculate total length and place lights at intervals
+        const highwayType = feature.properties?.highway || '';
+
+        // Only place cameras on major roads
+        if (!['primary', 'secondary', 'tertiary', 'residential'].includes(highwayType)) return;
+
         for (let i = 0; i < coords.length - 1; i++) {
             const [lng1, lat1] = coords[i];
             const [lng2, lat2] = coords[i + 1];
-            
+
             const metersPerDegLng = metersPerDegLat * Math.cos(lat1 * Math.PI / 180);
             const dx = (lng2 - lng1) * metersPerDegLng;
             const dy = (lat2 - lat1) * metersPerDegLat;
             const segLen = Math.sqrt(dx * dx + dy * dy);
-            
+
+            const numCameras = Math.floor(segLen / intervalMeters);
+            for (let j = 0; j <= numCameras; j++) {
+                const t = numCameras > 0 ? j / numCameras : 0;
+                // Offset camera slightly to be beside the road
+                const offsetLng = (stableRandom() - 0.5) * 0.00002;
+                positions.push({
+                    id: `cam_road_${cameraId++}`,
+                    lng: lng1 + t * (lng2 - lng1) + offsetLng,
+                    lat: lat1 + t * (lat2 - lat1),
+                    type: 'road',
+                    name: `Road Camera ${pathIdx}-${j}`,
+                    direction: j % 2 === 0 ? 'in' : 'out'
+                });
+            }
+        }
+    });
+
+    return positions;
+};
+
+const buildCameraFeatures = (positions) => ({
+    type: 'FeatureCollection',
+    features: positions.map((p) => ({
+        type: 'Feature',
+        properties: { 
+            id: p.id, 
+            type: p.type, 
+            name: p.name,
+            direction: p.direction 
+        },
+        geometry: { type: 'Point', coordinates: [p.lng, p.lat] }
+    }))
+});
+
+// Generate streetlight positions along pathways at regular intervals
+const generateStreetlightPositions = (pathways, intervalMeters = 30) => {
+    const positions = [];
+    const metersPerDegLat = 111320;
+
+    pathways.features.forEach(feature => {
+        if (feature.geometry.type !== 'LineString') return;
+        const coords = feature.geometry.coordinates;
+
+        // Calculate total length and place lights at intervals
+        for (let i = 0; i < coords.length - 1; i++) {
+            const [lng1, lat1] = coords[i];
+            const [lng2, lat2] = coords[i + 1];
+
+            const metersPerDegLng = metersPerDegLat * Math.cos(lat1 * Math.PI / 180);
+            const dx = (lng2 - lng1) * metersPerDegLng;
+            const dy = (lat2 - lat1) * metersPerDegLat;
+            const segLen = Math.sqrt(dx * dx + dy * dy);
+
             const numLights = Math.floor(segLen / intervalMeters);
             for (let j = 0; j <= numLights; j++) {
                 const t = numLights > 0 ? j / numLights : 0;
@@ -101,7 +187,7 @@ const generateStreetlightPositions = (pathways, intervalMeters = 30) => {
             }
         }
     });
-    
+
     return positions;
 };
 
@@ -121,7 +207,7 @@ const buildTreePointFeatures = (treePositions) => {
             type: 'Feature',
             properties: {
                 id: idx,
-                icon: TREE_EMOJIS[Math.floor(Math.random() * TREE_EMOJIS.length)]
+                icon: TREE_EMOJIS[Math.floor(stableRandom() * TREE_EMOJIS.length)]
             },
             geometry: {
                 type: 'Point',
@@ -200,10 +286,11 @@ const buildFallbackGeojson = (centerLng, centerLat) => {
     return { type: 'FeatureCollection', features };
 };
 
-export default function MapContainer({ 
-    currentMode, 
-    onBuildingSelect, 
-    onBuildingsLoaded, 
+export default function MapContainer({
+    currentMode,
+    onBuildingSelect,
+    onBuildingsLoaded,
+    onSimulatorReady,
     simTime,
     isPlacingPoints,
     setIsPlacingPoints,
@@ -219,6 +306,7 @@ export default function MapContainer({
     const allBuildingsRef = useRef(null); // Store all buildings (unfiltered)
     const allGreenAreasRef = useRef(null); // Store all green areas (unfiltered)
     const allPathwaysRef = useRef(null); // Store all pathways (unfiltered)
+    const roadStatusByIdRef = useRef({});
     const [loading, setLoading] = useState(false);
 
     const [lng, setLng] = useState(78.3487);
@@ -229,13 +317,13 @@ export default function MapContainer({
         if (!polygon || !polygon.points || polygon.points.length < 3) return true; // No polygon = include all
         const x = point.lng || point[0];
         const y = point.lat || point[1];
-        
+
         let inside = false;
         const pts = polygon.points;
         for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
             const xi = pts[i].lng, yi = pts[i].lat;
             const xj = pts[j].lng, yj = pts[j].lat;
-            
+
             if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
                 inside = !inside;
             }
@@ -246,7 +334,7 @@ export default function MapContainer({
     // Filter buildings by focus area
     const filterFeaturesByArea = (features, area) => {
         if (!area || !area.points || area.points.length < 3) return features;
-        
+
         return features.filter(feature => {
             const center = feature.properties?.center;
             if (!center) return false;
@@ -307,17 +395,17 @@ export default function MapContainer({
 
     const updateAreaSelectionLayer = (map, areaData) => {
         if (!map || !map.isStyleLoaded()) return; // Guard against invalid map state
-        
+
         let geojson = { type: 'FeatureCollection', features: [] };
-        
+
         if (areaData && areaData.points && areaData.points.length >= 3) {
             // Use the actual clicked points to draw polygon (1->2->3->4->1)
             const coords = areaData.points.map(p => [p.lng, p.lat]);
             // Close the polygon by adding the first point at the end
             coords.push([areaData.points[0].lng, areaData.points[0].lat]);
-            
+
             console.log('Drawing polygon with coords:', coords);
-            
+
             geojson = {
                 type: 'FeatureCollection',
                 features: [{
@@ -441,12 +529,14 @@ export default function MapContainer({
             const greenAreas = { type: "FeatureCollection", features: [] };
             const pathways = { type: "FeatureCollection", features: [] };
 
-            geojson.features.forEach(feature => {
+            let serviceRoadCount = 0;
+
+            geojson.features.forEach((feature, index) => {
                 const p = feature.properties;
                 const name = p.name || p['addr:housename'] || '';
 
                 if (p.building) {
-                    const levels = p['building:levels'] ? parseInt(p['building:levels']) : (Math.floor(Math.random() * 4) + 1);
+                    const levels = p['building:levels'] ? parseInt(p['building:levels']) : 3;
                     feature.properties.height = levels * 4;
                     feature.properties.base_height = 0;
 
@@ -472,6 +562,21 @@ export default function MapContainer({
                 } else if (p.landuse || p.natural || p.leisure) {
                     greenAreas.features.push(feature);
                 } else if (p.highway) {
+                    const normalizedName = (name || '').trim();
+
+                    if (p.highway === 'service' && serviceRoadCount < 10) {
+                        serviceRoadCount += 1;
+                        feature.properties.road_id = `service_${serviceRoadCount}`;
+                        feature.properties.road_name = `Service Road ${serviceRoadCount}`;
+                        feature.properties.road_label = String(serviceRoadCount);
+                    } else {
+                        const fallbackIndex = index + 1;
+                        feature.properties.road_id = normalizedName
+                            ? normalizedName.toLowerCase().replace(/\s+/g, '_')
+                            : `${p.highway}_${fallbackIndex}`;
+                        feature.properties.road_name = normalizedName || `${p.highway} ${fallbackIndex}`;
+                        feature.properties.road_label = '';
+                    }
                     pathways.features.push(feature);
                 }
             });
@@ -492,8 +597,8 @@ export default function MapContainer({
                 features: greenAreas.features.filter(f => {
                     if (!f.geometry.coordinates) return false;
                     // Get centroid of polygon
-                    const coords = f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : 
-                                   f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates[0][0] : [];
+                    const coords = f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] :
+                        f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates[0][0] : [];
                     if (coords.length === 0) return false;
                     let cx = 0, cy = 0;
                     coords.forEach(([x, y]) => { cx += x; cy += y; });
@@ -568,12 +673,29 @@ export default function MapContainer({
                     }
                 });
 
+                map.addLayer({
+                    id: 'service-road-labels',
+                    type: 'symbol',
+                    source: 'pathways',
+                    layout: {
+                        'text-field': ['get', 'road_label'],
+                        'text-size': 11,
+                        'symbol-placement': 'line',
+                        'text-allow-overlap': true
+                    },
+                    paint: {
+                        'text-color': '#f8fafc',
+                        'text-halo-color': '#0f172a',
+                        'text-halo-width': 1.2
+                    }
+                });
+
                 // Streetlights along pathways
                 const streetlightPositions = generateStreetlightPositions(pathways, 40);
                 const streetlightData = buildStreetlightFeatures(streetlightPositions);
-                
+
                 map.addSource('streetlights', { type: 'geojson', data: streetlightData });
-                
+
                 // Streetlight glow layer (visible at night only)
                 map.addLayer({
                     id: 'streetlight-glow',
@@ -586,7 +708,7 @@ export default function MapContainer({
                         'circle-blur': 0.5
                     }
                 });
-                
+
                 // Streetlight icon layer using 𓍙 emoji
                 map.addLayer({
                     id: 'streetlight-icon',
@@ -610,6 +732,76 @@ export default function MapContainer({
                     }
                 });
 
+                // Camera positions for visualization mode
+                const cameraPositions = generateCameraPositions(filteredBuildings, pathways, 100);
+                const cameraData = buildCameraFeatures(cameraPositions);
+
+                map.addSource('cameras', { type: 'geojson', data: cameraData });
+
+                // Camera icon layer using 📹 emoji (visible in visualization mode)
+                map.addLayer({
+                    id: 'camera-icon',
+                    type: 'symbol',
+                    source: 'cameras',
+                    layout: {
+                        'text-field': CAMERA_EMOJI,
+                        'text-size': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            14, 10,
+                            18, 18
+                        ],
+                        'text-allow-overlap': true,
+                        'visibility': 'none' // Hidden by default, shown in visualization mode
+                    },
+                    paint: {
+                        'text-color': '#ef4444',
+                        'text-halo-color': 'rgba(255, 255, 255, 0.8)',
+                        'text-halo-width': 2
+                    }
+                });
+
+                // Camera detection radius (glow)
+                map.addLayer({
+                    id: 'camera-glow',
+                    type: 'circle',
+                    source: 'cameras',
+                    layout: {
+                        'visibility': 'none' // Hidden by default
+                    },
+                    paint: {
+                        'circle-radius': 15,
+                        'circle-color': '#ef4444',
+                        'circle-opacity': 0.15,
+                        'circle-blur': 0.5
+                    }
+                });
+
+                // Road closure overlay (for actuation mode)
+                map.addSource('road-closures', {
+                    type: 'geojson',
+                    data: { type: 'FeatureCollection', features: [] }
+                });
+
+                map.addLayer({
+                    id: 'road-closures-highlight',
+                    type: 'line',
+                    source: 'road-closures',
+                    layout: {
+                        'visibility': 'none'
+                    },
+                    paint: {
+                        'line-color': ['case',
+                            ['==', ['get', 'status'], 'hard_closed'], '#ef4444',
+                            ['==', ['get', 'status'], 'soft_closed'], '#f59e0b',
+                            '#10b981'
+                        ],
+                        'line-width': 6,
+                        'line-opacity': 0.7
+                    }
+                });
+
                 // 3D Buildings with semantic color tints
                 map.addSource('buildings', { type: 'geojson', data: filteredBuildings });
                 map.addLayer({ id: '3d-buildings', source: 'buildings', type: 'fill-extrusion', paint: BUILDING_PAINT });
@@ -624,7 +816,123 @@ export default function MapContainer({
                     const name = feature.properties.name || feature.properties['addr:housename'] || 'Campus Building';
                     onBuildingSelect({ name, properties: feature.properties });
                 });
+
+                // Road/pathway interactions - show road name on hover
+                let roadPopup = null;
                 
+                map.on('mouseenter', 'pathways-layer', e => {
+                    map.getCanvas().style.cursor = 'crosshair';
+                    
+                    if (e.features.length) {
+                        const feature = e.features[0];
+                        const roadName = feature.properties.road_name ||
+                                        feature.properties.name ||
+                                        feature.properties.highway ||
+                                        'Unnamed Road';
+                        const roadType = feature.properties.highway || 'path';
+                        const roadId = feature.properties.road_id;
+                        const roadStatus = roadStatusByIdRef.current[roadId] || 'open';
+                        const statusText = roadStatus === 'hard_closed'
+                            ? 'HARD CLOSED'
+                            : roadStatus === 'soft_closed'
+                                ? 'SOFT CLOSED'
+                                : 'OPEN';
+                        const statusColor = roadStatus === 'hard_closed'
+                            ? '#ef4444'
+                            : roadStatus === 'soft_closed'
+                                ? '#f59e0b'
+                                : '#10b981';
+                        
+                        // Create popup with road info
+                        if (roadPopup) roadPopup.remove();
+                        
+                        roadPopup = new maplibregl.Popup({
+                            closeButton: false,
+                            closeOnClick: false,
+                            className: 'road-popup'
+                        })
+                            .setLngLat(e.lngLat)
+                            .setHTML(`
+                                <div style="padding: 4px 8px; font-size: 12px;">
+                                    <strong style="color: #3b82f6;">${roadName}</strong>
+                                    <div style="font-size: 10px; color: #9ca3af; text-transform: capitalize;">${roadType}</div>
+                                    <div style="font-size: 10px; color: ${statusColor}; font-weight: 700; margin-top: 2px;">${statusText}</div>
+                                </div>
+                            `)
+                            .addTo(map);
+                    }
+                });
+                
+                map.on('mousemove', 'pathways-layer', e => {
+                    if (roadPopup && e.features.length) {
+                        roadPopup.setLngLat(e.lngLat);
+                    }
+                });
+                
+                map.on('mouseleave', 'pathways-layer', () => {
+                    map.getCanvas().style.cursor = '';
+                    if (roadPopup) {
+                        roadPopup.remove();
+                        roadPopup = null;
+                    }
+                });
+                
+                // Store road names for actuation panel
+                const roadsToRegister = [];
+                const seenRoads = new Set();
+                
+                pathways.features.forEach(f => {
+                    const roadId = f.properties?.road_id;
+                    const roadName = f.properties?.road_name;
+                    const highway = f.properties?.highway;
+
+                    if (!String(roadId || '').startsWith('service_')) {
+                        return;
+                    }
+                    
+                    if (roadId && !seenRoads.has(roadId)) {
+                        seenRoads.add(roadId);
+                        roadsToRegister.push({
+                            road_id: roadId,
+                            road_name: roadName || highway || 'Unnamed Road',
+                            road_type: highway || 'path'
+                        });
+                    }
+                });
+
+                if (roadsToRegister.length < 10) {
+                    const needed = 10 - roadsToRegister.length;
+                    const baseCount = roadsToRegister.length;
+                    const fallbackFeatures = pathways.features.slice(0, needed);
+                    fallbackFeatures.forEach((feature, idx) => {
+                        const serviceNumber = baseCount + idx + 1;
+                        const roadId = `service_${serviceNumber}`;
+                        if (seenRoads.has(roadId)) return;
+                        seenRoads.add(roadId);
+                        roadsToRegister.push({
+                            road_id: roadId,
+                            road_name: `Service Road ${serviceNumber}`,
+                            road_type: feature.properties?.highway || 'path'
+                        });
+                        feature.properties.road_id = roadId;
+                        feature.properties.road_name = `Service Road ${serviceNumber}`;
+                        feature.properties.road_label = String(serviceNumber);
+                    });
+                }
+                
+                // Register roads with backend
+                if (roadsToRegister.length > 0) {
+                    registerRoads(roadsToRegister).catch(err => {
+                        console.warn('Failed to register roads with backend:', err);
+                    });
+                    console.log(`MapContainer: Registered ${roadsToRegister.length} roads with backend`);
+                }
+                
+                // Expose roads to parent via simulator
+                if (simRef.current) {
+                    simRef.current._availableRoads = roadsToRegister.map(r => r.road_id);
+                }
+
 
                 // Add GLTF model layer (activates when user drops .glb files in public/models/)
                 if (!map.getLayer('model-layer-3d')) {
@@ -655,9 +963,15 @@ export default function MapContainer({
             sim.setSimTime(simTime);
             sim.modelLayer = modelLayerRef.current || null; // GLTF instances updated each frame
             sim.init(map, pathways, filteredBuildings, selectedArea);
+            sim.setMode(currentMode);
 
-            // Populate green areas with stationary agents
-            sim.populateGreenAreas(filteredGreenAreas);
+            // Notify parent about simulator instance for live occupancy data
+            if (onSimulatorReady) onSimulatorReady(sim);
+
+            // Populate green areas with stationary agents only in visualization mode
+            if (currentMode === 'visualize') {
+                sim.populateGreenAreas(filteredGreenAreas);
+            }
 
             // Build tree positions from green areas (use filtered green areas)
             let treePositions = [];
@@ -784,7 +1098,7 @@ export default function MapContainer({
         // Dawn: 5:30-6:30, Dusk: 18:30-19:30, Full night: 19:30-5:30, Full day: 6:30-18:30
         let darkOverlayOpacity = 0;
         const maxDarkness = 0.4;
-        
+
         if (hour >= 0 && hour < 5.5) {
             darkOverlayOpacity = maxDarkness; // Night
         } else if (hour >= 5.5 && hour < 6.5) {
@@ -798,7 +1112,7 @@ export default function MapContainer({
         } else {
             darkOverlayOpacity = maxDarkness; // Night
         }
-        
+
         // Apply dark overlay for night mode
         if (map.getLayer('dark-overlay-layer')) {
             map.setPaintProperty('dark-overlay-layer', 'fill-opacity', darkOverlayOpacity);
@@ -832,20 +1146,20 @@ export default function MapContainer({
             lightIntensity = (6 - hour) * 0.4;
         }
         // Morning (6AM-6PM): lights off
-        
+
         const glowRadius = lightIntensity > 0 ? 10 : 6;
-        
+
         if (map.getLayer('streetlight-glow')) {
             map.setPaintProperty('streetlight-glow', 'circle-opacity', lightIntensity);
             map.setPaintProperty('streetlight-glow', 'circle-radius', glowRadius);
         }
-        
+
         if (map.getLayer('streetlight-icon')) {
             // At night: warm yellow glow, during day: gray/off appearance
             const iconColor = lightIntensity > 0 ? '#fde68a' : '#a3a3a3';
             const haloWidth = lightIntensity > 0 ? 3 : 0;
             const haloColor = lightIntensity > 0 ? 'rgba(253, 230, 138, 0.3)' : 'rgba(0, 0, 0, 0)';
-            
+
             map.setPaintProperty('streetlight-icon', 'text-color', iconColor);
             map.setPaintProperty('streetlight-icon', 'text-halo-width', haloWidth);
             map.setPaintProperty('streetlight-icon', 'text-halo-color', haloColor);
@@ -858,6 +1172,197 @@ export default function MapContainer({
 
     }, [simTime]);
 
+    // Handle mode changes - show/hide appropriate layers and control simulation
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !map.isStyleLoaded()) return;
+
+        // Mode-specific layer visibility and simulation behavior
+        const showCameras = currentMode === 'visualize';
+        const showRoadClosures = currentMode === 'actuate' || currentMode === 'simulate';
+        const isSimulationMode = currentMode === 'simulate';
+        const hideAgents = currentMode === 'actuate'; // Hide agents in actuation mode
+
+        // Toggle camera visibility
+        if (map.getLayer('camera-icon')) {
+            map.setLayoutProperty('camera-icon', 'visibility', showCameras ? 'visible' : 'none');
+        }
+        if (map.getLayer('camera-glow')) {
+            map.setLayoutProperty('camera-glow', 'visibility', showCameras ? 'visible' : 'none');
+        }
+
+        // Toggle road closures visibility
+        if (map.getLayer('road-closures-highlight')) {
+            map.setLayoutProperty('road-closures-highlight', 'visibility', showRoadClosures ? 'visible' : 'none');
+        }
+
+        // Handle crowd simulation based on mode
+        if (simRef.current) {
+            const sim = simRef.current;
+            
+            if (currentMode === 'visualize') {
+                // Visualization mode: Static agents based on camera/sensor data
+                sim.setMode('visualize');
+            } else if (currentMode === 'actuate') {
+                // Actuation mode: Hide agents (focus on road controls)
+                sim.setMode('actuate');
+            } else if (currentMode === 'simulate') {
+                // Simulation mode: Start with blank map - no agents until play is pressed
+                sim.setMode('simulate');
+                if (!sim.isSimulationActive) {
+                    sim.clearAgents();
+                }
+            }
+        }
+
+        // Update crowd layer opacity and visibility based on mode
+        if (map.getLayer('crowd-agents-layer')) {
+            if ((isSimulationMode && !simRef.current?.isSimulationActive) || hideAgents) {
+                // Hide agents in simulation mode (until play) or actuation mode
+                map.setLayoutProperty('crowd-agents-layer', 'visibility', 'none');
+            } else {
+                map.setLayoutProperty('crowd-agents-layer', 'visibility', 'visible');
+                const opacity = isSimulationMode ? 0.8 : (currentMode === 'visualize' ? 0.9 : 0.95);
+                map.setPaintProperty('crowd-agents-layer', 'text-opacity', opacity);
+            }
+        }
+        
+        // Similar for dot and glow layers
+        ['crowd-agents-dot', 'crowd-agents-glow'].forEach(layerId => {
+            if (map.getLayer(layerId)) {
+                if ((isSimulationMode && !simRef.current?.isSimulationActive) || hideAgents) {
+                    map.setLayoutProperty(layerId, 'visibility', 'none');
+                } else {
+                    map.setLayoutProperty(layerId, 'visibility', 'visible');
+                }
+            }
+        });
+
+        console.log(`MapContainer: Mode changed to ${currentMode}`);
+
+    }, [currentMode]);
+
+    // Update last feed time display in visualization mode
+    useEffect(() => {
+        if (currentMode !== 'visualize') return;
+
+        const updateLastFeedTime = async () => {
+            try {
+                const response = await fetch('http://localhost:8000/building-occupancy');
+                if (!response.ok) throw new Error('Failed to fetch');
+                const data = await response.json();
+                
+                // Get the most recent timestamp from building occupancy data
+                if (data.buildings && Object.keys(data.buildings).length > 0) {
+                    const timestamps = Object.values(data.buildings)
+                        .map(b => new Date(b.last_updated))
+                        .filter(t => !isNaN(t.getTime()))
+                        .sort((a, b) => b - a);
+                    
+                    if (timestamps.length > 0) {
+                        const lastTime = timestamps[0];
+                        const timeStr = lastTime.toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: undefined,
+                            hour12: true
+                        });
+                        
+                        const lastFeedEl = document.getElementById('last-feed-time');
+                        if (lastFeedEl) {
+                            lastFeedEl.textContent = timeStr;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('Could not fetch last feed time:', error);
+            }
+        };
+
+        // Update immediately and then every 5 seconds
+        updateLastFeedTime();
+        const interval = setInterval(updateLastFeedTime, 5000);
+        
+        return () => clearInterval(interval);
+
+    }, [currentMode]);
+
+    // Monitor simulation active state to show/hide agents
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !map.isStyleLoaded() || currentMode !== 'simulate') return;
+
+        // Poll every 100ms to check if simulation is active
+        const pollInterval = setInterval(() => {
+            if (!simRef.current) return;
+            
+            const isSimActive = simRef.current.isSimulationActive;
+            
+            // Show agents only when simulation is actually active
+            const agentLayers = ['crowd-agents-layer', 'crowd-agents-dot', 'crowd-agents-glow'];
+            agentLayers.forEach(layerId => {
+                if (map.getLayer(layerId)) {
+                    const visibility = isSimActive ? 'visible' : 'none';
+                    if (map.getLayoutProperty(layerId, 'visibility') !== visibility) {
+                        map.setLayoutProperty(layerId, 'visibility', visibility);
+                    }
+                }
+            });
+        }, 100);
+
+        return () => clearInterval(pollInterval);
+    }, [currentMode]);
+
+    // Sync road closure states from backend and reflect on map
+    useEffect(() => {
+        const syncRoadClosures = async () => {
+            try {
+                const roadsData = await getAvailableRoads();
+                const roads = roadsData?.roads || [];
+
+                const statusMap = {};
+                roads.forEach(road => {
+                    statusMap[road.road_id] = road.status || 'open';
+                });
+                roadStatusByIdRef.current = statusMap;
+
+                const map = mapRef.current;
+                const pathways = allPathwaysRef.current;
+                if (!map || !pathways || !map.getSource('road-closures')) {
+                    return;
+                }
+
+                const closedRoadIds = new Set(
+                    roads
+                        .filter(road => road.status && road.status !== 'open')
+                        .map(road => road.road_id)
+                );
+
+                const closedFeatures = pathways.features
+                    .filter(feature => closedRoadIds.has(feature.properties?.road_id))
+                    .map(feature => ({
+                        ...feature,
+                        properties: {
+                            ...feature.properties,
+                            status: statusMap[feature.properties?.road_id] || 'open'
+                        }
+                    }));
+
+                map.getSource('road-closures').setData({
+                    type: 'FeatureCollection',
+                    features: closedFeatures
+                });
+            } catch (error) {
+                console.log('Road closure sync skipped:', error);
+            }
+        };
+
+        syncRoadClosures();
+        const interval = setInterval(syncRoadClosures, 3000);
+        return () => clearInterval(interval);
+    }, []);
+
+
     const handleTeleport = () => {
         if (mapRef.current) {
             mapRef.current.jumpTo({ center: [lng, lat] });
@@ -866,38 +1371,38 @@ export default function MapContainer({
     };
 
     // Handle map click for placing points
-const handleMapClick = (e) => {
-    if (!isPlacingPoints) return;
+    const handleMapClick = (e) => {
+        if (!isPlacingPoints) return;
 
-    const newPoint = { lng: e.lngLat.lng, lat: e.lngLat.lat };
-    const newPoints = [...areaPoints, newPoint];
+        const newPoint = { lng: e.lngLat.lng, lat: e.lngLat.lat };
+        const newPoints = [...areaPoints, newPoint];
 
-    setAreaPoints(newPoints);
+        setAreaPoints(newPoints);
 
-    if (newPoints.length === 4) {
-        const polygon = {
-            type: "FeatureCollection",
-            features: [{
-                type: "Feature",
-                geometry: {
-                    type: "Polygon",
-                    coordinates: [[
-                        ...newPoints.map(p => [p.lng, p.lat]),
-                        [newPoints[0].lng, newPoints[0].lat] // close polygon
-                    ]]
-                }
-            }]
-        };
+        if (newPoints.length === 4) {
+            const polygon = {
+                type: "FeatureCollection",
+                features: [{
+                    type: "Feature",
+                    geometry: {
+                        type: "Polygon",
+                        coordinates: [[
+                            ...newPoints.map(p => [p.lng, p.lat]),
+                            [newPoints[0].lng, newPoints[0].lat] // close polygon
+                        ]]
+                    }
+                }]
+            };
 
-        setSelectedArea(polygon);
-        setIsPlacingPoints(false);
-    }
-};
+            setSelectedArea(polygon);
+            setIsPlacingPoints(false);
+        }
+    };
 
     // Add click handler when point placement mode changes
     useEffect(() => {
         if (!mapRef.current) return;
-        
+
         if (isPlacingPoints) {
             mapRef.current.on('click', handleMapClick);
             mapRef.current.getCanvas().style.cursor = 'crosshair';
@@ -905,7 +1410,7 @@ const handleMapClick = (e) => {
             mapRef.current.off('click', handleMapClick);
             mapRef.current.getCanvas().style.cursor = '';
         }
-        
+
         return () => {
             if (mapRef.current) {
                 mapRef.current.off('click', handleMapClick);
@@ -922,9 +1427,9 @@ const handleMapClick = (e) => {
     // Sync map layers with selectedArea state
     useEffect(() => {
         if (!mapRef.current) return;
-        
+
         console.log('selectedArea changed:', selectedArea);
-        
+
         // Ensure map style is loaded before updating layers
         const updateLayers = () => {
             if (!mapRef.current || !mapRef.current.isStyleLoaded()) {
@@ -934,14 +1439,14 @@ const handleMapClick = (e) => {
                 }
                 return;
             }
-            
+
             updateAreaSelectionLayer(mapRef.current, selectedArea);
-            
+
             // Re-filter buildings and green areas when selectedArea changes
             if (allBuildingsRef.current && allGreenAreasRef.current) {
                 const buildings = allBuildingsRef.current;
                 const greenAreas = allGreenAreasRef.current;
-                
+
                 // Filter by selected area
                 const filteredBuildings = selectedArea ? {
                     ...buildings,
@@ -980,7 +1485,7 @@ const handleMapClick = (e) => {
                 if (mapRef.current.getSource('greenAreas')) {
                     mapRef.current.getSource('greenAreas').setData(filteredGreenAreas);
                 }
-                
+
                 // Restart simulation with filtered buildings
                 if (simRef.current && allPathwaysRef.current) {
                     simRef.current.stop();
@@ -988,17 +1493,20 @@ const handleMapClick = (e) => {
                         if (mapRef.current.getLayer(id)) mapRef.current.removeLayer(id);
                     });
                     if (mapRef.current.getSource('crowd-agents')) mapRef.current.removeSource('crowd-agents');
-                    
+
                     const sim = new CrowdSimulator();
                     simRef.current = sim;
                     sim.setSimTime(simTime);
                     sim.modelLayer = modelLayerRef.current || null;
                     sim.init(mapRef.current, allPathwaysRef.current, filteredBuildings, selectedArea);
                     sim.populateGreenAreas(filteredGreenAreas);
+
+                    // Notify parent about new simulator instance
+                    if (onSimulatorReady) onSimulatorReady(sim);
                 }
             }
         };
-        
+
         updateLayers();
     }, [selectedArea]);
 
@@ -1013,7 +1521,7 @@ const handleMapClick = (e) => {
 
             {/* Coordinate bar - positioned below mode toggle */}
             <div className="glass-panel" style={{
-                position: 'absolute', top: '80px', left: '20px',
+                position: 'absolute', top: '20px', left: '450px',
                 padding: '12px', zIndex: 100, display: 'flex', gap: '8px', alignItems: 'center'
             }}>
                 {loading && <span style={{ marginRight: '8px', color: '#facc15', fontSize: '0.75rem' }}>⏳ Loading...</span>}
@@ -1044,14 +1552,37 @@ const handleMapClick = (e) => {
                 position: 'absolute', bottom: '20px', left: '20px',
                 padding: '12px 16px', zIndex: 100, minWidth: '120px'
             }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 700, letterSpacing: '0.05em' }}>COHORTS</div>
-                {COHORTS.map(c => (
-                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
-                        <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: c.color, boxShadow: `0 0 4px ${c.color}` }} />
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{c.name}</span>
-                    </div>
-                ))}
-                <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                {/* Show cohorts only in actuate/simulate modes - cameras can't detect cohorts */}
+                {currentMode === 'simulate' && (
+                    <>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 700, letterSpacing: '0.05em' }}>COHORTS</div>
+                        {COHORTS.map(c => (
+                            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
+                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: c.color, boxShadow: `0 0 4px ${c.color}` }} />
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{c.name}</span>
+                            </div>
+                        ))}
+                    </>
+                )}
+                {/* In visualization mode, show single color indicator and last feed time */}
+                {currentMode === 'visualize' && (
+                    <>
+                        <div style={{ marginBottom: '10px' }}>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 700, letterSpacing: '0.05em' }}>PEOPLE</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#6366f1', boxShadow: '0 0 4px #6366f1' }} />
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Detected via cameras</span>
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>LIVE FEED → LAST FEED</div>
+                            <div id="last-feed-time" style={{ fontSize: '0.85rem', fontWeight: '600', color: '#60a5fa', marginTop: '4px' }}>
+                                Loading...
+                            </div>
+                        </div>
+                    </>
+                )}
+                <div style={{ marginTop: currentMode !== 'visualize' ? '10px' : 10, paddingTop: currentMode !== 'visualize' ? '8px' : 8, borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                     BUILDINGS
                 </div>
                 {Object.entries(SEMANTIC_COLORS).map(([cat, color]) => (

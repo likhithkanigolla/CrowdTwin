@@ -1,6 +1,14 @@
 import * as THREE from 'three';
 import maplibregl from 'maplibre-gl';
 
+const stableRandom = (() => {
+  let seed = 246813579;
+  return () => {
+    seed = (1664525 * seed + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+})();
+
 export const CrowdLayer = function(id) {
   this.id = id;
   this.type = 'custom';
@@ -205,10 +213,10 @@ CrowdLayer.prototype.populateTrees = function(geojsonGreenAreas) {
         });
 
         // Spawn 2-5 trees per green area
-        const treeCount = Math.floor(Math.random() * 4) + 2;
+        const treeCount = Math.floor(stableRandom() * 4) + 2;
         for (let i = 0; i < treeCount; i++) {
-          const rLng = minX + Math.random() * (maxX - minX);
-          const rLat = minY + Math.random() * (maxY - minY);
+          const rLng = minX + stableRandom() * (maxX - minX);
+          const rLat = minY + stableRandom() * (maxY - minY);
           const pos = this.lngLatToPosition({ lng: rLng, lat: rLat });
           pos.z += 0.5 * scale; // Float slightly above ground mesh to avoid Z clipping
           
@@ -217,7 +225,7 @@ CrowdLayer.prototype.populateTrees = function(geojsonGreenAreas) {
           tree.scale.set(scale, scale, scale); // scale meters to mercator
           
       // Randomize tree size slightly
-      const size = 0.8 + Math.random() * 0.6;
+      const size = 0.8 + stableRandom() * 0.6;
       tree.scale.multiplyScalar(size);
       
       this.scene.add(tree);
@@ -289,7 +297,7 @@ CrowdLayer.prototype.spawnAgent = function(startLngLat, destLngLat, speedMultipl
   });
 
   const skinTones = [0xffd1b3, 0xe2b999, 0xc68642, 0x8d5524, 0x4a2c11];
-  const skinColorHex = skinTones[Math.floor(Math.random() * skinTones.length)];
+  const skinColorHex = skinTones[Math.floor(stableRandom() * skinTones.length)];
   const shirtColorHex = shirtColorInput !== null ? parseInt(shirtColorInput.toString().replace('#',''), 16) : 0xffffff;
   
   const skinColor = new THREE.Color(skinColorHex);
@@ -302,8 +310,8 @@ CrowdLayer.prototype.spawnAgent = function(startLngLat, destLngLat, speedMultipl
       pos: waypoints[0].clone(),
       angle: 0,
       progress: 0,
-      speed: (0.0001 + Math.random() * 0.00005) * speedMultiplier, // speed varies based on segment distance
-      walkCycle: Math.random() * Math.PI * 2,
+      speed: (0.0001 + stableRandom() * 0.00005) * speedMultiplier, // speed varies based on segment distance
+      walkCycle: stableRandom() * Math.PI * 2,
       skinColor,
       shirtColor,
       pantColor

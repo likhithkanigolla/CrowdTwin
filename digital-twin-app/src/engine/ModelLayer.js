@@ -11,6 +11,14 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import maplibregl from 'maplibre-gl';
 
+const stableRandom = (() => {
+    let seed = 112233445;
+    return () => {
+        seed = (1664525 * seed + 1013904223) >>> 0;
+        return seed / 4294967296;
+    };
+})();
+
 const MAX_PEOPLE = 2000;
 const MAX_TREES  = 5000;
 const PERSON_VISUAL_SCALE = 8.0; // How many times larger than real height (for visibility from above)
@@ -183,11 +191,13 @@ export class ModelLayer {
         // PERSON_VISUAL_SCALE * meterScale gives mercator size per meter of model height
         const agentScale = PERSON_VISUAL_SCALE * meterScale;
 
-        const count = Math.min(agents.length, MAX_PEOPLE);
+        // Only render agents that are MOVING (hide INSIDE agents from 3D view)
+        const visibleAgents = agents.filter(a => a.state !== 'INSIDE');
+        const count = Math.min(visibleAgents.length, MAX_PEOPLE);
         this.peopleInstances.count = count;
 
         for (let i = 0; i < count; i++) {
-            const a = agents[i];
+            const a = visibleAgents[i];
             const merc = maplibregl.MercatorCoordinate.fromLngLat({ lng: a.lng, lat: a.lat }, 0);
 
             this._dummy.position.set(merc.x, merc.y, merc.z);
@@ -237,8 +247,8 @@ export class ModelLayer {
             const merc = maplibregl.MercatorCoordinate.fromLngLat({ lng: t.lng, lat: t.lat }, 0);
 
             this._dummy.position.set(merc.x, merc.y, merc.z);
-            this._dummy.rotation.set(-Math.PI / 2, 0, Math.random() * Math.PI * 2);
-            this._dummy.scale.setScalar(treeScale * (0.8 + Math.random() * 0.5));
+            this._dummy.rotation.set(-Math.PI / 2, 0, stableRandom() * Math.PI * 2);
+            this._dummy.scale.setScalar(treeScale * (0.8 + stableRandom() * 0.5));
             this._dummy.updateMatrix();
             this.treeInstances.setMatrixAt(i, this._dummy.matrix);
         }
