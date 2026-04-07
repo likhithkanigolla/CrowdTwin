@@ -8,8 +8,21 @@ from io import StringIO
 from urllib import request as urllib_request
 from urllib import error as urllib_error
 from urllib import parse as urllib_parse
+import hashlib
+import time
 
-from schemas import Event, EventRequest, ActuationRequest, ActuationState
+from schemas import (
+    Event,
+    EventRequest,
+    ActuationRequest,
+    ActuationState,
+    BehaviorRequest,
+    BehaviorResponse,
+    SummarizationRequest,
+    SummarizationResponse,
+    RouterRequest,
+    RouterResponse,
+)
 
 try:
     from langgraph.graph import END, StateGraph
@@ -788,3 +801,281 @@ def run_actuation_graph(payload: ActuationRequest) -> dict:
         "note": "Install langgraph for graph orchestration.",
     }
     return response
+
+
+_ROUTER_HEALTH = {
+    "schema_errors": [],
+    "timeouts": [],
+    "circuit_open_until": 0.0,
+}
+
+
+def _deterministic_float(seed: str, minimum: float, maximum: float) -> float:
+    digest = hashlib.sha256(seed.encode("utf-8")).hexdigest()
+    value = int(digest[:8], 16) / 0xFFFFFFFF
+    return minimum + (maximum - minimum) * value
+
+
+def _normalize_action_probs(items: list[dict], allowed_action_ids: set[str]) -> list[dict]:
+    cleaned = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        action_id = str(item.get("action_id", "")).strip()
+        if not action_id or action_id not in allowed_action_ids:
+            continue
+        try:
+            prob = float(item.get("prob", 0.0))
+        except (TypeError, ValueError):
+            continue
+        if prob < 0:
+            continue
+        cleaned.append({"action_id": action_id, "prob": prob})
+
+    if not cleaned:
+        return []
+
+    total = sum(item["prob"] for item in cleaned)
+    if total <= 0:
+        return []
+
+    normalized = []
+    for item in cleaned:
+        normalized.append({"action_id": item["action_id"], "prob": round(item["prob"] / total, 4)})
+    return normalized
+
+
+def _rule_engine_behavior(req: BehaviorRequest) -> list[dict]:
+    blocked = set(req.constraints.must_not_use)
+    candidates = [c for c in req.candidate_actions if c.action_id not in blocked]
+    if not candidates:
+        candidates = req.candidate_actions
+
+    weighted = []
+    for action in candidates:
+        weight = 1.0
+        action_type = action.type.lower()
+        if action_type == "route_choice":
+            weight += 0.8
+        if action_type == "social":
+            weight += float(req.agent_group.psychology.herding_tendency)
+        if action_type == "delay":
+            weight += max(0.0, 0.6 - float(req.environment.visibility_score))
+        if action.action_id in req.environment.blocked_paths:
+            weight = 0.0
+        weighted.append({"action_id": action.action_id, "prob": max(0.0, weight)})
+
+    normalized = _normalize_action_probs(weighted, {c.action_id for c in req.candidate_actions})
+    if normalized:
+        return normalized
+
+    uniform_prob = round(1.0 / max(1, len(req.candidate_actions)), 4)
+    return [{"action_id": c.action_id, "prob": uniform_prob} for c in req.candidate_actions]
+
+
+def _record_router_event(key: str) -> None:
+    now = time.time()
+    if key in _ROUTER_HEALTH:
+        _ROUTER_HEALTH[key].append(now)
+
+
+def _rate_in_window(key: str, window_seconds: int) -> float:
+    now = time.time()
+    events = [ts for ts in _ROUTER_HEALTH.get(key, []) if now - ts <= window_seconds]
+    _ROUTER_HEALTH[key] = events
+    return len(events) / max(1.0, window_seconds / 60.0)
+
+
+def _timeout_rate_5m() -> float:
+    now = time.time()
+    events = [ts for ts in _ROUTER_HEALTH.get("timeouts", []) if now - ts <= 300]
+    _ROUTER_HEALTH["timeouts"] = events
+    return len(events) / 50.0
+
+
+def behavior_next_action_probabilities(req: BehaviorRequest) -> BehaviorResponse:
+    start = time.perf_counter()
+    allowed_action_ids = {c.action_id for c in req.candidate_actions}
+
+    system_prompt = (
+        "You are a human behavior model for crowd simulation. "
+        "Return strict JSON with keys: confidence (float 0-1), "
+        "action_probabilities (array of {action_id, prob}), rationale_tags (array of strings)."
+    )
+    user_payload = req.model_dump()
+
+    llm_result = _call_llm_for_json(system_prompt, user_payload)
+    probabilities = []
+    confidence = 0.5
+    rationale_tags = []
+
+    if isinstance(llm_result, dict):
+        candidate_probs = llm_result.get("action_probabilities", [])
+        probabilities = _normalize_action_probs(candidate_probs, allowed_action_ids)
+        try:
+            confidence = max(0.0, min(1.0, float(llm_result.get("confidence", 0.5))))
+        except (TypeError, ValueError):
+            confidence = 0.5
+        if isinstance(llm_result.get("rationale_tags"), list):
+            rationale_tags = [str(tag) for tag in llm_result["rationale_tags"][:4]]
+
+    if not probabilities:
+        _record_router_event("schema_errors")
+        probabilities = _rule_engine_behavior(req)
+        rationale_tags = ["rule_engine_fallback"]
+
+    latency_ms = int((time.perf_counter() - start) * 1000)
+    status = "ok"
+    fallback_recommended = False
+    if latency_ms > req.constraints.max_response_ms:
+        status = "timeout"
+        fallback_recommended = True
+        _record_router_event("timeouts")
+
+    derived = {
+        "predicted_compliance": round(float(req.agent_group.psychology.rule_compliance) * (0.9 + 0.1 * confidence), 2),
+        "predicted_panic_rate": round(float(req.agent_group.psychology.panic_susceptibility) * (1.1 - 0.2 * confidence), 2),
+        "predicted_herding_rate": round(float(req.agent_group.psychology.herding_tendency) * (0.8 + 0.2 * confidence), 2),
+    }
+
+    return BehaviorResponse(
+        request_id=req.request_id,
+        model={"provider": "humanllm_or_centaur", "name": "centaur-vX", "version": "2026-03"},
+        status=status,
+        latency_ms=latency_ms,
+        confidence=round(confidence, 2),
+        action_probabilities=probabilities,
+        derived_signals=derived,
+        rationale_tags=rationale_tags,
+        safety_flags=[],
+        fallback_recommended=fallback_recommended,
+    )
+
+
+def summarize_run(req: SummarizationRequest) -> SummarizationResponse:
+    system_prompt = (
+        "You summarize digital twin simulation outcomes for operators. "
+        "Return strict JSON with keys: headline, key_points, likely_causes, recommended_actions, confidence."
+    )
+    user_payload = req.model_dump()
+    llm_result = _call_llm_for_json(system_prompt, user_payload)
+
+    headline = "Congestion concentrated around key hotspots"
+    key_points = [
+        f"Peak density reached {req.metrics.peak_density_per_m2} per m2.",
+        f"Average speed was {req.metrics.mean_speed_mps} m/s.",
+        f"Evacuation completed in {int(req.metrics.evacuation_time_seconds)} seconds.",
+    ]
+    likely_causes = ["Route awareness asymmetry", "Social following behavior"]
+    recommended_actions = [
+        "Enable dynamic signage toward lower-load routes.",
+        "Pre-stage access control at known queue hotspots.",
+    ]
+    confidence = 0.7
+
+    if isinstance(llm_result, dict):
+        headline = str(llm_result.get("headline", headline))
+        if isinstance(llm_result.get("key_points"), list) and llm_result["key_points"]:
+            key_points = [str(item) for item in llm_result["key_points"][: req.output_format.max_bullets]]
+        if isinstance(llm_result.get("likely_causes"), list) and llm_result["likely_causes"]:
+            likely_causes = [str(item) for item in llm_result["likely_causes"][:4]]
+        if isinstance(llm_result.get("recommended_actions"), list):
+            recommended_actions = [str(item) for item in llm_result["recommended_actions"][:4]]
+        try:
+            confidence = max(0.0, min(1.0, float(llm_result.get("confidence", confidence))))
+        except (TypeError, ValueError):
+            confidence = 0.7
+
+    if not req.output_format.include_recommendations:
+        recommended_actions = []
+
+    citations = [
+        {"source": "simulation_metrics", "ref": "peak_density_per_m2"},
+        {"source": "events", "ref": req.events[0].type if req.events else "no_event"},
+        {"source": "behavior_signals", "ref": "avg_herding_rate"},
+    ]
+
+    status = "ok"
+    if not citations:
+        status = "partial"
+        recommended_actions = []
+
+    return SummarizationResponse(
+        request_id=req.request_id,
+        model={"provider": "gemini", "name": "gemini-2.5-pro", "version": "latest"},
+        status=status,
+        summary={
+            "headline": headline,
+            "key_points": key_points,
+            "likely_causes": likely_causes,
+            "recommended_actions": recommended_actions,
+            "confidence": round(confidence, 2),
+        },
+        citations=citations,
+    )
+
+
+def route_task(req: RouterRequest) -> RouterResponse:
+    now = time.time()
+    timeout_rate = _timeout_rate_5m()
+    circuit_open = now < _ROUTER_HEALTH["circuit_open_until"]
+
+    if timeout_rate > req.thresholds.max_timeout_rate_5m and not circuit_open:
+        _ROUTER_HEALTH["circuit_open_until"] = now + 60
+        circuit_open = True
+
+    schema_error_rate = _rate_in_window("schema_errors", 60)
+
+    selected_path = "behavior_model" if req.task_type == "behavior_decision" else "general_llm"
+    provider_used = "centaur-vX" if req.task_type == "behavior_decision" else "gemini-2.5-pro"
+    confidence = _deterministic_float(f"{req.request_id}:{req.task_type}:conf", 0.55, 0.92)
+    latency_ms = int(_deterministic_float(f"{req.request_id}:{req.task_type}:lat", 180, 1200))
+    schema_valid = schema_error_rate <= req.thresholds.max_schema_errors_per_min
+
+    fallback_triggered = False
+    fallback_mode = None
+    accepted = True
+    reason = "confidence_and_schema_valid"
+
+    min_conf = req.thresholds.min_confidence_behavior if req.task_type == "behavior_decision" else req.thresholds.min_confidence_summary
+
+    if circuit_open:
+        fallback_triggered = True
+        fallback_mode = req.fallback_policy.on_provider_down
+        accepted = False
+        reason = "provider_circuit_open"
+        provider_used = "fallback"
+    elif latency_ms > req.constraints.max_latency_ms:
+        fallback_triggered = True
+        fallback_mode = req.fallback_policy.on_timeout
+        accepted = False
+        reason = "latency_exceeded"
+        _record_router_event("timeouts")
+    elif not schema_valid:
+        fallback_triggered = True
+        fallback_mode = req.fallback_policy.on_schema_invalid
+        accepted = False
+        reason = "schema_invalid"
+    elif confidence < min_conf:
+        fallback_triggered = True
+        fallback_mode = req.fallback_policy.on_low_confidence
+        accepted = False
+        reason = "low_confidence"
+
+    return RouterResponse(
+        request_id=req.request_id,
+        status="ok",
+        selected_path=selected_path,
+        provider_used=provider_used,
+        decision={"accepted": accepted, "reason": reason},
+        quality={
+            "confidence": round(confidence, 2),
+            "latency_ms": latency_ms,
+            "schema_valid": schema_valid,
+        },
+        fallback={"triggered": fallback_triggered, "mode": fallback_mode},
+        audit={
+            "trace_id": f"trace_{req.request_id[:8]}",
+            "policy_version": "router_policy_1.0",
+        },
+    )

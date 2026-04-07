@@ -8,6 +8,9 @@ from schemas import (
     EventRequest,
     CongestionWithEventsRequest,
     ActuationRequest,
+    BehaviorRequest,
+    SummarizationRequest,
+    RouterRequest,
 )
 from logic import (
     ai_suggest_building,
@@ -17,11 +20,15 @@ from logic import (
     aggregate_category_counts_with_events,
     build_congestion_response,
     run_actuation_graph,
+    behavior_next_action_probabilities,
+    summarize_run,
+    route_task,
 )
 
 app = FastAPI(title="Digital Twin Backend")
 
 events_db = []
+current_schedule = None
 
 cors_origins = [
     origin.strip()
@@ -134,6 +141,48 @@ def get_schedule():
     return current_schedule
 
 
+@app.get("/live-movements")
+def get_live_movements(sim_time: float = 8.0):
+    """Get currently active movements for a specific simulation time"""
+    if current_schedule is None:
+        return {
+            "active_movements": [],
+            "message": "No schedule loaded. Upload a CSV first."
+        }
+    
+    # Convert sim_time to HH:MM format
+    hour = int(sim_time)
+    minute = int((sim_time - hour) * 60)
+    current_time_str = f"{hour:02d}:{minute:02d}"
+    
+    active_movements = []
+    movements = current_schedule.get("movements", [])
+    
+    for movement in movements:
+        start_time = movement.get("start_time", "")
+        end_time = movement.get("end_time", "")
+        
+        # Check if current_time_str falls within the movement window
+        if start_time <= current_time_str <= end_time:
+            active_movements.append({
+                "event_name": f"{movement.get('venue', 'Event')} - {movement.get('group', 'Group')}",
+                "venue": movement.get('venue', 'Unknown Venue'),
+                "group": movement.get('group', 'Unknown'),
+                "from_location": movement.get('from_location', 'Unknown'),
+                "attendees": movement.get('attendees', 0),
+                "start_time": start_time,
+                "end_time": end_time,
+                "priority": movement.get('priority', 'medium'),
+                "flow_id": movement.get('flow_id', '')
+            })
+    
+    return {
+        "sim_time": sim_time,
+        "active_movements": active_movements,
+        "count": len(active_movements)
+    }
+
+
 @app.get("/congestion")
 def get_congestion(sim_time: float = 8.0):
     hour = int(sim_time)
@@ -155,6 +204,21 @@ def get_actuation_plan(payload: ActuationRequest):
         raise HTTPException(status_code=400, detail="approval_mode must be 'manual' or 'auto'")
 
     return run_actuation_graph(payload)
+
+
+@app.post("/v1/behavior/next-action-probabilities")
+def next_action_probabilities(payload: BehaviorRequest):
+    return behavior_next_action_probabilities(payload)
+
+
+@app.post("/v1/insights/summarize-run")
+def summarize_simulation_run(payload: SummarizationRequest):
+    return summarize_run(payload)
+
+
+@app.post("/v1/orchestrator/route-task")
+def route_orchestration_task(payload: RouterRequest):
+    return route_task(payload)
 
 
 if __name__ == "__main__":
