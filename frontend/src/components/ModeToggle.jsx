@@ -12,7 +12,7 @@ export default function ModeToggle({ currentMode, setMode }) {
     <div className="glass-panel" style={{
       position: 'absolute',
       top: '20px',
-      right: '20px',
+      left: '20px',
       display: 'flex',
       gap: '8px',
       padding: '8px',

@@ -20,8 +20,38 @@ class PriorityQueue {
 
 export class NavigationGraph {
     constructor() {
-        this.nodes = new Map(); // id -> {x, y, neighbors: [{nodeId, cost}]}
+        this.nodes = new Map(); // id -> {x, y, neighbors: [{nodeId, cost, roadName}]}
         this.nextNodeId = 0;
+        this.blockedRoads = new Set(); // Set of blocked road names/IDs
+        this.roadSegments = new Map(); // roadName -> [{nodeId1, nodeId2}] for highlighting
+    }
+
+    // Set a road as blocked (agents can't use it)
+    setRoadBlocked(roadName, blocked = true) {
+        const normalizedName = roadName.toLowerCase().replace(/\s+/g, '_');
+        if (blocked) {
+            this.blockedRoads.add(normalizedName);
+        } else {
+            this.blockedRoads.delete(normalizedName);
+        }
+        console.log(`NavigationGraph: Road "${roadName}" ${blocked ? 'blocked' : 'unblocked'}`);
+    }
+
+    // Check if a road is blocked
+    isRoadBlocked(roadName) {
+        if (!roadName) return false;
+        const normalizedName = roadName.toLowerCase().replace(/\s+/g, '_');
+        return this.blockedRoads.has(normalizedName);
+    }
+
+    // Clear all road blocks
+    clearAllBlocks() {
+        this.blockedRoads.clear();
+    }
+
+    // Get all road names in the graph
+    getAllRoadNames() {
+        return Array.from(this.roadSegments.keys());
     }
 
     // Heuristic: Straight-line distance
@@ -47,6 +77,7 @@ export class NavigationGraph {
     // Build the graph from OpenStreetMap LineString pathways
     buildFromGeoJSON(pathwaysFeatureCollection) {
         this.nodes.clear();
+        this.roadSegments.clear();
         this.nextNodeId = 0;
         
         // A temporary map to find existing nodes at exact coordinates
@@ -67,6 +98,16 @@ export class NavigationGraph {
         pathwaysFeatureCollection.features.forEach(feature => {
             if (feature.geometry.type === 'LineString') {
                 const coords = feature.geometry.coordinates;
+                // Get road name from properties
+                const roadName = feature.properties?.name || 
+                                 feature.properties?.highway || 
+                                 `road_${this.roadSegments.size}`;
+                const normalizedName = roadName.toLowerCase().replace(/\s+/g, '_');
+                
+                if (!this.roadSegments.has(normalizedName)) {
+                    this.roadSegments.set(normalizedName, []);
+                }
+                
                 for (let i = 0; i < coords.length - 1; i++) {
                     const p1 = coords[i];
                     const p2 = coords[i+1];
@@ -76,16 +117,20 @@ export class NavigationGraph {
                     
                     const dist = Math.hypot(p1[0] - p2[0], p1[1] - p2[1]);
                     
-                    this.nodes.get(id1).neighbors.push({ nodeId: id2, cost: dist });
-                    this.nodes.get(id2).neighbors.push({ nodeId: id1, cost: dist });
+                    // Store road name with each edge
+                    this.nodes.get(id1).neighbors.push({ nodeId: id2, cost: dist, roadName: normalizedName });
+                    this.nodes.get(id2).neighbors.push({ nodeId: id1, cost: dist, roadName: normalizedName });
+                    
+                    // Track segments for this road
+                    this.roadSegments.get(normalizedName).push({ nodeId1: id1, nodeId2: id2 });
                 }
             }
         });
         
-        console.log(`Navigation graph built with ${this.nodes.size} nodes.`);
+        console.log(`Navigation graph built with ${this.nodes.size} nodes, ${this.roadSegments.size} named roads.`);
     }
 
-    // A* Pathfinding Algorithm
+    // A* Pathfinding Algorithm (respects blocked roads)
     findPath(startLngLat, endLngLat) {
         if (this.nodes.size === 0) return [startLngLat, endLngLat]; // Fallback if no graph
 
@@ -116,6 +161,11 @@ export class NavigationGraph {
 
             const neighbors = this.nodes.get(current).neighbors;
             for (const next of neighbors) {
+                // Skip this edge if the road is blocked
+                if (next.roadName && this.isRoadBlocked(next.roadName)) {
+                    continue;
+                }
+                
                 const newCost = costSoFar.get(current) + next.cost;
                 if (!costSoFar.has(next.nodeId) || newCost < costSoFar.get(next.nodeId)) {
                     costSoFar.set(next.nodeId, newCost);
@@ -127,7 +177,7 @@ export class NavigationGraph {
             }
         }
 
-        if (!found) return [startLngLat, endLngLat]; // No path found
+        if (!found) return [startLngLat, endLngLat]; // No path found (may be due to blocked roads)
 
         // Reconstruct path
         let currentId = endNodeId;
