@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any
 import os
 import csv
 import json
+import random
 import subprocess
 import sys
 import time
@@ -142,6 +143,7 @@ pedsim_scene_transform_store: Dict[str, Any] = {
     "scene_file": PEDSIM_SCENE_EXPORT_PATH,
     "demoapp_scene_file": PEDSIM_DEMOAPP_SCENE_PATH,
 }
+pedsim_last_scene_request_store: Optional[Dict[str, Any]] = None
 
 
 class PedSimRuntimeManager:
@@ -1122,12 +1124,40 @@ def get_pedsim_runtime_status():
 def start_pedsim_runtime(request: PedSimRuntimeStartRequest):
     """Start (or restart) the PedSim demoapp and UDP bridge."""
     try:
+        scene_file = request.scene_file
+        runtime_note = None
+
+        has_control_override = (
+            request.default_agent_count is not None
+            or request.rule_follow_ratio is not None
+            or request.agent_speed is not None
+        )
+        if has_control_override:
+            if pedsim_last_scene_request_store:
+                regenerate_payload = dict(pedsim_last_scene_request_store)
+                if request.default_agent_count is not None:
+                    regenerate_payload["default_agent_count"] = max(1, int(request.default_agent_count))
+                if request.rule_follow_ratio is not None:
+                    regenerate_payload["rule_follow_ratio"] = float(request.rule_follow_ratio)
+                if request.agent_speed is not None:
+                    regenerate_payload["agent_speed"] = float(request.agent_speed)
+
+                generated = build_pedsim_scene_from_map(PedSimSceneFromMapRequest(**regenerate_payload))
+                scene_file = generated.get("demoapp_scene_file") or scene_file
+            else:
+                runtime_note = (
+                    "PedSim controls were provided before map export completed; "
+                    "runtime started with current scene defaults."
+                )
+
         status = pedsim_runtime_manager.start(
-            scene_file=request.scene_file,
+            scene_file=scene_file,
             listen_port=request.listen_port,
             backend_url=request.backend_url,
             force_restart=request.force_restart,
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
@@ -1135,6 +1165,7 @@ def start_pedsim_runtime(request: PedSimRuntimeStartRequest):
 
     return {
         "message": "PedSim runtime started",
+        "note": runtime_note,
         **status,
     }
 
@@ -1231,6 +1262,58 @@ def _feature_center(feature: Dict[str, Any]) -> Optional[List[float]]:
     ]
 
 
+def _collect_pathway_geo_points(pathway_features: List[Dict[str, Any]]) -> List[List[float]]:
+    points: List[List[float]] = []
+    for feature in pathway_features:
+        geometry = feature.get("geometry") or {}
+        for line in _iter_lines(geometry):
+            for point in line:
+                if len(point) < 2:
+                    continue
+                points.append([float(point[0]), float(point[1])])
+    return points
+
+
+def _feature_access_point(feature: Dict[str, Any], pathway_points: List[List[float]]) -> Optional[List[float]]:
+    """Choose a point near the building edge (preferably near a pathway) to avoid spawning agents inside sealed buildings."""
+    rings = _iter_polygon_rings(feature.get("geometry") or {})
+    ring = rings[0] if rings else []
+    if not ring:
+        return _feature_center(feature)
+
+    centroid = _feature_center(feature)
+    if not centroid:
+        return [float(ring[0][0]), float(ring[0][1])]
+
+    best_point = [float(ring[0][0]), float(ring[0][1])]
+    if pathway_points:
+        best_distance = float("inf")
+        for candidate in ring:
+            if len(candidate) < 2:
+                continue
+            cx = float(candidate[0])
+            cy = float(candidate[1])
+            nearest = min(
+                ((cx - path_point[0]) ** 2 + (cy - path_point[1]) ** 2) ** 0.5
+                for path_point in pathway_points
+            )
+            if nearest < best_distance:
+                best_distance = nearest
+                best_point = [cx, cy]
+
+    # Nudge slightly outside the building perimeter so agents can move.
+    outward_scale = 1.06
+    return [
+        centroid[0] + (best_point[0] - centroid[0]) * outward_scale,
+        centroid[1] + (best_point[1] - centroid[1]) * outward_scale,
+    ]
+
+
+def _append_unique_waypoint(route: List[Dict[str, Any]], candidate: Dict[str, Any]):
+    if candidate["id"] not in {item["id"] for item in route}:
+        route.append(candidate)
+
+
 def _dedupe_waypoint_candidates(candidates: List[Dict[str, Any]], min_distance: float = 6.0) -> List[Dict[str, Any]]:
     deduped: List[Dict[str, Any]] = []
 
@@ -1253,7 +1336,15 @@ def _write_scene_file(path: str, contents: str):
 @app.post("/pedsim/scene-from-map")
 def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
     """Generate a PedSim scene XML file from map-extracted geometry."""
+    global pedsim_last_scene_request_store
+
     scale = payload.scale if payload.scale > 0 else 0.00003
+    follow_ratio = min(1.0, max(0.0, payload.rule_follow_ratio))
+    agent_speed = min(3.5, max(0.4, payload.agent_speed))
+
+    # Keep latest map geometry payload so runtime start can regenerate scene
+    # with updated controls from the simulation pane.
+    pedsim_last_scene_request_store = payload.dict()
 
     building_features = payload.buildings.get("features", []) if isinstance(payload.buildings, dict) else []
     pathway_features = payload.pathways.get("features", []) if isinstance(payload.pathways, dict) else []
@@ -1274,9 +1365,9 @@ def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
     xml_lines = ["<scenario>"]
 
     obstacle_count = 0
+    road_segment_count = 0
     for feature in building_features:
-        geometry = feature.get("geometry") or {}
-        for ring in _iter_polygon_rings(geometry):
+        for ring in _iter_polygon_rings(feature.get("geometry") or {}):
             if len(ring) < 2:
                 continue
             for i in range(len(ring) - 1):
@@ -1307,26 +1398,44 @@ def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
                 )
                 obstacle_count += 1
 
+    # Add roads as visual lines for demoapp UI (non-blocking, unlike obstacles).
+    for feature in pathway_features[:220]:
+        for line in _iter_lines(feature.get("geometry") or {}):
+            if len(line) < 2:
+                continue
+            for i in range(len(line) - 1):
+                start = line[i]
+                end = line[i + 1]
+                if len(start) < 2 or len(end) < 2:
+                    continue
+                x1, y1 = _geo_to_local(start[0], start[1], origin_lng, origin_lat, scale)
+                x2, y2 = _geo_to_local(end[0], end[1], origin_lng, origin_lat, scale)
+                xml_lines.append(
+                    f"  <road x1=\"{x1:.2f}\" y1=\"{y1:.2f}\" x2=\"{x2:.2f}\" y2=\"{y2:.2f}\" />"
+                )
+                road_segment_count += 1
+
+    pathway_points_geo = _collect_pathway_geo_points(pathway_features)
+
     waypoint_candidates: List[Dict[str, Any]] = []
-    for feature_index, feature in enumerate(building_features[:24]):
-        center = _feature_center(feature)
-        if not center:
+    for feature_index, feature in enumerate(building_features[:30]):
+        access_point = _feature_access_point(feature, pathway_points_geo)
+        if not access_point:
             continue
-        x, y = _geo_to_local(center[0], center[1], origin_lng, origin_lat, scale)
+        x, y = _geo_to_local(access_point[0], access_point[1], origin_lng, origin_lat, scale)
         waypoint_candidates.append({
             "id": f"b{feature_index + 1}",
             "x": x,
             "y": y,
-            "r": 14,
-            "kind": "building",
+            "r": 12,
+            "kind": "building_access",
         })
 
-    for feature in pathway_features[:180]:
-        geometry = feature.get("geometry") or {}
-        for line in _iter_lines(geometry):
+    for feature in pathway_features[:220]:
+        for line in _iter_lines(feature.get("geometry") or {}):
             if len(line) < 2:
                 continue
-            sample_indices = sorted({0, len(line) // 3, (2 * len(line)) // 3, len(line) - 1})
+            sample_indices = sorted({0, len(line) // 4, len(line) // 2, (3 * len(line)) // 4, len(line) - 1})
             for idx in sample_indices:
                 point = line[idx]
                 if len(point) < 2:
@@ -1340,36 +1449,59 @@ def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
                     "kind": "pathway",
                 })
 
-    sampled_waypoints = _dedupe_waypoint_candidates(waypoint_candidates, min_distance=8.0)[:48]
+    sampled_waypoints = _dedupe_waypoint_candidates(waypoint_candidates, min_distance=8.0)[:72]
 
     for waypoint in sampled_waypoints:
         xml_lines.append(
             f"  <waypoint id=\"{waypoint['id']}\" x=\"{waypoint['x']:.2f}\" y=\"{waypoint['y']:.2f}\" r=\"{waypoint['r']:.0f}\" />"
         )
 
+    pathway_waypoints = [waypoint for waypoint in sampled_waypoints if waypoint["kind"] == "pathway"] or sampled_waypoints
+    building_access_waypoints = [waypoint for waypoint in sampled_waypoints if waypoint["kind"] == "building_access"]
+    routing_pool = pathway_waypoints + [
+        waypoint for waypoint in building_access_waypoints if waypoint["id"] not in {item["id"] for item in pathway_waypoints}
+    ]
+
     agent_group_count = 0
     seeded_agents = 0
-    if payload.include_agents and len(sampled_waypoints) >= 4:
-        building_waypoints = [waypoint for waypoint in sampled_waypoints if waypoint["kind"] == "building"] or sampled_waypoints
+    if payload.include_agents and len(pathway_waypoints) >= 3:
         total_agents = max(20, payload.default_agent_count)
-        group_count = min(6, max(2, len(building_waypoints)))
-        agents_per_group = max(10, total_agents // group_count)
+        group_count = min(8, max(2, len(pathway_waypoints) // 2))
+        agents_per_group = max(8, total_agents // group_count)
+        compliant_group_count = max(1, int(round(group_count * follow_ratio)))
 
         for group_index in range(group_count):
-            start_waypoint = building_waypoints[group_index % len(building_waypoints)]
+            is_compliant_group = group_index < compliant_group_count
+            start_pool = pathway_waypoints if pathway_waypoints else routing_pool
+            if not start_pool:
+                continue
+
+            start_waypoint = start_pool[group_index % len(start_pool)]
             route: List[Dict[str, Any]] = [start_waypoint]
 
-            stride = max(1, len(sampled_waypoints) // max(2, group_count))
-            for step in range(1, min(6, len(sampled_waypoints))):
-                candidate = sampled_waypoints[(group_index * stride + step * stride) % len(sampled_waypoints)]
-                if candidate["id"] not in {item["id"] for item in route}:
-                    route.append(candidate)
+            if is_compliant_group:
+                stride = max(1, len(pathway_waypoints) // max(2, group_count))
+                for step in range(1, min(8, len(pathway_waypoints))):
+                    candidate = pathway_waypoints[(group_index * stride + step * stride) % len(pathway_waypoints)]
+                    _append_unique_waypoint(route, candidate)
+
+                if building_access_waypoints:
+                    access_target = building_access_waypoints[group_index % len(building_access_waypoints)]
+                    _append_unique_waypoint(route, access_target)
+            else:
+                rng = random.Random((group_index + 1) * 7919 + total_agents)
+                non_compliant_target_len = min(8, len(routing_pool))
+                while len(route) < non_compliant_target_len:
+                    candidate = routing_pool[rng.randrange(len(routing_pool))]
+                    _append_unique_waypoint(route, candidate)
 
             if len(route) < 2:
                 continue
 
+            adherence = 1.0 if is_compliant_group else max(0.15, follow_ratio * 0.5)
+            spread = 9 if is_compliant_group else 14
             xml_lines.append(
-                f"  <agent x=\"{start_waypoint['x']:.2f}\" y=\"{start_waypoint['y']:.2f}\" n=\"{agents_per_group}\" dx=\"14\" dy=\"14\">"
+                f"  <agent x=\"{start_waypoint['x']:.2f}\" y=\"{start_waypoint['y']:.2f}\" n=\"{agents_per_group}\" dx=\"{spread}\" dy=\"{spread}\" vmax=\"{agent_speed:.2f}\" adherence=\"{adherence:.2f}\">"
             )
             for waypoint in route:
                 xml_lines.append(f"    <addwaypoint id=\"{waypoint['id']}\" />")
@@ -1398,6 +1530,8 @@ def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
         "boundary_source": "selected_area" if boundary_feature else "map_bbox",
         "scene_file": PEDSIM_SCENE_EXPORT_PATH,
         "demoapp_scene_file": PEDSIM_DEMOAPP_SCENE_PATH,
+        "rule_follow_ratio": follow_ratio,
+        "agent_speed": agent_speed,
     })
     _persist_scene_transform_store()
 
@@ -1408,9 +1542,12 @@ def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
         "building_features": len(building_features),
         "pathway_features": len(pathway_features),
         "obstacles_written": obstacle_count,
+        "road_segments_written": road_segment_count,
         "waypoints_written": len(sampled_waypoints),
         "agent_groups_written": agent_group_count,
         "agents_seeded": seeded_agents,
+        "rule_follow_ratio": follow_ratio,
+        "agent_speed": agent_speed,
         "scene_transform": dict(pedsim_scene_transform_store),
     }
 

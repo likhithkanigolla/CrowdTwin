@@ -32,7 +32,16 @@ async function requestJson(path, options) {
         if (!isLast && (response.status === 404 || response.status >= 500)) {
           continue;
         }
-        throw new Error(`Request failed (${response.status})`);
+
+        let errorMessage = `Request failed (${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData?.detail || errorData?.message || errorMessage;
+        } catch {
+          // Keep default error message when response body is not JSON.
+        }
+
+        throw new Error(errorMessage);
       }
 
       return await response.json();

@@ -149,6 +149,8 @@ class PedSimAgentState(BaseModel):
     agent_id: str
     lng: float
     lat: float
+    raw_x: Optional[float] = None
+    raw_y: Optional[float] = None
     cohort_id: Optional[str] = None
     state: str = "MOVING"
 
@@ -171,6 +173,8 @@ class PedSimSceneFromMapRequest(BaseModel):
     boundary: Optional[Dict[str, Any]] = None
     include_agents: bool = True
     default_agent_count: int = 120
+    rule_follow_ratio: float = 0.8
+    agent_speed: float = 1.3
 
 
 class PedSimRuntimeStartRequest(BaseModel):
@@ -179,6 +183,9 @@ class PedSimRuntimeStartRequest(BaseModel):
     listen_port: int = 2222
     backend_url: Optional[str] = None
     force_restart: bool = True
+    default_agent_count: Optional[int] = None
+    rule_follow_ratio: Optional[float] = None
+    agent_speed: Optional[float] = None
 
 
 class BehaviorRequest(BaseModel):

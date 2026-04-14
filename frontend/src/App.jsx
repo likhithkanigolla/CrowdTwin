@@ -140,11 +140,32 @@ function App() {
     switch (action.type) {
       case 'start_simulation':
         try {
-          const runtimeStatus = await startPedSimRuntime({
+          const requestedPopulation = Number(
+            action?.pedsimControls?.default_agent_count ?? action?.initialPopulation ?? 0
+          );
+          const requestedRuleFollowRatio = Number(action?.pedsimControls?.rule_follow_ratio);
+          const requestedAgentSpeed = Number(action?.pedsimControls?.agent_speed);
+          const sceneReadyForControls = pedsimSceneStatus?.status === 'ready';
+
+          const runtimeStartPayload = {
             scene_file: pedsimSceneStatus?.demoapp_scene_file || undefined,
             listen_port: 2222,
             force_restart: true,
-          });
+          };
+
+          if (sceneReadyForControls) {
+            runtimeStartPayload.default_agent_count = Number.isFinite(requestedPopulation) && requestedPopulation > 0
+              ? Math.round(requestedPopulation)
+              : undefined;
+            runtimeStartPayload.rule_follow_ratio = Number.isFinite(requestedRuleFollowRatio)
+              ? requestedRuleFollowRatio
+              : undefined;
+            runtimeStartPayload.agent_speed = Number.isFinite(requestedAgentSpeed)
+              ? requestedAgentSpeed
+              : undefined;
+          }
+
+          const runtimeStatus = await startPedSimRuntime(runtimeStartPayload);
           setPedSimRuntimeStatus(runtimeStatus);
         } catch (error) {
           setPedSimRuntimeStatus({
@@ -295,7 +316,7 @@ function App() {
 
     const fallbackInterval = setInterval(async () => {
       if (cancelled) return;
-      const stale = Date.now() - lastFrameReceivedAt > 1500;
+      const stale = Date.now() - lastFrameReceivedAt > 600;
       if (!stale) return;
 
       try {
@@ -304,7 +325,7 @@ function App() {
       } catch (error) {
         // Fallback fetch is best effort only.
       }
-    }, 1000);
+    }, 300);
 
     return () => {
       cancelled = true;

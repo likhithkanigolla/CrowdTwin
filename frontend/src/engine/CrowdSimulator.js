@@ -520,12 +520,21 @@ export class CrowdSimulator {
       const cohort = COHORTS.find(item => item.id === cohortId);
       const lng = Number(agent.lng);
       const lat = Number(agent.lat);
+      const rawX = Number(agent.raw_x ?? agent.rawX);
+      const rawY = Number(agent.raw_y ?? agent.rawY);
       let safeLng = Number.isFinite(lng) ? lng : 0;
       let safeLat = Number.isFinite(lat) ? lat : 0;
 
-      // Demo-app PedSim emits local XY coordinates. Convert them into the shared
-      // scene overlay frame so agents align with the same walls/roads on the map.
-      if (!isLikelyGeo(safeLng, safeLat)) {
+      // Prefer raw local coordinates when present, then project with latest scene
+      // transform from backend to keep frontend placement aligned with demoapp.
+      if (Number.isFinite(rawX) && Number.isFinite(rawY)) {
+        if (isLikelyGeo(rawX, rawY)) {
+          safeLng = rawX;
+          safeLat = rawY;
+        } else {
+          [safeLng, safeLat] = toSceneGeo(rawX, rawY);
+        }
+      } else if (!isLikelyGeo(safeLng, safeLat)) {
         [safeLng, safeLat] = toSceneGeo(safeLng, safeLat);
       }
 

@@ -83,6 +83,101 @@ const extractLineStrings = (geometry) => {
     return [];
 };
 
+const normalizeRing = (ring) => {
+    if (!Array.isArray(ring) || ring.length < 3) return [];
+
+    const cleaned = ring
+        .filter((point) => Array.isArray(point) && point.length >= 2)
+        .map((point) => [Number(point[0]), Number(point[1])])
+        .filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat));
+
+    if (cleaned.length < 3) return [];
+
+    const first = cleaned[0];
+    const last = cleaned[cleaned.length - 1];
+    if (first[0] === last[0] && first[1] === last[1]) {
+        return cleaned.slice(0, -1);
+    }
+
+    return cleaned;
+};
+
+const ringCentroid = (ring) => {
+    if (!Array.isArray(ring) || ring.length < 3) return null;
+
+    const sum = ring.reduce(
+        (acc, point) => {
+            acc.lng += point[0];
+            acc.lat += point[1];
+            return acc;
+        },
+        { lng: 0, lat: 0 }
+    );
+
+    return [sum.lng / ring.length, sum.lat / ring.length];
+};
+
+const buildBuildingEntrances = (buildingFeatures, pathwayFeatures) => {
+    const pathwayPoints = (pathwayFeatures || [])
+        .flatMap((feature) => extractLineStrings(feature?.geometry))
+        .flatMap((line) => line)
+        .filter((point) => Array.isArray(point) && point.length >= 2)
+        .map((point) => [Number(point[0]), Number(point[1])])
+        .filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat));
+
+    const sampleStride = Math.max(1, Math.ceil(pathwayPoints.length / 1200));
+    const sampledPathwayPoints = pathwayPoints.filter((_, index) => index % sampleStride === 0);
+
+    const entrances = [];
+    for (const feature of buildingFeatures || []) {
+        const outerRing = normalizeRing(extractPolygonRings(feature?.geometry)?.[0] || []);
+        if (outerRing.length < 3) continue;
+
+        const centroid = ringCentroid(outerRing);
+        if (!centroid) continue;
+
+        let bestPoint = outerRing[0];
+        let bestDistance = Number.POSITIVE_INFINITY;
+
+        if (sampledPathwayPoints.length > 0) {
+            for (const candidate of outerRing) {
+                let nearest = Number.POSITIVE_INFINITY;
+                for (const pathPoint of sampledPathwayPoints) {
+                    const dx = candidate[0] - pathPoint[0];
+                    const dy = candidate[1] - pathPoint[1];
+                    const distance = (dx * dx) + (dy * dy);
+                    if (distance < nearest) {
+                        nearest = distance;
+                    }
+                }
+
+                if (nearest < bestDistance) {
+                    bestDistance = nearest;
+                    bestPoint = candidate;
+                }
+            }
+        }
+
+        const nudgeOutward = 1.03;
+        const entrance = [
+            centroid[0] + ((bestPoint[0] - centroid[0]) * nudgeOutward),
+            centroid[1] + ((bestPoint[1] - centroid[1]) * nudgeOutward),
+        ];
+
+        const tooClose = entrances.some((existing) => {
+            const dx = existing[0] - entrance[0];
+            const dy = existing[1] - entrance[1];
+            return (dx * dx + dy * dy) < 0.0000000016;
+        });
+
+        if (!tooClose) {
+            entrances.push(entrance);
+        }
+    }
+
+    return entrances.slice(0, 220);
+};
+
 const PedSimBoundaryPreview = ({ compact = false, selectedArea = null, previewBoundary = null }) => {
     const boundaryRing = toBoundaryRing(previewBoundary) || toBoundaryRing(selectedArea);
     const boundarySource = toBoundaryRing(previewBoundary)
@@ -121,7 +216,7 @@ const PedSimBoundaryPreview = ({ compact = false, selectedArea = null, previewBo
                 }}>
                     Boundary preview will appear after campus map geometry loads or after you draw a focus area.
                 </div>
-                <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} width="100%" height={compact ? 132 : 160} preserveAspectRatio="none">
+                <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} width="100%" height={compact ? 132 : 160} preserveAspectRatio="xMidYMid meet">
                     <rect x="0" y="0" width={viewWidth} height={viewHeight} rx="12" fill="rgba(15, 23, 42, 0.6)" stroke="rgba(251, 191, 36, 0.12)" />
                     <rect
                         x={padding}
@@ -157,12 +252,22 @@ const PedSimBoundaryPreview = ({ compact = false, selectedArea = null, previewBo
     const maxLng = Math.max(...lngs);
     const minLat = Math.min(...lats);
     const maxLat = Math.max(...lats);
-    const width = maxLng - minLng || 1;
-    const height = maxLat - minLat || 1;
+    const width = maxLng - minLng;
+    const height = maxLat - minLat;
+
+    const safeWidth = Math.max(width, 1e-9);
+    const safeHeight = Math.max(height, 1e-9);
+    const innerWidth = viewWidth - (padding * 2);
+    const innerHeight = viewHeight - (padding * 2);
+    const scale = Math.min(innerWidth / safeWidth, innerHeight / safeHeight);
+    const drawWidth = safeWidth * scale;
+    const drawHeight = safeHeight * scale;
+    const offsetX = (viewWidth - drawWidth) / 2;
+    const offsetY = (viewHeight - drawHeight) / 2;
 
     const mapPoint = ([lng, lat]) => {
-        const x = padding + ((lng - minLng) / width) * (viewWidth - padding * 2);
-        const y = viewHeight - padding - ((lat - minLat) / height) * (viewHeight - padding * 2);
+        const x = offsetX + ((lng - minLng) * scale);
+        const y = viewHeight - offsetY - ((lat - minLat) * scale);
         return [x, y];
     };
 
@@ -175,6 +280,7 @@ const PedSimBoundaryPreview = ({ compact = false, selectedArea = null, previewBo
         .flatMap((feature) => extractLineStrings(feature?.geometry))
         .filter((line) => Array.isArray(line) && line.length >= 2)
         .slice(0, 280);
+    const previewEntrances = buildBuildingEntrances(previewBuildingFeatures, previewPathwayFeatures);
 
     return (
         <div style={{
@@ -192,7 +298,7 @@ const PedSimBoundaryPreview = ({ compact = false, selectedArea = null, previewBo
                     {boundarySource}
                 </div>
             </div>
-            <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} width="100%" height={compact ? 132 : 160} preserveAspectRatio="none">
+            <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} width="100%" height={compact ? 132 : 160} preserveAspectRatio="xMidYMid meet">
                 <rect x="0" y="0" width={viewWidth} height={viewHeight} rx="12" fill="rgba(15, 23, 42, 0.6)" stroke="rgba(251, 191, 36, 0.15)" />
                 {previewPathLines.map((line, index) => (
                     <polyline
@@ -214,6 +320,15 @@ const PedSimBoundaryPreview = ({ compact = false, selectedArea = null, previewBo
                         strokeWidth="0.8"
                     />
                 ))}
+                {previewEntrances.map((entrance, index) => {
+                    const [x, y] = mapPoint(entrance);
+                    return (
+                        <g key={`entrance-${index}`}>
+                            <circle cx={x} cy={y} r={2.6} fill="rgba(251, 191, 36, 0.98)" />
+                            <circle cx={x} cy={y} r={4.5} fill="none" stroke="rgba(251, 191, 36, 0.28)" strokeWidth="1" />
+                        </g>
+                    );
+                })}
                 <polygon
                     points={linePoints(boundaryRing)}
                     fill="rgba(251, 191, 36, 0.08)"
@@ -1033,6 +1148,11 @@ function SimulatePanel({
     const [simRoad, setSimRoad] = useState('');
     const [simRoadStatus, setSimRoadStatus] = useState('soft_closed');
     const [availableRoads, setAvailableRoads] = useState([]);
+
+    // PedSim behavior controls (sent to backend runtime start)
+    const [pedSimPopulation, setPedSimPopulation] = useState(120);
+    const [pedSimRuleFollowRatio, setPedSimRuleFollowRatio] = useState(0.8);
+    const [pedSimAgentSpeed, setPedSimAgentSpeed] = useState(1.3);
     
     // Evaluation results
     const [evalResults, setEvalResults] = useState(null);
@@ -1111,13 +1231,22 @@ function SimulatePanel({
     const startSimulation = async () => {
         setIsRuntimeTransitioning(true);
 
+        const normalizedPopulation = Math.max(20, Math.round(Number(pedSimPopulation) || 120));
+        const normalizedRuleFollowRatio = Math.min(1, Math.max(0, Number(pedSimRuleFollowRatio) || 0));
+        const normalizedAgentSpeed = Math.min(3.5, Math.max(0.4, Number(pedSimAgentSpeed) || 1.3));
+
         try {
             if (onSimulatorAction) {
                 const result = await onSimulatorAction({
                     type: 'start_simulation',
                     schedule: scheduleEntries,
                     roadClosures: simRoadClosures,
-                    initialPopulation: scheduleEntries.reduce((sum, e) => sum + e.count, 0)
+                    initialPopulation: scheduleEntries.reduce((sum, e) => sum + e.count, 0),
+                    pedsimControls: {
+                        default_agent_count: normalizedPopulation,
+                        rule_follow_ratio: normalizedRuleFollowRatio,
+                        agent_speed: normalizedAgentSpeed,
+                    }
                 });
 
                 if (result?.ok === false) {
@@ -1159,6 +1288,9 @@ function SimulatePanel({
         setEntryCount(100);
         setSimRoad('');
         setSimRoadStatus('soft_closed');
+        setPedSimPopulation(120);
+        setPedSimRuleFollowRatio(0.8);
+        setPedSimAgentSpeed(1.3);
         setSimTime(8);
     };
 
@@ -1362,6 +1494,77 @@ function SimulatePanel({
                     onChange={(e) => setSimTime(parseFloat(e.target.value))}
                     style={{ width: '100%', cursor: 'pointer', accentColor: '#10b981' }}
                 />
+                <div style={{
+                    marginTop: '8px',
+                    padding: '8px',
+                    borderRadius: '6px',
+                    background: 'rgba(15, 23, 42, 0.45)',
+                    border: '1px solid rgba(148, 163, 184, 0.22)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                }}>
+                    <div style={{
+                        fontSize: '0.66rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.03em',
+                        color: '#86efac',
+                        textTransform: 'uppercase',
+                    }}>
+                        PedSim Behavior Controls
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Population</span>
+                        <input
+                            type="number"
+                            min="20"
+                            max="3000"
+                            step="10"
+                            value={pedSimPopulation}
+                            onChange={(e) => setPedSimPopulation(e.target.value)}
+                            style={{
+                                width: '90px',
+                                padding: '4px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(148, 163, 184, 0.32)',
+                                background: 'rgba(15, 23, 42, 0.7)',
+                                color: '#e2e8f0',
+                                fontSize: '0.68rem',
+                                textAlign: 'right',
+                            }}
+                        />
+                    </div>
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Rule Follow Ratio</span>
+                            <span style={{ fontSize: '0.68rem', color: '#e2e8f0' }}>{(Number(pedSimRuleFollowRatio) || 0).toFixed(2)}</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={pedSimRuleFollowRatio}
+                            onChange={(e) => setPedSimRuleFollowRatio(Number(e.target.value))}
+                            style={{ width: '100%', cursor: 'pointer', accentColor: '#34d399' }}
+                        />
+                    </div>
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Agent Speed (m/s)</span>
+                            <span style={{ fontSize: '0.68rem', color: '#e2e8f0' }}>{(Number(pedSimAgentSpeed) || 0).toFixed(2)}</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="0.4"
+                            max="3.5"
+                            step="0.1"
+                            value={pedSimAgentSpeed}
+                            onChange={(e) => setPedSimAgentSpeed(Number(e.target.value))}
+                            style={{ width: '100%', cursor: 'pointer', accentColor: '#34d399' }}
+                        />
+                    </div>
+                </div>
                 <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
                     <button
                         onClick={() => {

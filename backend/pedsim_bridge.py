@@ -48,14 +48,29 @@ class PedSimBridge:
         self.listen_port = listen_port
         self.backend_url = backend_url
         self.socket = None
+        self.http = requests.Session()
         self.running = False
         self.frame_count = 0
         self.error_count = 0
-        self.last_post_time = time.time()
+        self.last_post_time = 0.0
         self.last_sim_time: Optional[float] = None
         self.recent_agents: Dict[str, Dict[str, Any]] = {}
         self.recent_agent_seen_at: Dict[str, float] = {}
-        self.agent_ttl_seconds = 1.5
+        # Keep just enough cache window to merge sparse one-agent packets, without
+        # making web rendering visibly stale.
+        self.agent_ttl_seconds = max(
+            0.5,
+            float(os.getenv("PEDSIM_AGENT_TTL_SECONDS", "6.0"))
+        )
+        # Throttle backend pushes to a fixed cadence to avoid request backlog latency.
+        self.post_interval_seconds = max(
+            0.05,
+            float(os.getenv("PEDSIM_POST_INTERVAL_SECONDS", "0.12"))
+        )
+        self.request_timeout_seconds = max(
+            0.2,
+            float(os.getenv("PEDSIM_POST_TIMEOUT_SECONDS", "0.75"))
+        )
         self.scene_transform: Dict[str, Any] = dict(DEFAULT_SCENE_TRANSFORM)
         self.scene_transform_mtime: float = 0.0
 
@@ -141,6 +156,10 @@ class PedSimBridge:
         if self.socket:
             self.socket.close()
             self.socket = None
+        try:
+            self.http.close()
+        except Exception:
+            pass
         logger.info(f"Bridge stopped. Processed {self.frame_count} frames, {self.error_count} errors.")
     
     def _process_frame(self, raw_data: bytes):
@@ -194,12 +213,18 @@ class PedSimBridge:
                     "frame_number": self.frame_count,
                     "packet_agents": len(agents),
                     "merged_agents": len(merged_agents),
+                    "agent_ttl_seconds": self.agent_ttl_seconds,
+                    "post_interval_seconds": self.post_interval_seconds,
                     "scene_transform": self.scene_transform,
                 }
             }
-            
-            # Only POST if we have agents or significant time has passed
-            if merged_agents or (now - self.last_post_time > 1.0):
+
+            should_post = (
+                (merged_agents and (now - self.last_post_time >= self.post_interval_seconds))
+                or (now - self.last_post_time >= 1.0)
+            )
+
+            if should_post:
                 self._post_to_backend(payload)
                 self.last_post_time = now
                 self.frame_count += 1
@@ -310,10 +335,10 @@ class PedSimBridge:
         """POST frame to backend."""
         try:
             url = f"{self.backend_url}/pedsim/state"
-            response = requests.post(
+            response = self.http.post(
                 url,
                 json=payload,
-                timeout=2.0
+                timeout=self.request_timeout_seconds
             )
             if response.status_code == 200:
                 # Success, silently continue

@@ -2,8 +2,10 @@
   "origin_lng": 78.3474024,
   "origin_lat": 17.44856695,
   "scale": 3e-05,
-  "updated_at": "2026-04-15T02:05:22.692975",
+  "updated_at": "2026-04-15T03:44:07.397301",
   "boundary_source": "selected_area",
   "scene_file": "/Users/likhithkanigolla/IIITH/code-files/Digital-Twin/Crowd/backend/uploads/pedsim_scene_from_map.xml",
-  "demoapp_scene_file": "/Users/likhithkanigolla/IIITH/code-files/Digital-Twin/Crowd/pedsim/ecosystem/demoapp/scene.xml"
+  "demoapp_scene_file": "/Users/likhithkanigolla/IIITH/code-files/Digital-Twin/Crowd/pedsim/ecosystem/demoapp/scene.xml",
+  "rule_follow_ratio": 0.8,
+  "agent_speed": 1.3
 }
