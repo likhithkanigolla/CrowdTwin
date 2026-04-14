@@ -489,6 +489,10 @@ export class CrowdSimulator {
   applyPedSimState(state) {
     if (!state || !Array.isArray(state.agents)) return;
 
+    const previousAgentById = new Map(this.agents.map((agent) => [String(agent.id), agent]));
+    // Keep a small smoothing amount for stability while reducing visual lag.
+    const positionSmoothing = 0.9;
+
     const isLikelyGeo = (lng, lat) => lng >= 60 && lng <= 100 && lat >= 0 && lat <= 40;
     const sceneTransform = state.scene_transform || state.metadata?.scene_transform || null;
     const sceneScale = Number(sceneTransform?.scale);
@@ -518,6 +522,7 @@ export class CrowdSimulator {
     const mappedAgents = state.agents.slice(0, MAX_AGENTS).map((agent, index) => {
       const cohortId = String(agent.cohort_id || agent.cohortId || 'pedsim').toLowerCase();
       const cohort = COHORTS.find(item => item.id === cohortId);
+      const colorOverride = typeof agent.color === 'string' ? agent.color : null;
       const lng = Number(agent.lng);
       const lat = Number(agent.lat);
       const rawX = Number(agent.raw_x ?? agent.rawX);
@@ -541,7 +546,7 @@ export class CrowdSimulator {
       return {
         id: String(agent.agent_id || agent.id || `pedsim_${index}`),
         cohortId,
-        color: cohort?.color || '#6366f1',
+        color: colorOverride || cohort?.color || '#6366f1',
         path: [{ lng: safeLng, lat: safeLat }, { lng: safeLng, lat: safeLat }],
         pathIndex: 0,
         lng: safeLng,
@@ -566,18 +571,28 @@ export class CrowdSimulator {
       return keep;
     });
 
-    this.agents = mappedAgents;
+    const smoothedAgents = mappedAgents.map((agent) => {
+      const previous = previousAgentById.get(agent.id);
+      if (!previous) {
+        return agent;
+      }
+
+      const smoothedLng = previous.lng + ((agent.lng - previous.lng) * positionSmoothing);
+      const smoothedLat = previous.lat + ((agent.lat - previous.lat) * positionSmoothing);
+
+      return {
+        ...agent,
+        lng: smoothedLng,
+        lat: smoothedLat,
+        path: [{ lng: smoothedLng, lat: smoothedLat }, { lng: smoothedLng, lat: smoothedLat }],
+      };
+    });
+
+    this.agents = smoothedAgents;
     this.isSimulationActive = true;
     if (typeof state.sim_time === 'number') {
       this.simTime = state.sim_time;
     }
-
-    console.debug('[CrowdSimulator] applyPedSimState', {
-      incomingAgentCount: Number(state.agent_count ?? state.agents.length ?? 0),
-      mappedAgentCount: mappedAgents.length,
-      droppedAgents,
-      simTime: this.simTime,
-    });
 
     this._updateLayer();
     if (this.modelLayer) {
@@ -1257,6 +1272,7 @@ export class CrowdSimulator {
 
   _updateLayer() {
     if (!this.map || !this.map.getSource('crowd-agents')) return;
+    if (typeof this.map.isStyleLoaded === 'function' && !this.map.isStyleLoaded()) return;
 
     // Determine which agents to show based on mode
     let visibleAgents;
@@ -1295,34 +1311,32 @@ export class CrowdSimulator {
       properties: {
         cohortId: agent.cohortId,
         // In visualization mode, use single color (can't detect cohort from cameras)
-        color: this.currentMode === 'visualize' ? '#6366f1' : agent.color,
-        icon: this.currentMode === 'visualize' ? this._getHumanEmoji(agent.cohortId) : '🚶'
+          color: this.currentMode === 'visualize' ? '#6366f1' : (agent.color || '#22c55e'),
+        icon: this._getHumanEmoji(agent.id || agent.cohortId)
       }
     }));
 
-    this.map.getSource('crowd-agents').setData({
-      type: 'FeatureCollection',
-      features
-    });
-
-    if (this.currentMode === 'simulate') {
-      console.debug('[CrowdSimulator] crowd source updated', {
-        featureCount: features.length,
-        totalAgents: this.agents.length,
+    try {
+      this.map.getSource('crowd-agents').setData({
+        type: 'FeatureCollection',
+        features
       });
-
-      const visibility = features.length > 0 ? 'visible' : 'none';
-      ['crowd-agents-layer', 'crowd-agents-dot', 'crowd-agents-glow'].forEach((layerId) => {
-        if (this.map.getLayer(layerId)) {
-          this.map.setLayoutProperty(layerId, 'visibility', visibility);
-        }
-      });
+    } catch (error) {
+      return;
     }
+
   }
 
-_getHumanEmoji(cohortId) {
-  const EMOJIS = ['🚶','🚶‍♂️','🚶‍♀️'];
-  return EMOJIS[Math.floor(stableRandom() * EMOJIS.length)];
+_getHumanEmoji(agentKey) {
+  const EMOJIS = ['🚶', '🚶‍♂️', '🚶‍♀️'];
+  const key = String(agentKey || 'unknown');
+  let hash = 0;
+
+  for (let index = 0; index < key.length; index += 1) {
+    hash = ((hash * 31) + key.charCodeAt(index)) >>> 0;
+  }
+
+  return EMOJIS[hash % EMOJIS.length];
 }
 
   _createLayers() {
@@ -1360,12 +1374,12 @@ _getHumanEmoji(cohortId) {
           'interpolate',
           ['linear'],
           ['zoom'],
-          14, 2.5,
-          18, 5
+          14, 3.5,
+          18, 7
         ],
         'circle-color': ['get', 'color'],
         'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 1,
+        'circle-stroke-width': 1.2,
         'circle-opacity': 0.95
       }
     });
@@ -1380,8 +1394,8 @@ _getHumanEmoji(cohortId) {
           'interpolate',
           ['linear'],
           ['zoom'],
-          14, 10,
-          18, 16
+          14, 12,
+          18, 20
         ],
         'text-allow-overlap': true,
         'text-keep-upright': true

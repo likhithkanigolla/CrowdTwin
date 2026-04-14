@@ -17,9 +17,18 @@ import os
 import requests
 import time
 import threading
+import signal
 import logging
 import sys
+
+def signal_handler(sig, frame):
+    logging.info("Shutting down PedSim Bridge...")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 import errno
+import select
 import xml.etree.ElementTree as ET
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -41,6 +50,7 @@ DEFAULT_SCENE_TRANSFORM = {
     "scale": PEDSIM_SCENE_SCALE,
 }
 SCENE_TRANSFORM_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "pedsim_scene_transform.json")
+SPAWN_GROUP_MAP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "pedsim_spawn_groups.json")
 
 
 class PedSimBridge:
@@ -52,6 +62,7 @@ class PedSimBridge:
         self.running = False
         self.frame_count = 0
         self.error_count = 0
+        self.dropped_udp_packets = 0
         self.last_post_time = 0.0
         self.last_sim_time: Optional[float] = None
         self.recent_agents: Dict[str, Dict[str, Any]] = {}
@@ -59,20 +70,26 @@ class PedSimBridge:
         # Keep just enough cache window to merge sparse one-agent packets, without
         # making web rendering visibly stale.
         self.agent_ttl_seconds = max(
-            0.5,
-            float(os.getenv("PEDSIM_AGENT_TTL_SECONDS", "6.0"))
+            0.3,
+            float(os.getenv("PEDSIM_AGENT_TTL_SECONDS", "2.0"))
         )
         # Throttle backend pushes to a fixed cadence to avoid request backlog latency.
         self.post_interval_seconds = max(
-            0.05,
-            float(os.getenv("PEDSIM_POST_INTERVAL_SECONDS", "0.12"))
+            0.01,
+            float(os.getenv("PEDSIM_POST_INTERVAL_SECONDS", "0.03"))
         )
         self.request_timeout_seconds = max(
-            0.2,
-            float(os.getenv("PEDSIM_POST_TIMEOUT_SECONDS", "0.75"))
+            0.1,
+            float(os.getenv("PEDSIM_POST_TIMEOUT_SECONDS", "0.25"))
+        )
+        self.max_drain_packets = max(
+            0,
+            int(os.getenv("PEDSIM_MAX_DRAIN_PACKETS", "400"))
         )
         self.scene_transform: Dict[str, Any] = dict(DEFAULT_SCENE_TRANSFORM)
         self.scene_transform_mtime: float = 0.0
+        self.spawn_group_ranges: List[Dict[str, Any]] = []
+        self.spawn_group_map_mtime: float = 0.0
 
     def _refresh_scene_transform(self):
         try:
@@ -111,11 +128,71 @@ class PedSimBridge:
             "Loaded PedSim scene transform: "
             f"origin=({origin_lng:.6f}, {origin_lat:.6f}) scale={scale:.8f}"
         )
+
+    def _refresh_spawn_group_map(self):
+        try:
+            stat = os.stat(SPAWN_GROUP_MAP_PATH)
+        except FileNotFoundError:
+            self.spawn_group_ranges = []
+            self.spawn_group_map_mtime = 0.0
+            return
+        except Exception as exc:
+            logger.warning(f"Could not stat spawn group map file: {exc}")
+            return
+
+        if stat.st_mtime <= self.spawn_group_map_mtime:
+            return
+
+        try:
+            with open(SPAWN_GROUP_MAP_PATH, "r", encoding="utf-8") as spawn_file:
+                payload = json.load(spawn_file)
+        except Exception as exc:
+            logger.warning(f"Could not load spawn group map file: {exc}")
+            return
+
+        groups = payload.get("groups", []) if isinstance(payload, dict) else []
+        parsed_ranges: List[Dict[str, Any]] = []
+        for group in groups:
+            try:
+                start_id = int(group.get("agent_id_start"))
+                end_id = int(group.get("agent_id_end"))
+            except (TypeError, ValueError):
+                continue
+
+            if end_id < start_id:
+                start_id, end_id = end_id, start_id
+
+            parsed_ranges.append({
+                "start": start_id,
+                "end": end_id,
+                "cohort_id": str(group.get("cohort_id") or "pedsim").lower(),
+                "color": str(group.get("color")).strip() if group.get("color") else None,
+            })
+
+        self.spawn_group_ranges = parsed_ranges
+        self.spawn_group_map_mtime = stat.st_mtime
+        logger.info(f"Loaded PedSim spawn group map: groups={len(parsed_ranges)}")
+
+    def _resolve_agent_profile(self, agent_id: str) -> Dict[str, Any]:
+        try:
+            numeric_id = int(str(agent_id))
+        except (TypeError, ValueError):
+            return {"cohort_id": "pedsim", "color": None}
+
+        for group in self.spawn_group_ranges:
+            if group["start"] <= numeric_id <= group["end"]:
+                return {
+                    "cohort_id": group.get("cohort_id") or "pedsim",
+                    "color": group.get("color"),
+                }
+
+        return {"cohort_id": "pedsim", "color": None}
         
     def start(self) -> bool:
         """Start listening for PedSim frames."""
         self.running = True
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.settimeout(1.0)
         try:
             self.socket.bind(('0.0.0.0', self.listen_port))
         except OSError as e:
@@ -132,12 +209,30 @@ class PedSimBridge:
         logger.info(f"🔗 PedSim Bridge started, listening on UDP port {self.listen_port}")
         logger.info(f"📍 Backend target: {self.backend_url}/pedsim/state")
         self._refresh_scene_transform()
+        self._refresh_spawn_group_map()
         
         try:
             while self.running:
                 try:
                     data, _ = self.socket.recvfrom(65535)
-                    self._process_frame(data)
+                    packet_batch = [data]
+                    drained_packets = 0
+
+                    # Drain queued UDP packets and merge them into one outbound
+                    # update to keep latency low without dropping agent samples.
+                    while drained_packets < self.max_drain_packets:
+                        ready, _, _ = select.select([self.socket], [], [], 0)
+                        if not ready:
+                            break
+                        drained_data, _ = self.socket.recvfrom(65535)
+                        packet_batch.append(drained_data)
+                        drained_packets += 1
+
+                    if drained_packets > 0:
+                        # Track queue pressure separately from true drops.
+                        self.dropped_udp_packets += drained_packets
+
+                    self._process_frame_batch(packet_batch, drained_udp_packets=drained_packets)
                 except socket.timeout:
                     continue
                 except Exception as e:
@@ -162,34 +257,34 @@ class PedSimBridge:
             pass
         logger.info(f"Bridge stopped. Processed {self.frame_count} frames, {self.error_count} errors.")
     
-    def _process_frame(self, raw_data: bytes):
-        """Parse a PedSim UDP frame and forward to backend."""
+    def _process_frame_batch(self, packet_batch: List[bytes], drained_udp_packets: int = 0):
+        """Parse a batch of PedSim UDP frames and forward a merged backend update."""
         try:
-            # Decode the frame
-            frame_text = raw_data.decode('utf-8', errors='ignore').strip()
-            if not frame_text:
-                return
-            
-            # Parse agents from the frame
             self._refresh_scene_transform()
-            agents = self._parse_agents(frame_text)
-            
-            # Extract sim time from frame if available
-            sim_time = self._extract_sim_time(frame_text)
-
-            if sim_time is not None:
-                self.last_sim_time = sim_time
-
+            self._refresh_spawn_group_map()
             now = time.time()
+            packet_agents = 0
 
-            # Merge incoming samples into a short rolling crowd cache.
-            # This handles streams that send one agent per UDP packet.
-            for agent in agents:
-                agent_id = str(agent.get("agent_id", ""))
-                if not agent_id:
+            for raw_data in packet_batch:
+                frame_text = raw_data.decode('utf-8', errors='ignore').strip()
+                if not frame_text:
                     continue
-                self.recent_agents[agent_id] = agent
-                self.recent_agent_seen_at[agent_id] = now
+
+                agents = self._parse_agents(frame_text)
+                packet_agents += len(agents)
+
+                sim_time = self._extract_sim_time(frame_text)
+                if sim_time is not None:
+                    self.last_sim_time = sim_time
+
+                # Merge incoming samples into a short rolling crowd cache.
+                # This handles streams that send one agent per UDP packet.
+                for agent in agents:
+                    agent_id = str(agent.get("agent_id", ""))
+                    if not agent_id:
+                        continue
+                    self.recent_agents[agent_id] = agent
+                    self.recent_agent_seen_at[agent_id] = now
 
             # Expire stale agents from the cache.
             stale_ids = [
@@ -211,8 +306,11 @@ class PedSimBridge:
                 "metadata": {
                     "source": "pedsim_bridge",
                     "frame_number": self.frame_count,
-                    "packet_agents": len(agents),
+                    "packet_agents": packet_agents,
+                    "packet_count": len(packet_batch),
                     "merged_agents": len(merged_agents),
+                    "drained_udp_packets": drained_udp_packets,
+                    "total_dropped_udp_packets": self.dropped_udp_packets,
                     "agent_ttl_seconds": self.agent_ttl_seconds,
                     "post_interval_seconds": self.post_interval_seconds,
                     "scene_transform": self.scene_transform,
@@ -232,7 +330,8 @@ class PedSimBridge:
                 if self.frame_count % 50 == 0:
                     logger.info(
                         f"✓ Processed {self.frame_count} packets, "
-                        f"packet_agents={len(agents)}, merged_agents={len(merged_agents)}"
+                        f"packet_agents={packet_agents}, merged_agents={len(merged_agents)}, "
+                        f"dropped_udp_packets={self.dropped_udp_packets}"
                     )
         
         except Exception as e:
@@ -266,20 +365,27 @@ class PedSimBridge:
             except (TypeError, ValueError):
                 return None
 
+            profile = self._resolve_agent_profile(agent_id)
+
             lng = x
             lat = y
             if not _is_likely_geo(lng, lat):
                 lng, lat = _to_geo(x, y)
 
-            return {
+            agent_payload: Dict[str, Any] = {
                 "agent_id": str(agent_id),
                 "lng": float(lng),
                 "lat": float(lat),
-                "cohort_id": "pedsim",
+                "cohort_id": str(profile.get("cohort_id") or "pedsim"),
                 "state": "MOVING",
                 "raw_x": x,
                 "raw_y": y,
             }
+
+            if profile.get("color"):
+                agent_payload["color"] = profile.get("color")
+
+            return agent_payload
 
         # Preferred path: strict XML parsing handles arbitrary attribute ordering.
         try:

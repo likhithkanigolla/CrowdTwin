@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, File, UploadFile, WebSocket, WebSocketDisconnect
 from typing import List, Optional, Dict, Any
+import asyncio
 import os
 import csv
 import json
@@ -50,26 +51,120 @@ app = FastAPI(title="Digital Twin Backend")
 
 class PedSimStreamManager:
     def __init__(self):
-        self.connections: List[WebSocket] = []
+        self.connections: Dict[int, Dict[str, Any]] = {}
+        self.target_fps = min(120.0, max(5.0, float(os.getenv("PEDSIM_WS_TARGET_FPS", "60"))))
+        self.flush_interval_seconds = 1.0 / self.target_fps
+        self.keepalive_seconds = max(1.0, float(os.getenv("PEDSIM_WS_KEEPALIVE_SECONDS", "8.0")))
+        self.metrics: Dict[str, int] = {
+            "ingress_frames": 0,
+            "enqueued_frames": 0,
+            "sent_frames": 0,
+            "dropped_overwrites": 0,
+            "failed_sends": 0,
+        }
+
+    def _disconnect_by_id(self, connection_id: int):
+        connection = self.connections.pop(connection_id, None)
+        if not connection:
+            return
+
+        sender_task = connection.get("sender_task")
+        if sender_task and not sender_task.done():
+            sender_task.cancel()
+
+    async def _sender_loop(self, connection_id: int):
+        while True:
+            await asyncio.sleep(self.flush_interval_seconds)
+
+            connection = self.connections.get(connection_id)
+            if not connection:
+                return
+
+            websocket = connection.get("websocket")
+            payload = connection.get("latest_payload")
+            now = time.time()
+
+            try:
+                if payload is not None:
+                    await websocket.send_json(payload)
+                    connection["latest_payload"] = None
+                    connection["last_sent_at"] = now
+                    connection["sent_frames"] = int(connection.get("sent_frames", 0)) + 1
+                    self.metrics["sent_frames"] += 1
+                elif now - float(connection.get("last_sent_at", 0.0)) >= self.keepalive_seconds:
+                    await websocket.send_json({
+                        "type": "heartbeat",
+                        "timestamp": datetime.now().isoformat(),
+                    })
+                    connection["last_sent_at"] = now
+            except Exception:
+                self.metrics["failed_sends"] += 1
+                self._disconnect_by_id(connection_id)
+                return
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        self.connections.append(websocket)
+        connection_id = id(websocket)
+        sender_task = asyncio.create_task(self._sender_loop(connection_id))
+        self.connections[connection_id] = {
+            "websocket": websocket,
+            "latest_payload": None,
+            "sender_task": sender_task,
+            "last_sent_at": time.time(),
+            "sent_frames": 0,
+            "dropped_overwrites": 0,
+        }
+        return connection_id
 
     def disconnect(self, websocket: WebSocket):
-        if websocket in self.connections:
-            self.connections.remove(websocket)
+        connection_id = next(
+            (
+                current_id
+                for current_id, connection in self.connections.items()
+                if connection.get("websocket") is websocket
+            ),
+            None,
+        )
+        if connection_id is not None:
+            self._disconnect_by_id(connection_id)
 
-    async def broadcast(self, payload: Dict[str, Any]):
-        stale_connections = []
-        for websocket in self.connections:
-            try:
-                await websocket.send_json(payload)
-            except Exception:
-                stale_connections.append(websocket)
+    def queue_for_connection(self, connection_id: int, payload: Dict[str, Any]):
+        connection = self.connections.get(connection_id)
+        if not connection:
+            return
 
-        for websocket in stale_connections:
-            self.disconnect(websocket)
+        if connection.get("latest_payload") is not None:
+            connection["dropped_overwrites"] = int(connection.get("dropped_overwrites", 0)) + 1
+            self.metrics["dropped_overwrites"] += 1
+
+        connection["latest_payload"] = payload
+        self.metrics["enqueued_frames"] += 1
+
+    def broadcast(self, payload: Dict[str, Any]):
+        self.metrics["ingress_frames"] += 1
+        for connection_id in self.connections.keys():
+            self.queue_for_connection(connection_id, payload)
+
+    def close(self):
+        while self.connections:
+            connection_id = next(iter(self.connections.keys()))
+            self._disconnect_by_id(connection_id)
+
+    def status(self) -> Dict[str, Any]:
+        connection_stats = []
+        for connection in self.connections.values():
+            connection_stats.append({
+                "sent_frames": int(connection.get("sent_frames", 0)),
+                "dropped_overwrites": int(connection.get("dropped_overwrites", 0)),
+            })
+
+        return {
+            "connections": len(self.connections),
+            "target_fps": self.target_fps,
+            "flush_interval_ms": round(self.flush_interval_seconds * 1000.0, 2),
+            **self.metrics,
+            "connection_stats": connection_stats,
+        }
 
 
 pedsim_stream_manager = PedSimStreamManager()
@@ -100,8 +195,10 @@ simulation_configs_store: Dict[str, SimulationConfig] = {}
 
 # PedSim latest state frame
 pedsim_state_store: Dict[str, Any] = {
+    "stream_id": datetime.now().isoformat(),
     "sim_time": None,
     "timestamp": None,
+    "stream_sequence": 0,
     "agents": [],
     "metadata": {},
 }
@@ -132,6 +229,7 @@ UPLOADS_DIR = os.path.join(BACKEND_DIR, "uploads")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 PEDSIM_TRANSFORM_PATH = os.path.join(UPLOADS_DIR, "pedsim_scene_transform.json")
 PEDSIM_SCENE_EXPORT_PATH = os.path.join(UPLOADS_DIR, "pedsim_scene_from_map.xml")
+PEDSIM_SPAWN_GROUPS_PATH = os.path.join(UPLOADS_DIR, "pedsim_spawn_groups.json")
 PEDSIM_DEMOAPP_SCENE_PATH = os.path.join(REPO_ROOT, "pedsim", "ecosystem", "demoapp", "scene.xml")
 
 pedsim_scene_transform_store: Dict[str, Any] = {
@@ -492,6 +590,10 @@ def _shutdown_runtime_on_exit():
     """Ensure external PedSim processes are not left behind on server shutdown."""
     try:
         pedsim_runtime_manager.stop()
+    except Exception:
+        pass
+    try:
+        pedsim_stream_manager.close()
     except Exception:
         pass
 
@@ -1068,12 +1170,16 @@ def evaluate_simulation(config: SimulationConfig):
 @app.post("/pedsim/state")
 async def push_pedsim_state(update: PedSimStateUpdate):
     """Receive latest frame from the external PedSim runtime."""
+    pedsim_state_store["stream_sequence"] = int(pedsim_state_store.get("stream_sequence") or 0) + 1
     pedsim_state_store["sim_time"] = update.sim_time
     pedsim_state_store["timestamp"] = update.timestamp or datetime.now().isoformat()
     pedsim_state_store["agents"] = [agent.dict() for agent in update.agents]
     pedsim_state_store["metadata"] = update.metadata or {}
 
     payload = {
+        "type": "frame",
+        "stream_id": pedsim_state_store.get("stream_id"),
+        "stream_sequence": pedsim_state_store.get("stream_sequence"),
         "sim_time": pedsim_state_store.get("sim_time"),
         "timestamp": pedsim_state_store.get("timestamp"),
         "agents": pedsim_state_store.get("agents", []),
@@ -1082,10 +1188,12 @@ async def push_pedsim_state(update: PedSimStateUpdate):
         "scene_transform": dict(pedsim_scene_transform_store),
     }
 
-    await pedsim_stream_manager.broadcast(payload)
+    pedsim_stream_manager.broadcast(payload)
 
     return {
         "message": "PedSim state updated",
+        "stream_id": pedsim_state_store.get("stream_id"),
+        "stream_sequence": pedsim_state_store.get("stream_sequence"),
         "agent_count": len(pedsim_state_store["agents"]),
         "timestamp": pedsim_state_store["timestamp"],
     }
@@ -1095,6 +1203,9 @@ async def push_pedsim_state(update: PedSimStateUpdate):
 def get_pedsim_state():
     """Return latest PedSim frame for frontend rendering."""
     return {
+        "type": "snapshot",
+        "stream_id": pedsim_state_store.get("stream_id"),
+        "stream_sequence": pedsim_state_store.get("stream_sequence", 0),
         "sim_time": pedsim_state_store.get("sim_time"),
         "timestamp": pedsim_state_store.get("timestamp"),
         "agents": pedsim_state_store.get("agents", []),
@@ -1111,7 +1222,17 @@ def clear_pedsim_state():
     pedsim_state_store["timestamp"] = datetime.now().isoformat()
     pedsim_state_store["agents"] = []
     pedsim_state_store["metadata"] = {}
-    return {"message": "PedSim state cleared"}
+    return {
+        "message": "PedSim state cleared",
+        "stream_id": pedsim_state_store.get("stream_id"),
+        "stream_sequence": pedsim_state_store.get("stream_sequence", 0),
+    }
+
+
+@app.get("/pedsim/stream/status")
+def get_pedsim_stream_status():
+    """Report WebSocket stream fanout health and drop metrics."""
+    return pedsim_stream_manager.status()
 
 
 @app.get("/pedsim/runtime/status")
@@ -1131,6 +1252,7 @@ def start_pedsim_runtime(request: PedSimRuntimeStartRequest):
             request.default_agent_count is not None
             or request.rule_follow_ratio is not None
             or request.agent_speed is not None
+            or request.spawn_groups is not None
         )
         if has_control_override:
             if pedsim_last_scene_request_store:
@@ -1141,6 +1263,8 @@ def start_pedsim_runtime(request: PedSimRuntimeStartRequest):
                     regenerate_payload["rule_follow_ratio"] = float(request.rule_follow_ratio)
                 if request.agent_speed is not None:
                     regenerate_payload["agent_speed"] = float(request.agent_speed)
+                if request.spawn_groups is not None:
+                    regenerate_payload["spawn_groups"] = [group.dict() for group in request.spawn_groups]
 
                 generated = build_pedsim_scene_from_map(PedSimSceneFromMapRequest(**regenerate_payload))
                 scene_file = generated.get("demoapp_scene_file") or scene_file
@@ -1462,55 +1586,147 @@ def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
         waypoint for waypoint in building_access_waypoints if waypoint["id"] not in {item["id"] for item in pathway_waypoints}
     ]
 
+    spawn_points = [
+        {
+            "index": index,
+            "waypoint_id": waypoint["id"],
+            "x": round(float(waypoint["x"]), 2),
+            "y": round(float(waypoint["y"]), 2),
+        }
+        for index, waypoint in enumerate(pathway_waypoints)
+    ]
+
     agent_group_count = 0
     seeded_agents = 0
-    if payload.include_agents and len(pathway_waypoints) >= 3:
-        total_agents = max(20, payload.default_agent_count)
-        group_count = min(8, max(2, len(pathway_waypoints) // 2))
-        agents_per_group = max(8, total_agents // group_count)
-        compliant_group_count = max(1, int(round(group_count * follow_ratio)))
+    agent_group_mappings: List[Dict[str, Any]] = []
+    next_agent_id = 0
 
-        for group_index in range(group_count):
-            is_compliant_group = group_index < compliant_group_count
-            start_pool = pathway_waypoints if pathway_waypoints else routing_pool
-            if not start_pool:
-                continue
+    if payload.include_agents and pathway_waypoints:
+        custom_spawn_groups = payload.spawn_groups or []
 
-            start_waypoint = start_pool[group_index % len(start_pool)]
-            route: List[Dict[str, Any]] = [start_waypoint]
+        if custom_spawn_groups:
+            for group_index, group in enumerate(custom_spawn_groups):
+                start_index = max(0, int(group.start_index))
+                if start_index >= len(pathway_waypoints):
+                    continue
 
-            if is_compliant_group:
-                stride = max(1, len(pathway_waypoints) // max(2, group_count))
-                for step in range(1, min(8, len(pathway_waypoints))):
-                    candidate = pathway_waypoints[(group_index * stride + step * stride) % len(pathway_waypoints)]
+                start_waypoint = pathway_waypoints[start_index]
+                group_size = max(1, int(group.count))
+                group_adherence = group.adherence if group.adherence is not None else follow_ratio
+                group_adherence = min(1.0, max(0.0, float(group_adherence)))
+                group_route_span = group.route_span if group.route_span is not None else max(4, len(pathway_waypoints) // 10)
+                group_route_span = max(2, min(len(pathway_waypoints), int(group_route_span)))
+                group_cohort = str(group.cohort_id or "pedsim").lower()
+                group_color = str(group.color).strip() if group.color else None
+
+                route: List[Dict[str, Any]] = [start_waypoint]
+                stride = max(1, len(pathway_waypoints) // group_route_span)
+                for step in range(1, group_route_span):
+                    candidate = pathway_waypoints[(start_index + step * stride) % len(pathway_waypoints)]
                     _append_unique_waypoint(route, candidate)
 
                 if building_access_waypoints:
                     access_target = building_access_waypoints[group_index % len(building_access_waypoints)]
                     _append_unique_waypoint(route, access_target)
-            else:
-                rng = random.Random((group_index + 1) * 7919 + total_agents)
-                non_compliant_target_len = min(8, len(routing_pool))
-                while len(route) < non_compliant_target_len:
-                    candidate = routing_pool[rng.randrange(len(routing_pool))]
-                    _append_unique_waypoint(route, candidate)
 
-            if len(route) < 2:
-                continue
+                if len(route) < 2:
+                    continue
 
-            adherence = 1.0 if is_compliant_group else max(0.15, follow_ratio * 0.5)
-            spread = 9 if is_compliant_group else 14
-            xml_lines.append(
-                f"  <agent x=\"{start_waypoint['x']:.2f}\" y=\"{start_waypoint['y']:.2f}\" n=\"{agents_per_group}\" dx=\"{spread}\" dy=\"{spread}\" vmax=\"{agent_speed:.2f}\" adherence=\"{adherence:.2f}\">"
-            )
-            for waypoint in route:
-                xml_lines.append(f"    <addwaypoint id=\"{waypoint['id']}\" />")
-            for waypoint in reversed(route[1:-1]):
-                xml_lines.append(f"    <addwaypoint id=\"{waypoint['id']}\" />")
-            xml_lines.append("  </agent>")
+                spread = 9 if group_adherence >= 0.6 else 14
+                xml_lines.append(
+                    f"  <agent x=\"{start_waypoint['x']:.2f}\" y=\"{start_waypoint['y']:.2f}\" n=\"{group_size}\" dx=\"{spread}\" dy=\"{spread}\" vmax=\"{agent_speed:.2f}\" adherence=\"{group_adherence:.2f}\">"
+                )
+                for waypoint in route:
+                    xml_lines.append(f"    <addwaypoint id=\"{waypoint['id']}\" />")
+                for waypoint in reversed(route[1:-1]):
+                    xml_lines.append(f"    <addwaypoint id=\"{waypoint['id']}\" />")
+                xml_lines.append("  </agent>")
 
-            agent_group_count += 1
-            seeded_agents += agents_per_group
+                agent_group_mappings.append({
+                    "group_index": agent_group_count,
+                    "agent_id_start": next_agent_id,
+                    "agent_id_end": next_agent_id + group_size - 1,
+                    "cohort_id": group_cohort,
+                    "color": group_color,
+                    "start_index": start_index,
+                    "waypoint_id": start_waypoint["id"],
+                    "count": group_size,
+                })
+                next_agent_id += group_size
+                agent_group_count += 1
+                seeded_agents += group_size
+        elif len(pathway_waypoints) >= 3:
+            total_agents = max(20, payload.default_agent_count)
+            group_count = min(8, max(2, len(pathway_waypoints) // 2))
+            agents_per_group = max(8, total_agents // group_count)
+            compliant_group_count = max(1, int(round(group_count * follow_ratio)))
+
+            for group_index in range(group_count):
+                is_compliant_group = group_index < compliant_group_count
+                start_pool = pathway_waypoints if pathway_waypoints else routing_pool
+                if not start_pool:
+                    continue
+
+                start_waypoint = start_pool[group_index % len(start_pool)]
+                route: List[Dict[str, Any]] = [start_waypoint]
+
+                if is_compliant_group:
+                    stride = max(1, len(pathway_waypoints) // max(2, group_count))
+                    for step in range(1, min(8, len(pathway_waypoints))):
+                        candidate = pathway_waypoints[(group_index * stride + step * stride) % len(pathway_waypoints)]
+                        _append_unique_waypoint(route, candidate)
+
+                    if building_access_waypoints:
+                        access_target = building_access_waypoints[group_index % len(building_access_waypoints)]
+                        _append_unique_waypoint(route, access_target)
+                else:
+                    rng = random.Random((group_index + 1) * 7919 + total_agents)
+                    non_compliant_target_len = min(8, len(routing_pool))
+                    while len(route) < non_compliant_target_len:
+                        candidate = routing_pool[rng.randrange(len(routing_pool))]
+                        _append_unique_waypoint(route, candidate)
+
+                if len(route) < 2:
+                    continue
+
+                adherence = 1.0 if is_compliant_group else max(0.15, follow_ratio * 0.5)
+                spread = 9 if is_compliant_group else 14
+                xml_lines.append(
+                    f"  <agent x=\"{start_waypoint['x']:.2f}\" y=\"{start_waypoint['y']:.2f}\" n=\"{agents_per_group}\" dx=\"{spread}\" dy=\"{spread}\" vmax=\"{agent_speed:.2f}\" adherence=\"{adherence:.2f}\">"
+                )
+                for waypoint in route:
+                    xml_lines.append(f"    <addwaypoint id=\"{waypoint['id']}\" />")
+                for waypoint in reversed(route[1:-1]):
+                    xml_lines.append(f"    <addwaypoint id=\"{waypoint['id']}\" />")
+                xml_lines.append("  </agent>")
+
+                start_index = next((item["index"] for item in spawn_points if item["waypoint_id"] == start_waypoint["id"]), 0)
+                agent_group_mappings.append({
+                    "group_index": agent_group_count,
+                    "agent_id_start": next_agent_id,
+                    "agent_id_end": next_agent_id + agents_per_group - 1,
+                    "cohort_id": "pedsim",
+                    "color": None,
+                    "start_index": start_index,
+                    "waypoint_id": start_waypoint["id"],
+                    "count": agents_per_group,
+                })
+
+                next_agent_id += agents_per_group
+                agent_group_count += 1
+                seeded_agents += agents_per_group
+
+    spawn_group_payload = {
+        "updated_at": datetime.now().isoformat(),
+        "total_agents": seeded_agents,
+        "groups": agent_group_mappings,
+        "spawn_points": spawn_points,
+    }
+    try:
+        with open(PEDSIM_SPAWN_GROUPS_PATH, "w", encoding="utf-8") as spawn_file:
+            json.dump(spawn_group_payload, spawn_file, ensure_ascii=True, indent=2)
+    except Exception as exc:
+        print(f"Could not write PedSim spawn group map: {exc}")
 
     xml_lines.append("</scenario>")
 
@@ -1546,6 +1762,9 @@ def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
         "waypoints_written": len(sampled_waypoints),
         "agent_groups_written": agent_group_count,
         "agents_seeded": seeded_agents,
+        "spawn_points": spawn_points,
+        "spawn_groups": agent_group_mappings,
+        "spawn_group_map_file": PEDSIM_SPAWN_GROUPS_PATH,
         "rule_follow_ratio": follow_ratio,
         "agent_speed": agent_speed,
         "scene_transform": dict(pedsim_scene_transform_store),
@@ -1555,11 +1774,13 @@ def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
 @app.websocket("/pedsim/ws")
 async def pedsim_state_stream(websocket: WebSocket):
     """Stream the latest PedSim frame to connected frontend clients."""
-    await pedsim_stream_manager.connect(websocket)
+    connection_id = await pedsim_stream_manager.connect(websocket)
     try:
-        await websocket.send_json({
+        pedsim_stream_manager.queue_for_connection(connection_id, {
             "sim_time": pedsim_state_store.get("sim_time"),
             "timestamp": pedsim_state_store.get("timestamp"),
+            "stream_id": pedsim_state_store.get("stream_id"),
+            "stream_sequence": pedsim_state_store.get("stream_sequence", 0),
             "agents": pedsim_state_store.get("agents", []),
             "metadata": pedsim_state_store.get("metadata", {}),
             "agent_count": len(pedsim_state_store.get("agents", [])),

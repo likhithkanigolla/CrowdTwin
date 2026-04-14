@@ -911,9 +911,26 @@ export default function MapContainer({
         const isSimulationMode = currentMode === 'simulate';
         const isSimActive = Boolean(simulator?.isSimulationActive);
         const agentCount = simulator?.agents?.length || 0;
-        const showAgents = currentMode !== 'actuate' && (!isSimulationMode || isSimActive || agentCount > 0);
+        // Keep crowd layers enabled in simulate mode so live PedSim dots can appear immediately.
+        const showAgents = currentMode !== 'actuate';
         const opacity = isSimulationMode ? 0.95 : currentMode === 'visualize' ? 0.9 : 0.95;
         const snapshot = `${currentMode}|${showAgents}|${isSimActive}|${agentCount}`;
+        const safeSetVisibility = (layerId, value) => {
+            try {
+                if (!map.getLayer(layerId)) return;
+                map.setLayoutProperty(layerId, 'visibility', value);
+            } catch (error) {
+                // Ignore transient style races while map layers are being refreshed.
+            }
+        };
+        const safeSetPaint = (layerId, property, value) => {
+            try {
+                if (!map.getLayer(layerId)) return;
+                map.setPaintProperty(layerId, property, value);
+            } catch (error) {
+                // Ignore transient style races while map layers are being refreshed.
+            }
+        };
 
         if (crowdVisibilityStateRef.current !== snapshot) {
             console.debug('[MapContainer] crowd visibility', {
@@ -926,15 +943,21 @@ export default function MapContainer({
             crowdVisibilityStateRef.current = snapshot;
         }
 
-        ['crowd-agents-layer', 'crowd-agents-dot', 'crowd-agents-glow'].forEach((layerId) => {
-            if (map.getLayer(layerId)) {
-                map.setLayoutProperty(layerId, 'visibility', showAgents ? 'visible' : 'none');
-            }
+        const symbolVisibility = showAgents ? 'visible' : 'none';
+        safeSetVisibility('crowd-agents-layer', symbolVisibility);
+
+        ['crowd-agents-dot', 'crowd-agents-glow'].forEach((layerId) => {
+            const circleVisibility = showAgents ? 'visible' : 'none';
+            safeSetVisibility(layerId, circleVisibility);
         });
 
-        if (showAgents && map.getLayer('crowd-agents-layer')) {
-            map.setPaintProperty('crowd-agents-layer', 'text-opacity', opacity);
+        if (showAgents) {
+            safeSetPaint('crowd-agents-layer', 'text-opacity', opacity);
         }
+
+        safeSetPaint('crowd-agents-dot', 'circle-opacity', isSimulationMode ? 0.95 : 0.95);
+
+        safeSetPaint('crowd-agents-glow', 'circle-opacity', isSimulationMode ? 0.24 : 0.18);
     };
 
     const fetchOverpassData = async (map, centerLng, centerLat) => {

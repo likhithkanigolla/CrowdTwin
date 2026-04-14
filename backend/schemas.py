@@ -163,6 +163,16 @@ class PedSimStateUpdate(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
+class PedSimSpawnGroup(BaseModel):
+    """Spawn group definition for scene seeding by waypoint index."""
+    start_index: int = 0
+    count: int = 40
+    cohort_id: str = "ug1"
+    color: Optional[str] = None
+    route_span: Optional[int] = None
+    adherence: Optional[float] = None
+
+
 class PedSimSceneFromMapRequest(BaseModel):
     """Map geometry payload used to generate a PedSim-compatible scene file."""
     origin_lng: float
@@ -175,6 +185,7 @@ class PedSimSceneFromMapRequest(BaseModel):
     default_agent_count: int = 120
     rule_follow_ratio: float = 0.8
     agent_speed: float = 1.3
+    spawn_groups: List[PedSimSpawnGroup] = Field(default_factory=list)
 
 
 class PedSimRuntimeStartRequest(BaseModel):
@@ -186,6 +197,7 @@ class PedSimRuntimeStartRequest(BaseModel):
     default_agent_count: Optional[int] = None
     rule_follow_ratio: Optional[float] = None
     agent_speed: Optional[float] = None
+    spawn_groups: Optional[List[PedSimSpawnGroup]] = None
 
 
 class BehaviorRequest(BaseModel):

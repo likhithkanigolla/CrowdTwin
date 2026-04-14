@@ -1132,6 +1132,7 @@ function SimulatePanel({
 }) {
     const [showSchedule, setShowSchedule] = useState(true);
     const [showRoadConfig, setShowRoadConfig] = useState(false);
+    const [showSpawnConfig, setShowSpawnConfig] = useState(true);
     const [showEvaluation, setShowEvaluation] = useState(false);
     const [isSimulationActive, setIsSimulationActive] = useState(false);
     
@@ -1158,6 +1159,14 @@ function SimulatePanel({
     const [evalResults, setEvalResults] = useState(null);
     const [evalLoading, setEvalLoading] = useState(false);
     const [isRuntimeTransitioning, setIsRuntimeTransitioning] = useState(false);
+    const [runtimeActionError, setRuntimeActionError] = useState('');
+
+    // Spawn groups by waypoint index
+    const [spawnGroups, setSpawnGroups] = useState([]);
+    const [spawnStartIndex, setSpawnStartIndex] = useState(0);
+    const [spawnCohort, setSpawnCohort] = useState('ug1');
+    const [spawnCount, setSpawnCount] = useState(60);
+    const [spawnColor, setSpawnColor] = useState('#ef4444');
 
     const SPEED_OPTIONS = [
         { label: '1×', value: 1 },
@@ -1175,10 +1184,34 @@ function SimulatePanel({
         { id: 'staff', name: 'Staff' },
     ];
 
+    const COHORT_COLOR_MAP = {
+        ug1: '#ef4444',
+        ug2: '#3b82f6',
+        ug3: '#10b981',
+        ug4: '#f59e0b',
+        faculty: '#e2e8f0',
+        staff: '#a78bfa',
+    };
+
     const LOCATION_OPTIONS = [
         'Hostels', 'Academic Block A', 'Academic Block B', 'Library',
         'Canteen', 'Sports Complex', 'Admin Block', 'Main Gate', 'Side Gate'
     ];
+
+    const availableSpawnPoints = Array.isArray(pedsimSceneStatus?.spawn_points)
+        ? pedsimSceneStatus.spawn_points
+        : [];
+
+    useEffect(() => {
+        const hasSelected = availableSpawnPoints.some((point) => point.index === spawnStartIndex);
+        if (!hasSelected && availableSpawnPoints.length > 0) {
+            setSpawnStartIndex(Number(availableSpawnPoints[0].index) || 0);
+        }
+    }, [availableSpawnPoints, spawnStartIndex]);
+
+    useEffect(() => {
+        setSpawnColor(COHORT_COLOR_MAP[spawnCohort] || '#6366f1');
+    }, [spawnCohort]);
 
     useEffect(() => {
         const fetchRoads = async () => {
@@ -1228,10 +1261,50 @@ function SimulatePanel({
         setSimRoadClosures(prev => prev.filter(r => r.id !== id));
     };
 
+    const addSpawnGroup = () => {
+        const normalizedIndex = Math.max(0, Math.floor(Number(spawnStartIndex) || 0));
+        const normalizedCount = Math.max(1, Math.floor(Number(spawnCount) || 1));
+        const normalizedCohort = String(spawnCohort || 'ug1').toLowerCase();
+        const normalizedColor = typeof spawnColor === 'string' && spawnColor.trim() ? spawnColor.trim() : null;
+
+        setSpawnGroups((prev) => {
+            const existingIndex = prev.findIndex((item) => item.start_index === normalizedIndex && item.cohort_id === normalizedCohort);
+            if (existingIndex >= 0) {
+                const next = [...prev];
+                next[existingIndex] = {
+                    ...next[existingIndex],
+                    count: normalizedCount,
+                    color: normalizedColor,
+                };
+                return next;
+            }
+
+            return [
+                ...prev,
+                {
+                    id: Date.now(),
+                    start_index: normalizedIndex,
+                    count: normalizedCount,
+                    cohort_id: normalizedCohort,
+                    color: normalizedColor,
+                },
+            ];
+        });
+    };
+
+    const removeSpawnGroup = (id) => {
+        setSpawnGroups((prev) => prev.filter((group) => group.id !== id));
+    };
+
     const startSimulation = async () => {
         setIsRuntimeTransitioning(true);
+        setRuntimeActionError('');
 
-        const normalizedPopulation = Math.max(20, Math.round(Number(pedSimPopulation) || 120));
+        const schedulePopulation = scheduleEntries.reduce((sum, entry) => sum + (Number(entry.count) || 0), 0);
+        const spawnPopulation = spawnGroups.reduce((sum, group) => sum + (Number(group.count) || 0), 0);
+        const configuredPopulation = spawnPopulation > 0 ? spawnPopulation : schedulePopulation;
+        const manualPopulation = Math.max(20, Math.round(Number(pedSimPopulation) || 120));
+        const normalizedPopulation = configuredPopulation > 0 ? configuredPopulation : manualPopulation;
         const normalizedRuleFollowRatio = Math.min(1, Math.max(0, Number(pedSimRuleFollowRatio) || 0));
         const normalizedAgentSpeed = Math.min(3.5, Math.max(0.4, Number(pedSimAgentSpeed) || 1.3));
 
@@ -1241,7 +1314,8 @@ function SimulatePanel({
                     type: 'start_simulation',
                     schedule: scheduleEntries,
                     roadClosures: simRoadClosures,
-                    initialPopulation: scheduleEntries.reduce((sum, e) => sum + e.count, 0),
+                    spawnGroups,
+                    initialPopulation: normalizedPopulation,
                     pedsimControls: {
                         default_agent_count: normalizedPopulation,
                         rule_follow_ratio: normalizedRuleFollowRatio,
@@ -1250,6 +1324,7 @@ function SimulatePanel({
                 });
 
                 if (result?.ok === false) {
+                    setRuntimeActionError(result?.message || 'Unable to start simulation runtime.');
                     return;
                 }
             }
@@ -1263,6 +1338,7 @@ function SimulatePanel({
 
     const stopSimulation = async () => {
         setIsRuntimeTransitioning(true);
+        setRuntimeActionError('');
 
         try {
             if (onSimulatorAction) {
@@ -1288,6 +1364,10 @@ function SimulatePanel({
         setEntryCount(100);
         setSimRoad('');
         setSimRoadStatus('soft_closed');
+        setSpawnGroups([]);
+        setSpawnCount(60);
+        setSpawnCohort('ug1');
+        setSpawnColor('#ef4444');
         setPedSimPopulation(120);
         setPedSimRuleFollowRatio(0.8);
         setPedSimAgentSpeed(1.3);
@@ -1311,7 +1391,9 @@ function SimulatePanel({
                     road_name: r.road_name,
                     status: r.status
                 })),
-                initial_population: scheduleEntries.reduce((sum, e) => sum + e.count, 0),
+                initial_population: spawnGroups.length > 0
+                    ? spawnGroups.reduce((sum, group) => sum + (Number(group.count) || 0), 0)
+                    : scheduleEntries.reduce((sum, e) => sum + (Number(e.count) || 0), 0),
                 actuation_rules_enabled: true
             };
             
@@ -1329,7 +1411,12 @@ function SimulatePanel({
         }
     };
 
-    const totalPeople = scheduleEntries.reduce((sum, e) => sum + e.count, 0);
+    const schedulePopulation = scheduleEntries.reduce((sum, entry) => sum + (Number(entry.count) || 0), 0);
+    const spawnPopulation = spawnGroups.reduce((sum, group) => sum + (Number(group.count) || 0), 0);
+    const configuredPopulation = spawnPopulation > 0 ? spawnPopulation : schedulePopulation;
+    const manualPopulation = Math.max(20, Math.round(Number(pedSimPopulation) || 120));
+    const effectivePopulation = configuredPopulation > 0 ? configuredPopulation : manualPopulation;
+    const totalPeople = schedulePopulation;
     const sceneExportStatus = pedsimSceneStatus?.status || 'pending';
     const sceneBoundarySource = pedsimSceneStatus?.scene_transform?.boundary_source || 'unknown';
     const sceneFile = pedsimSceneStatus?.scene_file || null;
@@ -1514,15 +1601,11 @@ function SimulatePanel({
                         PedSim Behavior Controls
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Population</span>
-                        <input
-                            type="number"
-                            min="20"
-                            max="3000"
-                            step="10"
-                            value={pedSimPopulation}
-                            onChange={(e) => setPedSimPopulation(e.target.value)}
-                            style={{
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                            Population {configuredPopulation > 0 ? '(auto)' : '(manual)'}
+                        </span>
+                        {configuredPopulation > 0 ? (
+                            <div style={{
                                 width: '90px',
                                 padding: '4px 6px',
                                 borderRadius: '4px',
@@ -1531,9 +1614,36 @@ function SimulatePanel({
                                 color: '#e2e8f0',
                                 fontSize: '0.68rem',
                                 textAlign: 'right',
-                            }}
-                        />
+                                fontWeight: 700,
+                            }}>
+                                {effectivePopulation}
+                            </div>
+                        ) : (
+                            <input
+                                type="number"
+                                min="20"
+                                max="3000"
+                                step="10"
+                                value={pedSimPopulation}
+                                onChange={(e) => setPedSimPopulation(e.target.value)}
+                                style={{
+                                    width: '90px',
+                                    padding: '4px 6px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(148, 163, 184, 0.32)',
+                                    background: 'rgba(15, 23, 42, 0.7)',
+                                    color: '#e2e8f0',
+                                    fontSize: '0.68rem',
+                                    textAlign: 'right',
+                                }}
+                            />
+                        )}
                     </div>
+                    {configuredPopulation > 0 && (
+                        <div style={{ fontSize: '0.65rem', color: 'rgba(226, 232, 240, 0.82)' }}>
+                            Using configured count from {spawnGroups.length > 0 ? 'spawn groups' : 'schedule entries'}.
+                        </div>
+                    )}
                     <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                             <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Rule Follow Ratio</span>
@@ -1565,71 +1675,9 @@ function SimulatePanel({
                         />
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                    <button
-                        onClick={() => {
-                            if (isSimulationActive) {
-                                stopSimulation();
-                            } else {
-                                startSimulation();
-                            }
-                        }}
-                        disabled={isRuntimeTransitioning}
-                        style={{
-                            flex: 1,
-                            padding: '6px 12px',
-                            background: isSimulationActive ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
-                            border: `1px solid ${isSimulationActive ? '#ef4444' : '#10b981'}`,
-                            color: isSimulationActive ? '#ef4444' : '#10b981',
-                            borderRadius: '5px',
-                            cursor: isRuntimeTransitioning ? 'not-allowed' : 'pointer',
-                            opacity: isRuntimeTransitioning ? 0.75 : 1,
-                            fontWeight: 700,
-                            fontSize: '0.75rem'
-                        }}
-                    >
-                        {isRuntimeTransitioning
-                            ? (isSimulationActive ? 'Stopping...' : 'Starting...')
-                            : (isSimulationActive ? '⏹ Stop' : '▶ Run Simulation')}
-                    </button>
-                    <div style={{ display: 'flex', gap: '2px' }}>
-                        {SPEED_OPTIONS.map(opt => (
-                            <button
-                                key={opt.label}
-                                onClick={() => { setSpeed(opt.value); }}
-                                style={{
-                                    padding: '5px 8px',
-                                    background: speed === opt.value ? '#10b981' : 'rgba(255,255,255,0.05)',
-                                    border: '1px solid rgba(255,255,255,0.15)',
-                                    color: speed === opt.value ? 'white' : 'var(--text-secondary)',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontWeight: 600,
-                                    fontSize: '0.65rem'
-                                }}
-                            >
-                                {opt.label}
-                            </button>
-                        ))}
-                    </div>
+                <div style={{ marginTop: '8px', fontSize: '0.66rem', color: 'rgba(226, 232, 240, 0.82)' }}>
+                    Configure your scenario below. Run/Stop controls stay pinned at the bottom.
                 </div>
-                <button
-                    onClick={handleClearAllSimulation}
-                    style={{
-                        width: '100%',
-                        marginTop: '8px',
-                        padding: '6px 8px',
-                        background: 'rgba(239, 68, 68, 0.15)',
-                        border: '1px solid rgba(239, 68, 68, 0.4)',
-                        color: '#fca5a5',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.72rem',
-                        fontWeight: 700
-                    }}
-                >
-                    🧹 Clear All Sandbox
-                </button>
             </div>
 
             {/* Schedule Builder */}
@@ -1785,6 +1833,190 @@ function SimulatePanel({
                                         >
                                             ✕
                                         </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Spawn Configuration by Index */}
+            <div>
+                <button
+                    onClick={() => setShowSpawnConfig(!showSpawnConfig)}
+                    style={{
+                        width: '100%',
+                        background: 'rgba(16, 185, 129, 0.08)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        padding: '8px 10px',
+                        borderRadius: '5px',
+                        color: '#6ee7b7',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                    }}
+                >
+                    <span>🧭 Spawn Points ({spawnGroups.length} groups)</span>
+                    <span>{showSpawnConfig ? '▼' : '▶'}</span>
+                </button>
+                {showSpawnConfig && (
+                    <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{
+                            padding: '6px 8px',
+                            background: 'rgba(16, 185, 129, 0.1)',
+                            borderRadius: '4px',
+                            fontSize: '0.65rem',
+                            color: 'var(--text-secondary)'
+                        }}>
+                            Use waypoint index to choose where people start. Choose cohort and count to keep matching colors in simulation.
+                            <br />
+                            Available start indexes: <strong>{availableSpawnPoints.length}</strong>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                            {availableSpawnPoints.length > 0 ? (
+                                <select
+                                    value={spawnStartIndex}
+                                    onChange={(e) => setSpawnStartIndex(Number(e.target.value))}
+                                    style={{
+                                        padding: '4px 6px',
+                                        borderRadius: '4px',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        background: 'rgba(0,0,0,0.3)',
+                                        color: '#fff',
+                                        fontSize: '0.7rem'
+                                    }}
+                                >
+                                    {availableSpawnPoints.map((point) => (
+                                        <option key={`${point.index}-${point.waypoint_id}`} value={point.index}>
+                                            #{point.index} ({point.waypoint_id})
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={spawnStartIndex}
+                                    onChange={(e) => setSpawnStartIndex(Number(e.target.value) || 0)}
+                                    placeholder="Start index"
+                                    style={{
+                                        padding: '4px 6px',
+                                        borderRadius: '4px',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        background: 'rgba(0,0,0,0.3)',
+                                        color: '#fff',
+                                        fontSize: '0.7rem'
+                                    }}
+                                />
+                            )}
+                            <select
+                                value={spawnCohort}
+                                onChange={e => setSpawnCohort(e.target.value)}
+                                style={{
+                                    padding: '4px 6px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    color: '#fff',
+                                    fontSize: '0.7rem'
+                                }}
+                            >
+                                {COHORT_OPTIONS.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 70px', gap: '4px' }}>
+                            <input
+                                type="number"
+                                min="1"
+                                value={spawnCount}
+                                onChange={(e) => setSpawnCount(Number(e.target.value) || 1)}
+                                placeholder="Count"
+                                style={{
+                                    padding: '4px 6px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    color: '#fff',
+                                    fontSize: '0.7rem'
+                                }}
+                            />
+                            <input
+                                type="color"
+                                value={spawnColor}
+                                onChange={(e) => setSpawnColor(e.target.value)}
+                                style={{
+                                    padding: '2px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    height: '28px',
+                                    width: '90px'
+                                }}
+                            />
+                            <button
+                                onClick={addSpawnGroup}
+                                style={{
+                                    padding: '4px 8px',
+                                    background: '#10b981',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold',
+                                    fontSize: '0.7rem'
+                                }}
+                            >
+                                + Add
+                            </button>
+                        </div>
+
+                        {spawnGroups.length > 0 && (
+                            <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                                {spawnGroups.map((group) => (
+                                    <div key={group.id} style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        padding: '4px 8px',
+                                        background: 'rgba(16, 185, 129, 0.1)',
+                                        borderRadius: '4px',
+                                        fontSize: '0.65rem',
+                                        marginBottom: '4px'
+                                    }}>
+                                        <span>
+                                            #{group.start_index} | {group.count} {group.cohort_id}
+                                        </span>
+                                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                            <span style={{
+                                                display: 'inline-block',
+                                                width: '10px',
+                                                height: '10px',
+                                                borderRadius: '50%',
+                                                background: group.color || '#6366f1',
+                                                border: '1px solid rgba(255,255,255,0.6)'
+                                            }} />
+                                            <button
+                                                onClick={() => removeSpawnGroup(group.id)}
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: '#ef4444',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.7rem'
+                                                }}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -2020,6 +2252,110 @@ function SimulatePanel({
                 color: 'var(--text-secondary)'
             }}>
                 💡 <strong>Tip:</strong> Start with an empty map, add your schedule entries, configure road closures, and run the simulation to see how the campus handles your scenario. The system will automatically open soft-closed roads if crowd exceeds thresholds.
+            </div>
+
+            <div style={{
+                position: 'sticky',
+                bottom: 0,
+                marginTop: '10px',
+                padding: '10px',
+                background: 'linear-gradient(180deg, rgba(2, 6, 23, 0.92), rgba(15, 23, 42, 0.96))',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                borderRadius: '8px',
+                backdropFilter: 'blur(6px)',
+                zIndex: 20,
+            }}>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px',
+                    gap: '10px',
+                }}>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                        Runtime population: <strong style={{ color: '#e2e8f0' }}>{effectivePopulation}</strong> {configuredPopulation > 0 ? '(auto from config)' : '(manual)'}
+                    </span>
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                        {SPEED_OPTIONS.map(opt => (
+                            <button
+                                key={opt.label}
+                                onClick={() => { setSpeed(opt.value); }}
+                                style={{
+                                    padding: '5px 8px',
+                                    background: speed === opt.value ? '#10b981' : 'rgba(255,255,255,0.05)',
+                                    border: '1px solid rgba(255,255,255,0.15)',
+                                    color: speed === opt.value ? 'white' : 'var(--text-secondary)',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontWeight: 600,
+                                    fontSize: '0.65rem'
+                                }}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                        onClick={() => {
+                            if (isSimulationActive) {
+                                stopSimulation();
+                            } else {
+                                startSimulation();
+                            }
+                        }}
+                        disabled={isRuntimeTransitioning}
+                        style={{
+                            flex: 1,
+                            padding: '8px 12px',
+                            background: isSimulationActive ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
+                            border: `1px solid ${isSimulationActive ? '#ef4444' : '#10b981'}`,
+                            color: isSimulationActive ? '#ef4444' : '#10b981',
+                            borderRadius: '5px',
+                            cursor: isRuntimeTransitioning ? 'not-allowed' : 'pointer',
+                            opacity: isRuntimeTransitioning ? 0.75 : 1,
+                            fontWeight: 700,
+                            fontSize: '0.78rem'
+                        }}
+                    >
+                        {isRuntimeTransitioning
+                            ? (isSimulationActive ? 'Stopping...' : 'Starting...')
+                            : (isSimulationActive ? '⏹ Stop Simulation' : '▶ Run Simulation')}
+                    </button>
+                    <button
+                        onClick={handleClearAllSimulation}
+                        style={{
+                            padding: '8px 10px',
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                            color: '#fca5a5',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        🧹 Clear
+                    </button>
+                </div>
+
+                {runtimeActionError && (
+                    <div style={{
+                        marginTop: '8px',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        background: 'rgba(239, 68, 68, 0.14)',
+                        border: '1px solid rgba(239, 68, 68, 0.35)',
+                        color: '#fecaca',
+                        fontSize: '0.68rem',
+                        lineHeight: 1.4,
+                    }}>
+                        {runtimeActionError}
+                    </div>
+                )}
             </div>
         </div>
     );
