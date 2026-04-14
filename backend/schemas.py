@@ -142,3 +142,93 @@ class SimulationConfig(BaseModel):
     road_closures: List[RoadControlCommand] = Field(default_factory=list)
     initial_population: int = 0
     actuation_rules_enabled: bool = True
+
+
+class PedSimAgentState(BaseModel):
+    """Single agent state frame emitted by PedSim"""
+    agent_id: str
+    lng: float
+    lat: float
+    cohort_id: Optional[str] = None
+    state: str = "MOVING"
+
+
+class PedSimStateUpdate(BaseModel):
+    """Latest PedSim frame pushed from the external PedSim runner"""
+    sim_time: Optional[float] = None
+    timestamp: Optional[str] = None
+    agents: List[PedSimAgentState] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class PedSimSceneFromMapRequest(BaseModel):
+    """Map geometry payload used to generate a PedSim-compatible scene file."""
+    origin_lng: float
+    origin_lat: float
+    scale: float = 0.00003
+    buildings: Dict[str, Any] = Field(default_factory=dict)
+    pathways: Dict[str, Any] = Field(default_factory=dict)
+    boundary: Optional[Dict[str, Any]] = None
+    include_agents: bool = True
+    default_agent_count: int = 120
+
+
+class BehaviorRequest(BaseModel):
+    """Request to update agent behavior parameters"""
+    agent_id: Optional[str] = None
+    cohort: Optional[str] = None
+    target_speed: Optional[float] = None
+    path_preference: Optional[str] = None  # "shortest", "least_crowded", etc.
+    patience_level: Optional[float] = None # 0.0 to 1.0
+    social_distancing: Optional[bool] = None
+    notes: Optional[str] = None
+
+
+class BehaviorResponse(BaseModel):
+    """Response after updating agent behavior"""
+    success: bool
+    message: str
+    updated_agents_count: int
+    details: Optional[Dict[str, Any]] = None
+
+
+# ==================== SUMMARIZATION SCHEMAS ====================
+
+class SummarizationRequest(BaseModel):
+    """Request to summarize a simulation run"""
+    request_id: str
+    metrics: Dict[str, Any]
+    output_format: Dict[str, Any] = Field(default_factory=dict)
+    events: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class SummarizationResponse(BaseModel):
+    """Response with simulation run summary"""
+    request_id: str
+    model: Dict[str, Any]
+    status: str
+    summary: Dict[str, Any]
+    citations: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+# ==================== ROUTER SCHEMAS ====================
+
+class RouterRequest(BaseModel):
+    """Request to route a task to the appropriate handler"""
+    request_id: str
+    task_type: str
+    thresholds: Dict[str, Any] = Field(default_factory=dict)
+    constraints: Dict[str, Any] = Field(default_factory=dict)
+    fallback_policy: Dict[str, Any] = Field(default_factory=dict)
+
+
+class RouterResponse(BaseModel):
+    """Response from task router with routing decision"""
+    request_id: str
+    status: str
+    selected_path: str
+    provider_used: str
+    decision: Dict[str, Any]
+    quality: Dict[str, Any] = Field(default_factory=dict)
+    fallback: Dict[str, Any] = Field(default_factory=dict)
+    audit: Dict[str, Any] = Field(default_factory=dict)

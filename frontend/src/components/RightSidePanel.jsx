@@ -30,6 +30,141 @@ const SEVERITY_BG = {
     low: 'rgba(16, 185, 129, 0.1)',
 };
 
+const toBoundaryRing = (selectedArea) => {
+    if (!selectedArea) return null;
+
+    if (selectedArea.type === 'Feature' && selectedArea.geometry?.type === 'Polygon') {
+        return selectedArea.geometry.coordinates?.[0] || null;
+    }
+
+    if (selectedArea.type === 'FeatureCollection' && Array.isArray(selectedArea.features)) {
+        const poly = selectedArea.features.find(
+            (feature) => feature?.geometry?.type === 'Polygon' && Array.isArray(feature.geometry.coordinates?.[0])
+        );
+        return poly?.geometry?.coordinates?.[0] || null;
+    }
+
+    if (Array.isArray(selectedArea.points) && selectedArea.points.length >= 3) {
+        const ring = selectedArea.points.map((point) => [point.lng, point.lat]);
+        ring.push([selectedArea.points[0].lng, selectedArea.points[0].lat]);
+        return ring;
+    }
+
+    return null;
+};
+
+const PedSimBoundaryPreview = ({ compact = false, selectedArea = null, previewBoundary = null }) => {
+    const boundaryRing = toBoundaryRing(previewBoundary) || toBoundaryRing(selectedArea);
+    const boundarySource = toBoundaryRing(previewBoundary)
+        ? 'map-derived'
+        : toBoundaryRing(selectedArea)
+            ? 'selected area'
+            : 'pending';
+    const viewWidth = compact ? 240 : 280;
+    const viewHeight = compact ? 150 : 180;
+    const padding = compact ? 10 : 14;
+
+    if (!boundaryRing || boundaryRing.length < 4) {
+        return (
+            <div style={{
+                border: '1px solid rgba(251, 191, 36, 0.18)',
+                background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.75), rgba(2, 6, 23, 0.9))',
+                borderRadius: '10px',
+                padding: compact ? '8px' : '10px',
+                marginBottom: '12px',
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fde68a', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                        PedSim Boundary
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.6)' }}>
+                        waiting for map
+                    </div>
+                </div>
+                <div style={{
+                    fontSize: '0.66rem',
+                    color: 'rgba(255,255,255,0.65)',
+                    marginBottom: '8px',
+                    lineHeight: 1.4,
+                }}>
+                    Boundary preview will appear after campus map geometry loads or after you draw a focus area.
+                </div>
+                <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} width="100%" height={compact ? 132 : 160} preserveAspectRatio="none">
+                    <rect x="0" y="0" width={viewWidth} height={viewHeight} rx="12" fill="rgba(15, 23, 42, 0.6)" stroke="rgba(251, 191, 36, 0.12)" />
+                    <rect
+                        x={padding}
+                        y={padding}
+                        width={viewWidth - padding * 2}
+                        height={viewHeight - padding * 2}
+                        rx="10"
+                        fill="rgba(148, 163, 184, 0.05)"
+                        stroke="rgba(148, 163, 184, 0.22)"
+                        strokeDasharray="6 5"
+                    />
+                    <text
+                        x={viewWidth / 2}
+                        y={viewHeight / 2}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill="rgba(255,255,255,0.4)"
+                        fontSize={compact ? 11 : 12}
+                        fontWeight="600"
+                    >
+                        No boundary yet
+                    </text>
+                </svg>
+            </div>
+        );
+    }
+
+    const coords = [...boundaryRing];
+
+    const lngs = coords.map(coord => coord[0]);
+    const lats = coords.map(coord => coord[1]);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const width = maxLng - minLng || 1;
+    const height = maxLat - minLat || 1;
+
+    const mapPoint = ([lng, lat]) => {
+        const x = padding + ((lng - minLng) / width) * (viewWidth - padding * 2);
+        const y = viewHeight - padding - ((lat - minLat) / height) * (viewHeight - padding * 2);
+        return [x, y];
+    };
+
+    const linePoints = (lineCoords) => lineCoords.map(mapPoint).map(([x, y]) => `${x},${y}`).join(' ');
+
+    return (
+        <div style={{
+            border: '1px solid rgba(251, 191, 36, 0.25)',
+            background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.75), rgba(2, 6, 23, 0.9))',
+            borderRadius: '10px',
+            padding: compact ? '8px' : '10px',
+            marginBottom: '12px',
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fde68a', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    PedSim Boundary
+                </div>
+                <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.6)' }}>
+                    {boundarySource}
+                </div>
+            </div>
+            <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} width="100%" height={compact ? 132 : 160} preserveAspectRatio="none">
+                <rect x="0" y="0" width={viewWidth} height={viewHeight} rx="12" fill="rgba(15, 23, 42, 0.6)" stroke="rgba(251, 191, 36, 0.15)" />
+                <polygon
+                    points={linePoints(boundaryRing)}
+                    fill="rgba(251, 191, 36, 0.08)"
+                    stroke="#f59e0b"
+                    strokeWidth="2.5"
+                />
+            </svg>
+        </div>
+    );
+};
+
 // Panel styles - now flows within 30% panel section
 const panelStyle = {
     flex: 1.5,
@@ -45,7 +180,7 @@ const panelStyle = {
 // ======================
 // VISUALIZE MODE - Live Camera Feed & Real Data Dashboard
 // ======================
-function VisualizePanel({ mode, simTime, formatTime, categoryOccupancy, onSimulatorAction }) {
+function VisualizePanel({ mode, simTime, formatTime, categoryOccupancy, onSimulatorAction, selectedArea, mapBoundaryPreview }) {
     const totalPeople = Object.values(categoryOccupancy).reduce((sum, val) => sum + val, 0);
     const [cameraData, setCameraData] = useState([]);
     const [selectedCamera, setSelectedCamera] = useState(null);
@@ -85,6 +220,7 @@ function VisualizePanel({ mode, simTime, formatTime, categoryOccupancy, onSimula
 
     return (
         <div style={panelStyle}>
+            <PedSimBoundaryPreview compact selectedArea={selectedArea} previewBoundary={mapBoundaryPreview} />
             {/* Live Feed Indicator */}
             <div style={{
                 background: 'rgba(16, 185, 129, 0.1)',
@@ -242,7 +378,7 @@ function VisualizePanel({ mode, simTime, formatTime, categoryOccupancy, onSimula
 // ======================
 // ACTUATE MODE - Control Panel
 // ======================
-function ActuatePanel({ simTime, formatTime, congestionAlerts, actuationEvents, setActuationEvents, onSimulatorAction }) {
+function ActuatePanel({ simTime, formatTime, congestionAlerts, actuationEvents, setActuationEvents, onSimulatorAction, selectedArea, mapBoundaryPreview }) {
     const [showAlerts, setShowAlerts] = useState(true);
     const [showEvents, setShowEvents] = useState(true);
     const [showRoadControl, setShowRoadControl] = useState(true);
@@ -368,6 +504,7 @@ function ActuatePanel({ simTime, formatTime, congestionAlerts, actuationEvents, 
 
     return (
         <div style={panelStyle}>
+            <PedSimBoundaryPreview compact selectedArea={selectedArea} previewBoundary={mapBoundaryPreview} />
             {/* Control Panel Header */}
             <div style={{
                 background: 'rgba(139, 92, 246, 0.1)',
@@ -812,7 +949,9 @@ function SimulatePanel({
     availableBuildings,
     congestionAlerts,
     categoryOccupancy,
-    onSimulatorAction
+    onSimulatorAction,
+    selectedArea,
+    mapBoundaryPreview
 }) {
     const [showSchedule, setShowSchedule] = useState(true);
     const [showRoadConfig, setShowRoadConfig] = useState(false);
@@ -907,11 +1046,6 @@ function SimulatePanel({
     };
 
     const startSimulation = () => {
-        if (scheduleEntries.length === 0) {
-            alert('Please add at least one schedule entry');
-            return;
-        }
-        
         setIsSimulationActive(true);
         setIsRunning(true);
         
@@ -990,6 +1124,7 @@ function SimulatePanel({
 
     return (
         <div style={panelStyle}>
+            <PedSimBoundaryPreview selectedArea={selectedArea} previewBoundary={mapBoundaryPreview} />
             {/* Sandbox Header */}
             <div style={{
                 background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15))',
@@ -1001,7 +1136,7 @@ function SimulatePanel({
                     <div>
                         <span style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: 600 }}>🧪 SANDBOX MODE</span>
                         <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                            Experiment with crowd scenarios
+                            PedSim-only stream (no browser simulation)
                         </div>
                     </div>
                     <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
@@ -1490,6 +1625,7 @@ export default function RightSidePanel({
     isPlacingPoints,
     areaPoints,
     selectedArea,
+    mapBoundaryPreview,
     togglePointPlacement,
     useDefaultArea,
     clearAreaSelection
@@ -1551,6 +1687,8 @@ export default function RightSidePanel({
                     simTime={simTime}
                     formatTime={formatTime}
                     categoryOccupancy={effectiveOccupancy}
+                    selectedArea={selectedArea}
+                    mapBoundaryPreview={mapBoundaryPreview}
                 />
             );
         }
@@ -1564,6 +1702,8 @@ export default function RightSidePanel({
                     actuationEvents={actuationEvents}
                     setActuationEvents={setActuationEvents}
                     onSimulatorAction={onSimulatorAction}
+                    selectedArea={selectedArea}
+                    mapBoundaryPreview={mapBoundaryPreview}
                 />
             );
         }
@@ -1583,6 +1723,8 @@ export default function RightSidePanel({
                     congestionAlerts={congestionAlerts}
                     categoryOccupancy={effectiveOccupancy}
                     onSimulatorAction={onSimulatorAction}
+                    selectedArea={selectedArea}
+                    mapBoundaryPreview={mapBoundaryPreview}
                 />
             );
         }

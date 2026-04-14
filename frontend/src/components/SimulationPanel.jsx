@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { fetchCongestion } from '../api';
 
+const BACKEND_BASE = import.meta.env.VITE_API_BASE_URL === '/api' || !import.meta.env.VITE_API_BASE_URL
+    ? 'http://localhost:8904'
+    : import.meta.env.VITE_API_BASE_URL;
+
 const SEVERITY_COLORS = {
     critical: '#ef4444',
     high: '#f59e0b',
@@ -38,7 +42,7 @@ export default function SimulationPanel({ simTime }) {
                 setCategoryOccupancy(congestion.category_occupancy || {});
 
                 // Fetch live movements
-                const response = await fetch(`http://localhost:8000/live-movements?sim_time=${simTime}`);
+                const response = await fetch(`${BACKEND_BASE}/live-movements?sim_time=${simTime}`);
                 const movementData = await response.json();
                 setActiveMovements(movementData.active_movements || []);
             } catch (err) {

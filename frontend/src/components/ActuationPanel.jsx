@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 
+const BACKEND_BASE = import.meta.env.VITE_API_BASE_URL === '/api' || !import.meta.env.VITE_API_BASE_URL
+    ? 'http://localhost:8904'
+    : import.meta.env.VITE_API_BASE_URL;
+
 const PRIORITY_COLORS = {
     p0: '#ef4444',
     p1: '#f59e0b',
@@ -35,7 +39,7 @@ export default function ActuationPanel({ simTime, events }) {
         const loadActuationPlan = async () => {
             setLoading(true);
             try {
-                const response = await fetch('http://localhost:8000/actuation-plan', {
+                const response = await fetch(`${BACKEND_BASE}/actuation-plan`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -218,7 +222,7 @@ export default function ActuationPanel({ simTime, events }) {
                                 const loadActuationPlan = async () => {
                                     setLoading(true);
                                     try {
-                                        const response = await fetch('http://localhost:8000/actuation-plan', {
+                                        const response = await fetch(`${BACKEND_BASE}/actuation-plan`, {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({

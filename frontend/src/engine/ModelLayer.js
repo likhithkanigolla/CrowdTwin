@@ -44,8 +44,10 @@ export class ModelLayer {
 
         this.peopleInstances = null;
         this.treeInstances   = null;
+        this.cameraSprites = [];
         this._peopleMat  = null;
         this._treeMat    = null;
+        this._cameraFallbackMat = null;
 
         this.simTime = 7.75;
         this._dummy  = new THREE.Object3D();
@@ -54,6 +56,7 @@ export class ModelLayer {
         this._loader = new GLTFLoader();
         this._loadPeople();
         this._loadTrees();
+        this._buildCameraFallback();
     }
 
     // ── GLTF Loading ──────────────────────────────────────────────────────────
@@ -86,6 +89,35 @@ export class ModelLayer {
         this._buildProceduralTree();
         console.log('✅ ModelLayer: using procedural white triangle trees');
         if (this.map) this.map.triggerRepaint();
+    }
+
+    _buildCameraFallback() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const context = canvas.getContext('2d');
+        if (!context) return;
+
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.font = '96px sans-serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText('📷', canvas.width / 2, canvas.height / 2 + 4);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.needsUpdate = true;
+
+        this._cameraFallbackMat = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            depthTest: true,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+        });
+
+        this._cameraFallbackMat.depthTest = false;
+        this._cameraFallbackMat.depthWrite = false;
     }
 
     _buildProceduralTree() {
@@ -228,6 +260,46 @@ export class ModelLayer {
         }
 
         this._doPlaceTrees(treePositions);
+    }
+
+    placeCameras(cameraPositions) {
+        if (!this._cameraFallbackMat || !this.map) {
+            this._pendingCameraPositions = cameraPositions;
+            return;
+        }
+
+        this._doPlaceCameras(cameraPositions);
+    }
+
+    _doPlaceCameras(cameraPositions) {
+        if (!this.map) return;
+
+        this.cameraSprites.forEach(sprite => {
+            this.scene.remove(sprite);
+        });
+        this.cameraSprites = [];
+
+        const center = this.map.getCenter();
+        const meterScale = maplibregl.MercatorCoordinate
+            .fromLngLat(center, 0)
+            .meterInMercatorCoordinateUnits();
+
+        const cameraScale = 16.0 * meterScale;
+        const count = Math.min(cameraPositions.length, 2000);
+
+        for (let i = 0; i < count; i++) {
+            const c = cameraPositions[i];
+            const merc = maplibregl.MercatorCoordinate.fromLngLat({ lng: c.lng, lat: c.lat }, 0);
+
+            const sprite = new THREE.Sprite(this._cameraFallbackMat);
+            sprite.position.set(merc.x, merc.y, merc.z + meterScale * 6);
+            sprite.scale.setScalar(cameraScale * 2.0);
+            sprite.renderOrder = 1000;
+            this.scene.add(sprite);
+            this.cameraSprites.push(sprite);
+        }
+
+        if (this.map) this.map.triggerRepaint();
     }
 
     _doPlaceTrees(treePositions) {

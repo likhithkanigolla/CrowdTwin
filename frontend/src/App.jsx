@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ModeToggle from './components/ModeToggle';
 import MapContainer from './components/MapContainer';
 import BuildingPanel from './components/BuildingPanel';
 import RightSidePanel from './components/RightSidePanel';
 import CSVUploadPanel from './components/CSVUploadPanel';
 import { useSchedule } from './hooks/useSchedule';
+import { clearPedSimState, PEDSIM_WS_CANDIDATES, getPedSimState } from './api';
 
 // How fast time runs:  1 real second = N simulated minutes
 const SIM_SPEED_MINUTES_PER_SECOND = 1; // 1s real = 1 min sim by default
@@ -20,10 +22,21 @@ const DEFAULT_POLYGON = {
 };
 
 function App() {
-  const [currentMode, setMode] = useState('visualize');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const validModes = ['visualize', 'actuate', 'simulate'];
+  const pathMode = location.pathname.replace(/^\//, '');
+  const currentMode = validModes.includes(pathMode) ? pathMode : 'visualize';
+
+  const setMode = (mode) => {
+    const nextMode = validModes.includes(mode) ? mode : 'visualize';
+    navigate(`/${nextMode}`);
+  };
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [availableBuildings, setAvailableBuildings] = useState([]);
   const [actuationEvents, setActuationEvents] = useState([]);
+  const [simulatorReadyToken, setSimulatorReadyToken] = useState(0);
+  const [mapBoundaryPreview, setMapBoundaryPreview] = useState(null);
 
   // Focus area state (lifted from MapContainer)
   const [areaPoints, setAreaPoints] = useState([]);
@@ -32,6 +45,12 @@ function App() {
 
   // Load schedule from backend on mount
   useSchedule();
+
+  useEffect(() => {
+    if (!validModes.includes(pathMode)) {
+      navigate('/visualize', { replace: true });
+    }
+  }, [navigate, pathMode]);
 
   const [simTime, setSimTime] = useState(7.75);
   const [isRunning, setIsRunning] = useState(false); // False by default - only run in simulation
@@ -109,7 +128,7 @@ function App() {
     
     switch (action.type) {
       case 'start_simulation':
-        // Clear existing agents and start custom simulation
+        // PedSim-only start: clear existing agents and wait for PedSim frames
         sim.clearAgents();
         
         // Set road closures
@@ -119,13 +138,14 @@ function App() {
           });
         }
         
-        // Start the custom simulation with the schedule
+        // Mark simulation as active but do not generate browser-side agents
         sim.startCustomSimulation(action.schedule, action.initialPopulation);
         break;
         
       case 'stop_simulation':
         sim.stopCustomSimulation();
         sim.clearAgents();
+        clearPedSimState().catch(() => {});
         break;
         
       case 'road_closure':
@@ -141,6 +161,91 @@ function App() {
     }
   };
 
+  // PedSim-only stream consumer for simulation mode.
+  useEffect(() => {
+    if (currentMode !== 'simulate' || simulatorReadyToken === 0 || !simulatorRef.current) {
+      return;
+    }
+
+    let websocket = null;
+    let cancelled = false;
+    let lastFrameReceivedAt = 0;
+
+    const applyFrame = (frame, source) => {
+      const simulator = simulatorRef.current;
+      if (!simulator || !frame) return;
+
+      const agentCount = Number(frame.agent_count ?? frame.agents?.length ?? 0);
+      console.debug('[PedSim] frame arrived', {
+        source,
+        agentCount,
+        simTime: frame.sim_time ?? null,
+        metadata: frame.metadata ?? null,
+      });
+
+      simulator.applyPedSimState(frame);
+      lastFrameReceivedAt = Date.now();
+    };
+
+    const connect = (index = 0) => {
+      if (cancelled || index >= PEDSIM_WS_CANDIDATES.length) return;
+
+      try {
+        websocket = new WebSocket(PEDSIM_WS_CANDIDATES[index]);
+
+        websocket.onmessage = (event) => {
+          try {
+            const frame = JSON.parse(event.data);
+            applyFrame(frame, 'websocket');
+          } catch (error) {
+            console.warn('Invalid PedSim websocket payload:', error);
+          }
+        };
+
+        websocket.onerror = () => {
+          try {
+            websocket?.close();
+          } catch (closeError) {
+            // ignore
+          }
+        };
+
+        websocket.onclose = () => {
+          if (!cancelled && index + 1 < PEDSIM_WS_CANDIDATES.length) {
+            connect(index + 1);
+          }
+        };
+      } catch (error) {
+        connect(index + 1);
+      }
+    };
+
+    connect();
+
+    const fallbackInterval = setInterval(async () => {
+      if (cancelled) return;
+      const stale = Date.now() - lastFrameReceivedAt > 1500;
+      if (!stale) return;
+
+      try {
+        const frame = await getPedSimState();
+        applyFrame(frame, 'poll');
+      } catch (error) {
+        // Fallback fetch is best effort only.
+      }
+    }, 1000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(fallbackInterval);
+      try {
+        websocket?.close();
+      } catch (error) {
+        // ignore
+      }
+    };
+  }, [currentMode, simulatorReadyToken]);
+
   return (
     <div className="app-layout">
       {/* 80% Map Section */}
@@ -149,7 +254,11 @@ function App() {
           currentMode={currentMode}
           onBuildingSelect={setSelectedBuilding}
           onBuildingsLoaded={setAvailableBuildings}
-          onSimulatorReady={(sim) => { simulatorRef.current = sim; }}
+          onSimulatorReady={(sim) => {
+            simulatorRef.current = sim;
+            setSimulatorReadyToken((prev) => prev + 1);
+          }}
+          onMapBoundaryChange={setMapBoundaryPreview}
           simTime={simTime}
           isPlacingPoints={isPlacingPoints}
           setIsPlacingPoints={setIsPlacingPoints}
@@ -191,6 +300,7 @@ function App() {
           isPlacingPoints={isPlacingPoints}
           areaPoints={areaPoints}
           selectedArea={selectedArea}
+          mapBoundaryPreview={mapBoundaryPreview}
           togglePointPlacement={togglePointPlacement}
           useDefaultArea={useDefaultArea}
           clearAreaSelection={clearAreaSelection}

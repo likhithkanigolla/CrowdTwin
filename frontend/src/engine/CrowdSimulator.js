@@ -7,6 +7,7 @@
  */
 
 import { NavigationGraph } from './NavigationGraph';
+import { sceneToGeo } from '../data/pedsimScene';
 
 const MAX_AGENTS = 4000;
 const AGENT_SPEED_MS = 0.00000003; // Much slower walking speed
@@ -138,6 +139,36 @@ function getBuildingStayDuration(venueInfo) {
   return venueInfo.duration_minutes * 1000; // Convert to milliseconds
 }
 
+function normalizeLocationLabel(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function toFocusAreaRing(selectedArea) {
+  if (!selectedArea) return null;
+
+  if (selectedArea.type === 'Feature' && selectedArea.geometry?.type === 'Polygon') {
+    return selectedArea.geometry.coordinates?.[0] || null;
+  }
+
+  if (selectedArea.type === 'FeatureCollection' && Array.isArray(selectedArea.features)) {
+    const polygon = selectedArea.features.find(
+      (feature) => feature?.geometry?.type === 'Polygon' && Array.isArray(feature.geometry.coordinates?.[0])
+    );
+    return polygon?.geometry?.coordinates?.[0] || null;
+  }
+
+  if (Array.isArray(selectedArea.points) && selectedArea.points.length >= 3) {
+    const ring = selectedArea.points.map((point) => [point.lng, point.lat]);
+    ring.push([selectedArea.points[0].lng, selectedArea.points[0].lat]);
+    return ring;
+  }
+
+  return null;
+}
+
 
 // Helper to check if point is inside a polygon (ray casting algorithm)
 function isPointInFocusArea(point, focusArea) {
@@ -183,6 +214,10 @@ export class CrowdSimulator {
    */
   setMode(mode) {
     const prevMode = this.currentMode;
+    if (prevMode === mode && mode === 'simulate') {
+      return;
+    }
+
     this.currentMode = mode;
 
     if (mode === 'simulate') {
@@ -195,18 +230,14 @@ export class CrowdSimulator {
       }
       console.log('CrowdSimulator: Entered simulation mode - map cleared, blank slate');
     } else if (mode === 'visualize') {
-      // Visualization mode: show agents from camera/sensor data
+      // Visualization mode: show live moving crowd (camera-colored)
       if (prevMode !== 'visualize') {
         this.clearAgents();
       }
-      // Populate agents from API data for visualization only
+      // Populate agents for visualization
       this._populateInitialAgents();
-      // In visualization mode, agents should be static (moved only on events)
-      this.agents.forEach(agent => {
-        agent.state = 'STATIONARY';
-      });
       this._updateLayer();
-      console.log('CrowdSimulator: Entered visualization mode - agents stationary');
+      console.log('CrowdSimulator: Entered visualization mode - agents moving');
     } else if (mode === 'actuate') {
       // Actuation mode: no agents at all (focus on road controls)
       this.clearAgents();
@@ -437,15 +468,10 @@ export class CrowdSimulator {
    * @param {number} initialPopulation - Starting population
    */
   startCustomSimulation(schedule, initialPopulation = 0) {
-    this.simulationSchedule = schedule;
+    this.simulationSchedule = Array.isArray(schedule) ? schedule : [];
     this.isSimulationActive = true;
     this.clearAgents();
-
-    if (initialPopulation > 0) {
-      this._spawnRandomAgents(initialPopulation);
-    }
-
-    console.log(`CrowdSimulator: Custom simulation started with ${schedule.length} schedule entries`);
+    console.log('CrowdSimulator: PedSim-only simulation started, waiting for external PedSim frames');
   }
 
   /**
@@ -455,6 +481,81 @@ export class CrowdSimulator {
     this.isSimulationActive = false;
     this.simulationSchedule = [];
     console.log('CrowdSimulator: Custom simulation stopped');
+  }
+
+  /**
+   * Apply latest PedSim frame. In simulate mode this is the only crowd source.
+   */
+  applyPedSimState(state) {
+    if (!state || !Array.isArray(state.agents)) return;
+
+    const isLikelyGeo = (lng, lat) => lng >= 60 && lng <= 100 && lat >= 0 && lat <= 40;
+
+    const inCampusWindow = (lng, lat) => {
+      // Keep a generous campus window and drop obvious distant outliers.
+      return lng >= 78.25 && lng <= 78.45 && lat >= 17.35 && lat <= 17.55;
+    };
+    let droppedAgents = 0;
+
+    const mappedAgents = state.agents.slice(0, MAX_AGENTS).map((agent, index) => {
+      const cohortId = String(agent.cohort_id || agent.cohortId || 'pedsim').toLowerCase();
+      const cohort = COHORTS.find(item => item.id === cohortId);
+      const lng = Number(agent.lng);
+      const lat = Number(agent.lat);
+      let safeLng = Number.isFinite(lng) ? lng : 0;
+      let safeLat = Number.isFinite(lat) ? lat : 0;
+
+      // Demo-app PedSim emits local XY coordinates. Convert them into the shared
+      // scene overlay frame so agents align with the same walls/roads on the map.
+      if (!isLikelyGeo(safeLng, safeLat)) {
+        [safeLng, safeLat] = sceneToGeo([safeLng, safeLat]);
+      }
+
+      return {
+        id: String(agent.agent_id || agent.id || `pedsim_${index}`),
+        cohortId,
+        color: cohort?.color || '#6366f1',
+        path: [{ lng: safeLng, lat: safeLat }, { lng: safeLng, lat: safeLat }],
+        pathIndex: 0,
+        lng: safeLng,
+        lat: safeLat,
+        progress: 0,
+        speed: 0,
+        walkPhase: 0,
+        state: String(agent.state || 'MOVING').toUpperCase(),
+        targetBuilding: null,
+        currentBuilding: null,
+        insideUntil: null,
+        insideUntilSimTime: null,
+        groupId: null,
+        followsSchedule: false,
+        lastScheduleHour: this.simTime,
+      };
+    }).filter((agent) => {
+      const keep = inCampusWindow(agent.lng, agent.lat);
+      if (!keep) {
+        droppedAgents += 1;
+      }
+      return keep;
+    });
+
+    this.agents = mappedAgents;
+    this.isSimulationActive = true;
+    if (typeof state.sim_time === 'number') {
+      this.simTime = state.sim_time;
+    }
+
+    console.debug('[CrowdSimulator] applyPedSimState', {
+      incomingAgentCount: Number(state.agent_count ?? state.agents.length ?? 0),
+      mappedAgentCount: mappedAgents.length,
+      droppedAgents,
+      simTime: this.simTime,
+    });
+
+    this._updateLayer();
+    if (this.modelLayer) {
+      this.modelLayer.updateAgents(this.agents);
+    }
   }
 
   /**
@@ -470,12 +571,10 @@ export class CrowdSimulator {
       
       if (!startBuilding || !endBuilding) continue;
 
-      const pathPoints = this.navGraph.findPath(
+      const pathPoints = this._pathWithFallback(
         { lng: startBuilding.properties.center[0], lat: startBuilding.properties.center[1] },
         { lng: endBuilding.properties.center[0], lat: endBuilding.properties.center[1] }
       );
-
-      if (pathPoints.length < 2) continue;
 
       this.agents.push({
         id: `sim_agent_${Date.now()}_${stableRandom()}`,
@@ -521,18 +620,22 @@ export class CrowdSimulator {
     return false;
   }
 
+  _pathWithFallback(start, end) {
+    const pathPoints = this.navGraph.findPath(start, end);
+    if (pathPoints.length >= 2) {
+      return pathPoints;
+    }
+    return [
+      { lng: start.lng, lat: start.lat },
+      { lng: end.lng, lat: end.lat }
+    ];
+  }
+
   init(map, pathwaysGeoJSON, buildingsGeoJSON, selectedArea = null) {
     this.map = map;
     
     // Store focus area for constraining agent movement
-    // selectedArea is { points: [{lat, lng}] } format
-    // Convert to [[lng, lat]] format for point-in-polygon test
-    const points = selectedArea?.points || selectedArea;
-    if (points && Array.isArray(points) && points.length >= 3) {
-      this.focusArea = points.map(p => [p.lng, p.lat]);
-    } else {
-      this.focusArea = null;
-    }
+    this.focusArea = toFocusAreaRing(selectedArea);
 
     // Build navigation graph from OSM pathways
     this.navGraph = new NavigationGraph();
@@ -643,6 +746,100 @@ export class CrowdSimulator {
     return validBuildings[Math.floor(stableRandom() * validBuildings.length)];
   }
 
+  _findBuildingByLabel(label) {
+    if (!label || !this.buildings || this.buildings.length === 0) return null;
+
+    const normalized = normalizeLocationLabel(label);
+    const fallback = this._getBuildingForCategory(normalized) || this._getBuildingForCategory(label);
+
+    const directMatch = this.buildings.find(building => {
+      const name = normalizeLocationLabel(building.properties?.name || building.properties?.['addr:housename']);
+      const id = normalizeLocationLabel(building.properties?.id);
+      const category = normalizeLocationLabel(building.properties?.category);
+      return name === normalized || id === normalized || category === normalized;
+    });
+
+    if (directMatch) return directMatch;
+
+    const partialMatch = this.buildings.find(building => {
+      const name = normalizeLocationLabel(building.properties?.name || building.properties?.['addr:housename']);
+      return name.includes(normalized) || normalized.includes(name);
+    });
+
+    return partialMatch || fallback || this._getRandomBuilding();
+  }
+
+  _spawnScheduledAgents(scheduleEntries, initialPopulation = 0) {
+    const entries = Array.isArray(scheduleEntries) ? scheduleEntries : [];
+    const spawnEntries = entries.length > 0 ? entries : [];
+
+    spawnEntries.forEach((entry, entryIndex) => {
+      const cohortId = String(entry.cohort || 'ug1').toLowerCase();
+      const cohort = COHORTS.find(item => item.id === cohortId) || COHORTS[0];
+      const count = Math.max(0, Number(entry.count) || 0);
+      const fromBuilding = this._findBuildingByLabel(entry.from);
+      const toBuilding = this._findBuildingByLabel(entry.to);
+
+      if (!fromBuilding || !toBuilding) {
+        console.warn(`CrowdSimulator: could not resolve schedule entry ${entry.from} -> ${entry.to}`);
+        return;
+      }
+
+      const startCenter = fromBuilding.properties.center;
+      const endCenter = toBuilding.properties.center;
+      if (!startCenter || !endCenter) return;
+
+      const pathPoints = this._pathWithFallback(
+        { lng: startCenter[0], lat: startCenter[1] },
+        { lng: endCenter[0], lat: endCenter[1] }
+      );
+
+      const usablePath = pathPoints.length >= 2 ? pathPoints : [
+        { lng: startCenter[0], lat: startCenter[1] },
+        { lng: endCenter[0], lat: endCenter[1] }
+      ];
+
+      const groupId = `schedule_${entryIndex}_${cohortId}`;
+      const radius = 0.00003;
+      const angleStep = (Math.PI * 2) / Math.max(count, 1);
+
+      for (let i = 0; i < count && this.agents.length < MAX_AGENTS; i++) {
+        const angle = entryIndex * 0.7 + i * angleStep;
+        const offsetLng = Math.cos(angle) * radius;
+        const offsetLat = Math.sin(angle) * radius;
+        const speedScale = 0.85 + ((entryIndex + i) % 5) * 0.05;
+
+        this.agents.push({
+          id: `sim_${cohortId}_${entryIndex}_${i}`,
+          cohortId,
+          color: cohort.color,
+          path: usablePath,
+          pathIndex: 0,
+          lng: startCenter[0] + offsetLng,
+          lat: startCenter[1] + offsetLat,
+          progress: 0,
+          speed: AGENT_SPEED_MS * speedScale,
+          walkPhase: angle,
+          state: 'MOVING',
+          targetBuilding: toBuilding,
+          currentBuilding: null,
+          insideUntil: null,
+          insideUntilSimTime: null,
+          groupId,
+          followsSchedule: true,
+          lastScheduleHour: this.simTime
+        });
+      }
+    });
+
+    if (this.agents.length === 0 && initialPopulation > 0) {
+      console.warn('CrowdSimulator: no schedule entries could be resolved; simulation will remain empty');
+    }
+
+    this._updateLayer();
+    console.log(`CrowdSimulator: seeded ${this.agents.length} schedule-driven agents`);
+  }
+
   // Calculate stay duration based on schedule - returns END TIME in game hours (simTime)
   // Schedule followers stay until the schedule slot ends
   _getScheduleBasedStayDuration(cohortId, currentSimTime) {
@@ -715,12 +912,10 @@ export class CrowdSimulator {
         const endLng = endBuilding.properties.center[0] + (stableRandom() - 0.5) * 0.00003;
         const endLat = endBuilding.properties.center[1] + (stableRandom() - 0.5) * 0.00003;
 
-        const pathPoints = this.navGraph.findPath(
+        const pathPoints = this._pathWithFallback(
           { lng: startLng, lat: startLat },
           { lng: endLng, lat: endLat }
         );
-
-        if (pathPoints.length < 2) continue;
 
         // Place agent at a random point along the path to create realistic distribution
         const pathIndex = Math.floor(stableRandom() * Math.max(1, pathPoints.length - 2));
@@ -900,14 +1095,7 @@ export class CrowdSimulator {
     const dt = this.lastTimestamp ? Math.min(timestamp - this.lastTimestamp, 100) : 16;
     this.lastTimestamp = timestamp;
 
-    // In VISUALIZATION mode, agents are mostly static (camera-based positioning)
-    // Only update positions when receiving camera events
-    if (this.currentMode === 'visualize') {
-      // In visualization mode, we just render static positions
-      // Agents only move when we receive camera update events
-      this._updateLayer();
-      return;
-    }
+    // In visualization mode, continue normal movement updates.
     
     // In ACTUATION mode, never show agents
     if (this.currentMode === 'actuate') {
@@ -921,11 +1109,13 @@ export class CrowdSimulator {
       return;
     }
 
-    // Spawn new agents every ~1s (only in actuation mode or active simulation)
-    this.spawnCounter += dt;
-    if (this.spawnCounter > 1000) {
-      this.spawnCounter = 0;
-      this._spawnAgentsForTime(Math.floor(this.simTime));
+    // Simulate mode is PedSim-only: do not run browser-side movement.
+    if (this.currentMode === 'simulate') {
+      this._updateLayer();
+      if (this.modelLayer) {
+        this.modelLayer.updateAgents(this.agents);
+      }
+      return;
     }
 
     // Update agent positions
@@ -944,19 +1134,17 @@ export class CrowdSimulator {
             const newTarget = this._getBuildingForCategory(newCategory);
 
             if (newTarget && newTarget !== agent.currentBuilding) {
-              const pathPoints = this.navGraph.findPath(
+              const pathPoints = this._pathWithFallback(
                 { lng: agent.lng, lat: agent.lat },
                 { lng: newTarget.properties.center[0], lat: newTarget.properties.center[1] }
               );
 
-              if (pathPoints.length > 1) {
-                agent.path = pathPoints;
-                agent.pathIndex = 0;
-                agent.state = 'MOVING';
-                agent.targetBuilding = newTarget;
-                agent.lastScheduleHour = currentHour;
-                console.log(`Agent ${agent.cohortId} leaving building at simTime ${this.simTime.toFixed(2)}, scheduled until ${agent.insideUntilSimTime?.toFixed(2)}`);
-              }
+              agent.path = pathPoints;
+              agent.pathIndex = 0;
+              agent.state = 'MOVING';
+              agent.targetBuilding = newTarget;
+              agent.lastScheduleHour = currentHour;
+              console.log(`Agent ${agent.cohortId} leaving building at simTime ${this.simTime.toFixed(2)}, scheduled until ${agent.insideUntilSimTime?.toFixed(2)}`);
             }
           }
         } else {
@@ -967,17 +1155,15 @@ export class CrowdSimulator {
             const newTarget = this._getRandomBuilding();
 
             if (newTarget && newTarget !== agent.currentBuilding) {
-              const pathPoints = this.navGraph.findPath(
+              const pathPoints = this._pathWithFallback(
                 { lng: agent.lng, lat: agent.lat },
                 { lng: newTarget.properties.center[0], lat: newTarget.properties.center[1] }
               );
 
-              if (pathPoints.length > 1) {
-                agent.path = pathPoints;
-                agent.pathIndex = 0;
-                agent.state = 'MOVING';
-                agent.targetBuilding = newTarget;
-              }
+              agent.path = pathPoints;
+              agent.pathIndex = 0;
+              agent.state = 'MOVING';
+              agent.targetBuilding = newTarget;
             }
           }
         }
@@ -991,7 +1177,7 @@ export class CrowdSimulator {
       const dlng = target.lng - agent.lng;
       const dlat = target.lat - agent.lat;
       const dist = Math.sqrt(dlng*dlng + dlat*dlat);
-      const modeSpeedMultiplier = this.currentMode === 'simulate' ? 8 : 1;
+      const modeSpeedMultiplier = this.currentMode === 'simulate' ? 24 : 1;
       const step = agent.speed * dt * modeSpeedMultiplier;
 
       if (dist < step || dist < 1e-8) {
@@ -1058,8 +1244,12 @@ export class CrowdSimulator {
         }
         return true;
       });
+    } else if (this.currentMode === 'simulate') {
+      // PedSim frames are already authoritative in simulate mode.
+      // Keep them visible even if a stale focus area would otherwise clip them out.
+      visibleAgents = this.agents.filter(a => a.state !== 'INSIDE');
     } else {
-      // In actuation/simulation modes: show MOVING agents, hide INSIDE
+      // In actuation mode: show MOVING agents, hide INSIDE
       visibleAgents = this.agents.filter(a => {
         if (a.state === 'INSIDE') return false;
         if (this.focusArea && this.focusArea.length >= 3) {
@@ -1079,7 +1269,7 @@ export class CrowdSimulator {
         cohortId: agent.cohortId,
         // In visualization mode, use single color (can't detect cohort from cameras)
         color: this.currentMode === 'visualize' ? '#6366f1' : agent.color,
-        icon: this.currentMode === 'simulate' ? '●' : this._getHumanEmoji(agent.cohortId)
+        icon: this.currentMode === 'visualize' ? this._getHumanEmoji(agent.cohortId) : ''
       }
     }));
 
@@ -1087,6 +1277,20 @@ export class CrowdSimulator {
       type: 'FeatureCollection',
       features
     });
+
+    if (this.currentMode === 'simulate') {
+      console.debug('[CrowdSimulator] crowd source updated', {
+        featureCount: features.length,
+        totalAgents: this.agents.length,
+      });
+
+      const visibility = features.length > 0 ? 'visible' : 'none';
+      ['crowd-agents-layer', 'crowd-agents-dot', 'crowd-agents-glow'].forEach((layerId) => {
+        if (this.map.getLayer(layerId)) {
+          this.map.setLayoutProperty(layerId, 'visibility', visibility);
+        }
+      });
+    }
   }
 
 _getHumanEmoji(cohortId) {
@@ -1100,6 +1304,43 @@ _getHumanEmoji(cohortId) {
     this.map.addSource('crowd-agents', {
       type: 'geojson',
       data: { type: 'FeatureCollection', features: [] }
+    });
+
+    this.map.addLayer({
+      id: 'crowd-agents-glow',
+      type: 'circle',
+      source: 'crowd-agents',
+      paint: {
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          14, 5,
+          18, 10
+        ],
+        'circle-color': ['get', 'color'],
+        'circle-opacity': 0.18,
+        'circle-blur': 0.8
+      }
+    });
+
+    this.map.addLayer({
+      id: 'crowd-agents-dot',
+      type: 'circle',
+      source: 'crowd-agents',
+      paint: {
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          14, 2.5,
+          18, 5
+        ],
+        'circle-color': ['get', 'color'],
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 1,
+        'circle-opacity': 0.95
+      }
     });
 
     this.map.addLayer({

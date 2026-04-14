@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi import FastAPI, HTTPException, File, UploadFile, WebSocket, WebSocketDisconnect
 from typing import List, Optional, Dict, Any
 import os
 import csv
@@ -21,6 +21,8 @@ from schemas import (
     ActuationRule,
     SimulationScheduleEntry,
     SimulationConfig,
+    PedSimStateUpdate,
+    PedSimSceneFromMapRequest,
     UserRole,
 )
 from logic import (
@@ -38,6 +40,33 @@ from logic import (
 )
 
 app = FastAPI(title="Digital Twin Backend")
+
+
+class PedSimStreamManager:
+    def __init__(self):
+        self.connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.connections:
+            self.connections.remove(websocket)
+
+    async def broadcast(self, payload: Dict[str, Any]):
+        stale_connections = []
+        for websocket in self.connections:
+            try:
+                await websocket.send_json(payload)
+            except Exception:
+                stale_connections.append(websocket)
+
+        for websocket in stale_connections:
+            self.disconnect(websocket)
+
+
+pedsim_stream_manager = PedSimStreamManager()
 
 events_db = []
 
@@ -62,6 +91,14 @@ actuation_rules_store: Dict[str, ActuationRule] = {}
 
 # Simulation configurations
 simulation_configs_store: Dict[str, SimulationConfig] = {}
+
+# PedSim latest state frame
+pedsim_state_store: Dict[str, Any] = {
+    "sim_time": None,
+    "timestamp": None,
+    "agents": [],
+    "metadata": {},
+}
 
 cors_origins = [
     origin.strip()
@@ -691,10 +728,211 @@ def evaluate_simulation(config: SimulationConfig):
     }
 
 
+@app.post("/pedsim/state")
+async def push_pedsim_state(update: PedSimStateUpdate):
+    """Receive latest frame from the external PedSim runtime."""
+    pedsim_state_store["sim_time"] = update.sim_time
+    pedsim_state_store["timestamp"] = update.timestamp or datetime.now().isoformat()
+    pedsim_state_store["agents"] = [agent.dict() for agent in update.agents]
+    pedsim_state_store["metadata"] = update.metadata or {}
+
+    payload = {
+        "sim_time": pedsim_state_store.get("sim_time"),
+        "timestamp": pedsim_state_store.get("timestamp"),
+        "agents": pedsim_state_store.get("agents", []),
+        "metadata": pedsim_state_store.get("metadata", {}),
+        "agent_count": len(pedsim_state_store.get("agents", [])),
+    }
+
+    await pedsim_stream_manager.broadcast(payload)
+
+    return {
+        "message": "PedSim state updated",
+        "agent_count": len(pedsim_state_store["agents"]),
+        "timestamp": pedsim_state_store["timestamp"],
+    }
+
+
+@app.get("/pedsim/state")
+def get_pedsim_state():
+    """Return latest PedSim frame for frontend rendering."""
+    return {
+        "sim_time": pedsim_state_store.get("sim_time"),
+        "timestamp": pedsim_state_store.get("timestamp"),
+        "agents": pedsim_state_store.get("agents", []),
+        "metadata": pedsim_state_store.get("metadata", {}),
+        "agent_count": len(pedsim_state_store.get("agents", [])),
+    }
+
+
+@app.delete("/pedsim/state")
+def clear_pedsim_state():
+    """Clear current PedSim frame."""
+    pedsim_state_store["sim_time"] = None
+    pedsim_state_store["timestamp"] = datetime.now().isoformat()
+    pedsim_state_store["agents"] = []
+    pedsim_state_store["metadata"] = {}
+    return {"message": "PedSim state cleared"}
+
+
+def _geo_to_local(lng: float, lat: float, origin_lng: float, origin_lat: float, scale: float) -> tuple[float, float]:
+    x = (lng - origin_lng) / scale
+    y = (origin_lat - lat) / scale
+    return x, y
+
+
+def _iter_polygon_rings(geometry: Dict[str, Any]) -> List[List[List[float]]]:
+    gtype = geometry.get("type")
+    coords = geometry.get("coordinates", [])
+    if gtype == "Polygon" and coords:
+        return [coords[0]]
+    if gtype == "MultiPolygon" and coords:
+        return [poly[0] for poly in coords if poly]
+    return []
+
+
+def _iter_lines(geometry: Dict[str, Any]) -> List[List[List[float]]]:
+    gtype = geometry.get("type")
+    coords = geometry.get("coordinates", [])
+    if gtype == "LineString" and coords:
+        return [coords]
+    if gtype == "MultiLineString" and coords:
+        return [line for line in coords if line]
+    return []
+
+
+@app.post("/pedsim/scene-from-map")
+def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
+    """Generate a PedSim scene XML file from map-extracted geometry."""
+    scale = payload.scale if payload.scale > 0 else 0.00003
+    origin_lng = payload.origin_lng
+    origin_lat = payload.origin_lat
+
+    building_features = payload.buildings.get("features", []) if isinstance(payload.buildings, dict) else []
+    pathway_features = payload.pathways.get("features", []) if isinstance(payload.pathways, dict) else []
+
+    xml_lines = ["<welcome>"]
+
+    obstacle_count = 0
+    for feature in building_features:
+        geometry = feature.get("geometry") or {}
+        for ring in _iter_polygon_rings(geometry):
+            if len(ring) < 2:
+                continue
+            for i in range(len(ring) - 1):
+                start = ring[i]
+                end = ring[i + 1]
+                if len(start) < 2 or len(end) < 2:
+                    continue
+                x1, y1 = _geo_to_local(start[0], start[1], origin_lng, origin_lat, scale)
+                x2, y2 = _geo_to_local(end[0], end[1], origin_lng, origin_lat, scale)
+                xml_lines.append(
+                    f"  <obstacle x1=\"{x1:.2f}\" y1=\"{y1:.2f}\" x2=\"{x2:.2f}\" y2=\"{y2:.2f}\" />"
+                )
+                obstacle_count += 1
+
+    boundary_feature = None
+    if isinstance(payload.boundary, dict):
+        features = payload.boundary.get("features", [])
+        boundary_feature = features[0] if features else None
+
+    if boundary_feature:
+        rings = _iter_polygon_rings(boundary_feature.get("geometry") or {})
+        if rings:
+            ring = rings[0]
+            for i in range(len(ring) - 1):
+                start = ring[i]
+                end = ring[i + 1]
+                if len(start) < 2 or len(end) < 2:
+                    continue
+                x1, y1 = _geo_to_local(start[0], start[1], origin_lng, origin_lat, scale)
+                x2, y2 = _geo_to_local(end[0], end[1], origin_lng, origin_lat, scale)
+                xml_lines.append(
+                    f"  <obstacle x1=\"{x1:.2f}\" y1=\"{y1:.2f}\" x2=\"{x2:.2f}\" y2=\"{y2:.2f}\" />"
+                )
+                obstacle_count += 1
+
+    sampled_waypoints: List[tuple[str, float, float]] = []
+    for feature in pathway_features[:200]:
+        geometry = feature.get("geometry") or {}
+        for line in _iter_lines(geometry):
+            if len(line) < 2:
+                continue
+            sample_indices = sorted({0, len(line) // 2, len(line) - 1})
+            for idx in sample_indices:
+                point = line[idx]
+                if len(point) < 2:
+                    continue
+                x, y = _geo_to_local(point[0], point[1], origin_lng, origin_lat, scale)
+                waypoint_id = f"w{len(sampled_waypoints)+1}"
+                sampled_waypoints.append((waypoint_id, x, y))
+            if len(sampled_waypoints) >= 40:
+                break
+        if len(sampled_waypoints) >= 40:
+            break
+
+    for waypoint_id, x, y in sampled_waypoints:
+        xml_lines.append(f"  <waypoint id=\"{waypoint_id}\" x=\"{x:.2f}\" y=\"{y:.2f}\" r=\"10\" />")
+
+    if payload.include_agents and len(sampled_waypoints) >= 3:
+        start_id = sampled_waypoints[0][0]
+        route_ids = [wp[0] for wp in sampled_waypoints[1: min(10, len(sampled_waypoints))]]
+        start_x = sampled_waypoints[0][1]
+        start_y = sampled_waypoints[0][2]
+        xml_lines.append(
+            f"  <agent x=\"{start_x:.2f}\" y=\"{start_y:.2f}\" n=\"{max(20, payload.default_agent_count)}\" dx=\"30\" dy=\"30\">"
+        )
+        xml_lines.append(f"    <addwaypoint id=\"{start_id}\" />")
+        for route_id in route_ids:
+            xml_lines.append(f"    <addwaypoint id=\"{route_id}\" />")
+        for route_id in reversed(route_ids):
+            xml_lines.append(f"    <addwaypoint id=\"{route_id}\" />")
+        xml_lines.append("  </agent>")
+
+    xml_lines.append("</welcome>")
+
+    output_path = os.path.join(UPLOADS_DIR, "pedsim_scene_from_map.xml")
+    with open(output_path, "w", encoding="utf-8") as scene_file:
+        scene_file.write("\n".join(xml_lines) + "\n")
+
+    return {
+        "message": "PedSim scene generated from map geometry",
+        "scene_file": output_path,
+        "building_features": len(building_features),
+        "pathway_features": len(pathway_features),
+        "obstacles_written": obstacle_count,
+        "waypoints_written": len(sampled_waypoints),
+    }
+
+
+@app.websocket("/pedsim/ws")
+async def pedsim_state_stream(websocket: WebSocket):
+    """Stream the latest PedSim frame to connected frontend clients."""
+    await pedsim_stream_manager.connect(websocket)
+    try:
+        await websocket.send_json({
+            "sim_time": pedsim_state_store.get("sim_time"),
+            "timestamp": pedsim_state_store.get("timestamp"),
+            "agents": pedsim_state_store.get("agents", []),
+            "metadata": pedsim_state_store.get("metadata", {}),
+            "agent_count": len(pedsim_state_store.get("agents", [])),
+            "type": "snapshot",
+        })
+
+        while True:
+            message = await websocket.receive_text()
+            if message.lower() == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        pedsim_stream_manager.disconnect(websocket)
+    except Exception:
+        pedsim_stream_manager.disconnect(websocket)
+
+
 if __name__ == "__main__":
     uvicorn.run(
         app,
         host=os.getenv("HOST", "0.0.0.0"),
-        port=int(os.getenv("PORT", "8000")),
+        port=int(os.getenv("PORT", "8904")),
         reload=os.getenv("RELOAD", "false").lower() == "true",
     )

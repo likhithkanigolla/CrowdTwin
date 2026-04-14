@@ -5,7 +5,8 @@ import osmtogeojson from 'osmtogeojson';
 import { CrowdSimulator, COHORTS } from '../engine/CrowdSimulator';
 import { ModelLayer } from '../engine/ModelLayer';
 import { SimulationDB } from '../engine/SimulationDB';
-import { getAvailableRoads, registerRoads } from '../api';
+import { buildPedSimSceneGeoJSON } from '../data/pedsimScene';
+import { getAvailableRoads, registerRoads, getBuildingOccupancy, exportPedSimSceneFromMap } from '../api';
 
 // Subtle semantic colors — not too vivid, realistic-looking at night
 const SEMANTIC_COLORS = {
@@ -76,6 +77,59 @@ const sampleTreePositionsFromRing = (ring, targetCount) => {
 
 const TREE_EMOJIS = ['🌳', '🌲', '🌴'];
 
+const PEDSIM_SCENE = buildPedSimSceneGeoJSON();
+
+
+const getPerimeterCameraPoint = (feature) => {
+    const geometry = feature?.geometry;
+    if (!geometry) return null;
+
+    const rings = geometry.type === 'Polygon'
+        ? [geometry.coordinates[0]]
+        : geometry.type === 'MultiPolygon'
+            ? geometry.coordinates.map(poly => poly[0])
+            : [];
+
+    let bestPoint = null;
+    let bestDistance = Infinity;
+
+    rings.forEach((ring) => {
+        if (!ring || ring.length < 4) return;
+
+        let centroidLng = 0;
+        let centroidLat = 0;
+        let count = 0;
+        ring.forEach(([lng, lat]) => {
+            centroidLng += lng;
+            centroidLat += lat;
+            count += 1;
+        });
+
+        if (!count) return;
+
+        centroidLng /= count;
+        centroidLat /= count;
+
+        for (let i = 0; i < ring.length - 1; i++) {
+            const [lng1, lat1] = ring[i];
+            const [lng2, lat2] = ring[i + 1];
+            const midpointLng = (lng1 + lng2) / 2;
+            const midpointLat = (lat1 + lat2) / 2;
+            const distance = Math.hypot(midpointLng - centroidLng, midpointLat - centroidLat);
+
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                const inwardScale = 0.92;
+                bestPoint = {
+                    lng: centroidLng + (midpointLng - centroidLng) * inwardScale,
+                    lat: centroidLat + (midpointLat - centroidLat) * inwardScale,
+                };
+            }
+        }
+    });
+
+    return bestPoint;
+};
 const stableRandom = (() => {
     let seed = 123456789;
     return () => {
@@ -84,21 +138,38 @@ const stableRandom = (() => {
     };
 })();
 
-// Generate camera positions at building entrances and along roads
-const generateCameraPositions = (buildings, pathways, intervalMeters = 80) => {
+// Generate a small deterministic set of camera positions at key buildings
+const generateCameraPositions = (buildings) => {
     const positions = [];
-    const metersPerDegLat = 111320;
     let cameraId = 0;
+    const startTime = performance.now();
 
-    // Place cameras at building entrances (centers)
-    buildings.features.forEach(feature => {
-        const center = feature.properties?.center;
+    const priorityCategories = new Set(['gates', 'admin', 'academics', 'canteens', 'hostels']);
+    const prioritizedBuildings = buildings.features
+        .filter(feature => priorityCategories.has(feature.properties?.category))
+        .sort((a, b) => {
+            const categoryOrder = ['gates', 'admin', 'academics', 'canteens', 'hostels'];
+            const categoryDiff = categoryOrder.indexOf(a.properties?.category) - categoryOrder.indexOf(b.properties?.category);
+            if (categoryDiff !== 0) return categoryDiff;
+            return String(a.properties?.name || '').localeCompare(String(b.properties?.name || ''));
+        })
+        .slice(0, 18);
+
+    // Place cameras only at key building edges
+    prioritizedBuildings.forEach(feature => {
+        const perimeterPoint = getPerimeterCameraPoint(feature);
+        const fallbackCenter = feature.properties?.center;
+        const center = perimeterPoint || (
+            Array.isArray(fallbackCenter)
+                ? { lng: fallbackCenter[0], lat: fallbackCenter[1] }
+                : fallbackCenter
+        );
         const name = feature.properties?.name || feature.properties?.['addr:housename'] || 'Building';
         if (center) {
             positions.push({
                 id: `cam_bldg_${cameraId++}`,
-                lng: center[0],
-                lat: center[1],
+                lng: center.lng,
+                lat: center.lat,
                 type: 'building_entrance',
                 name: `${name} Entrance`,
                 direction: 'bidirectional'
@@ -106,41 +177,7 @@ const generateCameraPositions = (buildings, pathways, intervalMeters = 80) => {
         }
     });
 
-    // Place cameras along roads at intervals
-    pathways.features.forEach((feature, pathIdx) => {
-        if (feature.geometry.type !== 'LineString') return;
-        const coords = feature.geometry.coordinates;
-        const highwayType = feature.properties?.highway || '';
-
-        // Only place cameras on major roads
-        if (!['primary', 'secondary', 'tertiary', 'residential'].includes(highwayType)) return;
-
-        for (let i = 0; i < coords.length - 1; i++) {
-            const [lng1, lat1] = coords[i];
-            const [lng2, lat2] = coords[i + 1];
-
-            const metersPerDegLng = metersPerDegLat * Math.cos(lat1 * Math.PI / 180);
-            const dx = (lng2 - lng1) * metersPerDegLng;
-            const dy = (lat2 - lat1) * metersPerDegLat;
-            const segLen = Math.sqrt(dx * dx + dy * dy);
-
-            const numCameras = Math.floor(segLen / intervalMeters);
-            for (let j = 0; j <= numCameras; j++) {
-                const t = numCameras > 0 ? j / numCameras : 0;
-                // Offset camera slightly to be beside the road
-                const offsetLng = (stableRandom() - 0.5) * 0.00002;
-                positions.push({
-                    id: `cam_road_${cameraId++}`,
-                    lng: lng1 + t * (lng2 - lng1) + offsetLng,
-                    lat: lat1 + t * (lat2 - lat1),
-                    type: 'road',
-                    name: `Road Camera ${pathIdx}-${j}`,
-                    direction: j % 2 === 0 ? 'in' : 'out'
-                });
-            }
-        }
-    });
-
+    console.log(`🎥 Generated ${cameraId} cameras in ${(performance.now() - startTime).toFixed(2)}ms`);
     return positions;
 };
 
@@ -155,6 +192,25 @@ const buildCameraFeatures = (positions) => ({
             direction: p.direction 
         },
         geometry: { type: 'Point', coordinates: [p.lng, p.lat] }
+    }))
+});
+
+// Generate camera pole lines for visualization
+const buildCameraPoleLines = (positions) => ({
+    type: 'FeatureCollection',
+    features: positions.map((p) => ({
+        type: 'Feature',
+        properties: { 
+            id: p.id,
+            camera_id: p.id
+        },
+        geometry: {
+            type: 'LineString',
+            coordinates: [
+                [p.lng, p.lat - 0.00005],
+                [p.lng, p.lat + 0.00025]
+            ]
+        }
     }))
 });
 
@@ -286,11 +342,221 @@ const buildFallbackGeojson = (centerLng, centerLat) => {
     return { type: 'FeatureCollection', features };
 };
 
+const addOrUpdateSource = (map, sourceId, data) => {
+    if (map.getSource(sourceId)) {
+        map.getSource(sourceId).setData(data);
+        return;
+    }
+    map.addSource(sourceId, { type: 'geojson', data });
+};
+
+const ensurePedSimSceneOverlay = (map) => {
+    if (!map || !map.isStyleLoaded()) return;
+
+    addOrUpdateSource(map, 'pedsim-boundary', PEDSIM_SCENE.boundary);
+    addOrUpdateSource(map, 'pedsim-obstacles', PEDSIM_SCENE.obstacles);
+    addOrUpdateSource(map, 'pedsim-walls', PEDSIM_SCENE.walls);
+    addOrUpdateSource(map, 'pedsim-roads', PEDSIM_SCENE.roads);
+    addOrUpdateSource(map, 'pedsim-waypoints', PEDSIM_SCENE.waypoints);
+
+    if (!map.getLayer('pedsim-boundary-fill')) {
+        map.addLayer({
+            id: 'pedsim-boundary-fill',
+            type: 'fill',
+            source: 'pedsim-boundary',
+            paint: {
+                'fill-color': '#0f172a',
+                'fill-opacity': 0.06
+            }
+        });
+    }
+
+    if (!map.getLayer('pedsim-boundary-outline')) {
+        map.addLayer({
+            id: 'pedsim-boundary-outline',
+            type: 'line',
+            source: 'pedsim-boundary',
+            paint: {
+                'line-color': '#f59e0b',
+                'line-width': 4,
+                'line-opacity': 0.95
+            }
+        });
+    }
+
+    if (!map.getLayer('pedsim-obstacles-fill')) {
+        map.addLayer({
+            id: 'pedsim-obstacles-fill',
+            type: 'fill',
+            source: 'pedsim-obstacles',
+            paint: {
+                'fill-color': '#fb923c',
+                'fill-opacity': 0.2
+            }
+        });
+    }
+
+    if (!map.getLayer('pedsim-obstacles-outline')) {
+        map.addLayer({
+            id: 'pedsim-obstacles-outline',
+            type: 'line',
+            source: 'pedsim-obstacles',
+            paint: {
+                'line-color': '#d97706',
+                'line-width': 2.5,
+                'line-opacity': 0.95
+            }
+        });
+    }
+
+    if (!map.getLayer('pedsim-roads-layer')) {
+        map.addLayer({
+            id: 'pedsim-roads-layer',
+            type: 'line',
+            source: 'pedsim-roads',
+            paint: {
+                'line-color': '#38bdf8',
+                'line-width': 3,
+                'line-opacity': 0.7,
+                'line-dasharray': [2, 1]
+            }
+        });
+    }
+
+    if (!map.getLayer('pedsim-waypoints-layer')) {
+        map.addLayer({
+            id: 'pedsim-waypoints-layer',
+            type: 'circle',
+            source: 'pedsim-waypoints',
+            paint: {
+                'circle-radius': 4,
+                'circle-color': '#fde68a',
+                'circle-stroke-width': 1.5,
+                'circle-stroke-color': '#7c2d12'
+            }
+        });
+    }
+};
+
+const toBoundaryRing = (selectedArea) => {
+    if (!selectedArea) return null;
+
+    if (selectedArea.type === 'Feature' && selectedArea.geometry?.type === 'Polygon') {
+        return selectedArea.geometry.coordinates?.[0] || null;
+    }
+
+    if (selectedArea.type === 'FeatureCollection' && Array.isArray(selectedArea.features)) {
+        const polygon = selectedArea.features.find(
+            (feature) => feature?.geometry?.type === 'Polygon' && Array.isArray(feature.geometry.coordinates?.[0])
+        );
+        return polygon?.geometry?.coordinates?.[0] || null;
+    }
+
+    if (Array.isArray(selectedArea.points) && selectedArea.points.length >= 3) {
+        const ring = selectedArea.points.map((point) => [point.lng, point.lat]);
+        ring.push([selectedArea.points[0].lng, selectedArea.points[0].lat]);
+        return ring;
+    }
+
+    return null;
+};
+
+const toBoundaryFeatureCollection = (selectedArea) => {
+    if (!selectedArea) return null;
+
+    if (selectedArea.type === 'FeatureCollection' && Array.isArray(selectedArea.features)) {
+        return selectedArea;
+    }
+
+    const ring = toBoundaryRing(selectedArea);
+    if (ring) {
+        return {
+            type: 'FeatureCollection',
+            features: [{
+                type: 'Feature',
+                properties: { source: 'selected_area' },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [ring],
+                },
+            }],
+        };
+    }
+
+    return null;
+};
+
+const buildBoundaryFromFeatureCollections = (...collections) => {
+    const coords = [];
+
+    collections.forEach((collection) => {
+        const features = collection?.features || [];
+        features.forEach((feature) => {
+            const geometry = feature?.geometry;
+            if (!geometry) return;
+
+            if (geometry.type === 'Polygon') {
+                (geometry.coordinates?.[0] || []).forEach((point) => coords.push(point));
+            } else if (geometry.type === 'MultiPolygon') {
+                (geometry.coordinates || []).forEach((polygon) => {
+                    (polygon?.[0] || []).forEach((point) => coords.push(point));
+                });
+            } else if (geometry.type === 'LineString') {
+                (geometry.coordinates || []).forEach((point) => coords.push(point));
+            }
+        });
+    });
+
+    if (coords.length < 3) return null;
+
+    const lngs = coords.map((point) => point[0]);
+    const lats = coords.map((point) => point[1]);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const padLng = Math.max(0.0004, (maxLng - minLng) * 0.06);
+    const padLat = Math.max(0.0004, (maxLat - minLat) * 0.06);
+
+    const ring = [
+        [minLng - padLng, minLat - padLat],
+        [maxLng + padLng, minLat - padLat],
+        [maxLng + padLng, maxLat + padLat],
+        [minLng - padLng, maxLat + padLat],
+        [minLng - padLng, minLat - padLat],
+    ];
+
+    return {
+        type: 'FeatureCollection',
+        features: [{
+            type: 'Feature',
+            properties: { source: 'map_bbox' },
+            geometry: {
+                type: 'Polygon',
+                coordinates: [ring],
+            },
+        }],
+    };
+};
+
+const removeCrowdLayers = (map) => {
+    ['crowd-agents-layer', 'crowd-agents-dot', 'crowd-agents-glow'].forEach((id) => {
+        if (map.getLayer(id)) {
+            map.removeLayer(id);
+        }
+    });
+
+    if (map.getSource('crowd-agents')) {
+        map.removeSource('crowd-agents');
+    }
+};
+
 export default function MapContainer({
     currentMode,
     onBuildingSelect,
     onBuildingsLoaded,
     onSimulatorReady,
+    onMapBoundaryChange,
     simTime,
     isPlacingPoints,
     setIsPlacingPoints,
@@ -306,6 +572,8 @@ export default function MapContainer({
     const allBuildingsRef = useRef(null); // Store all buildings (unfiltered)
     const allGreenAreasRef = useRef(null); // Store all green areas (unfiltered)
     const allPathwaysRef = useRef(null); // Store all pathways (unfiltered)
+    const mapOriginRef = useRef({ lng: 78.3487, lat: 17.4464 });
+    const crowdVisibilityStateRef = useRef('');
     const roadStatusByIdRef = useRef({});
     const [loading, setLoading] = useState(false);
 
@@ -314,15 +582,15 @@ export default function MapContainer({
 
     // Helper function to check if a point is inside a polygon (ray casting algorithm)
     const isPointInPolygon = (point, polygon) => {
-        if (!polygon || !polygon.points || polygon.points.length < 3) return true; // No polygon = include all
+        const ring = toBoundaryRing(polygon);
+        if (!ring || ring.length < 4) return true; // No polygon = include all
         const x = point.lng || point[0];
         const y = point.lat || point[1];
 
         let inside = false;
-        const pts = polygon.points;
-        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-            const xi = pts[i].lng, yi = pts[i].lat;
-            const xj = pts[j].lng, yj = pts[j].lat;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            const [xi, yi] = ring[i];
+            const [xj, yj] = ring[j];
 
             if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
                 inside = !inside;
@@ -333,7 +601,8 @@ export default function MapContainer({
 
     // Filter buildings by focus area
     const filterFeaturesByArea = (features, area) => {
-        if (!area || !area.points || area.points.length < 3) return features;
+        const ring = toBoundaryRing(area);
+        if (!ring || ring.length < 4) return features;
 
         return features.filter(feature => {
             const center = feature.properties?.center;
@@ -398,14 +667,8 @@ export default function MapContainer({
 
         let geojson = { type: 'FeatureCollection', features: [] };
 
-        if (areaData && areaData.points && areaData.points.length >= 3) {
-            // Use the actual clicked points to draw polygon (1->2->3->4->1)
-            const coords = areaData.points.map(p => [p.lng, p.lat]);
-            // Close the polygon by adding the first point at the end
-            coords.push([areaData.points[0].lng, areaData.points[0].lat]);
-
-            console.log('Drawing polygon with coords:', coords);
-
+        const ring = toBoundaryRing(areaData);
+        if (ring && ring.length >= 4) {
             geojson = {
                 type: 'FeatureCollection',
                 features: [{
@@ -413,7 +676,7 @@ export default function MapContainer({
                     properties: {},
                     geometry: {
                         type: 'Polygon',
-                        coordinates: [coords]
+                        coordinates: [ring]
                     }
                 }]
             };
@@ -472,8 +735,69 @@ export default function MapContainer({
         }
     };
 
+    const syncBoundaryPreviewAndExport = (buildingsGeoJSON, pathwaysGeoJSON, area = selectedArea) => {
+        if (!buildingsGeoJSON || !pathwaysGeoJSON) return null;
+
+        const boundaryForExport = toBoundaryFeatureCollection(area)
+            || buildBoundaryFromFeatureCollections(buildingsGeoJSON, pathwaysGeoJSON);
+
+        if (onMapBoundaryChange) {
+            onMapBoundaryChange(boundaryForExport || null);
+        }
+
+        exportPedSimSceneFromMap({
+            origin_lng: mapOriginRef.current.lng,
+            origin_lat: mapOriginRef.current.lat,
+            scale: 0.00003,
+            buildings: buildingsGeoJSON,
+            pathways: pathwaysGeoJSON,
+            boundary: boundaryForExport,
+            include_agents: true,
+            default_agent_count: 120,
+        }).catch((error) => {
+            console.warn('Map to PedSim scene export failed:', error);
+        });
+
+        return boundaryForExport;
+    };
+
+    const syncCrowdLayerVisibility = (reason) => {
+        const map = mapRef.current;
+        if (!map || !map.isStyleLoaded()) return;
+
+        const simulator = simRef.current;
+        const isSimulationMode = currentMode === 'simulate';
+        const isSimActive = Boolean(simulator?.isSimulationActive);
+        const agentCount = simulator?.agents?.length || 0;
+        const showAgents = currentMode !== 'actuate' && (!isSimulationMode || isSimActive || agentCount > 0);
+        const opacity = isSimulationMode ? 0.95 : currentMode === 'visualize' ? 0.9 : 0.95;
+        const snapshot = `${currentMode}|${showAgents}|${isSimActive}|${agentCount}`;
+
+        if (crowdVisibilityStateRef.current !== snapshot) {
+            console.debug('[MapContainer] crowd visibility', {
+                reason,
+                mode: currentMode,
+                showAgents,
+                isSimulationActive: isSimActive,
+                agentCount,
+            });
+            crowdVisibilityStateRef.current = snapshot;
+        }
+
+        ['crowd-agents-layer', 'crowd-agents-dot', 'crowd-agents-glow'].forEach((layerId) => {
+            if (map.getLayer(layerId)) {
+                map.setLayoutProperty(layerId, 'visibility', showAgents ? 'visible' : 'none');
+            }
+        });
+
+        if (showAgents && map.getLayer('crowd-agents-layer')) {
+            map.setPaintProperty('crowd-agents-layer', 'text-opacity', opacity);
+        }
+    };
+
     const fetchOverpassData = async (map, centerLng, centerLat) => {
         setLoading(true);
+        mapOriginRef.current = { lng: centerLng, lat: centerLat };
         const query = `
       [out:json][timeout:30];
       (
@@ -606,6 +930,7 @@ export default function MapContainer({
                     return isPointInPolygon(center, selectedArea);
                 })
             } : greenAreas;
+            syncBoundaryPreviewAndExport(filteredBuildings, pathways, selectedArea);
 
             // ----- Set up MapLibre sources/layers -----
             if (map.getSource('buildings')) {
@@ -735,48 +1060,46 @@ export default function MapContainer({
                 // Camera positions for visualization mode
                 const cameraPositions = generateCameraPositions(filteredBuildings, pathways, 100);
                 const cameraData = buildCameraFeatures(cameraPositions);
+                const poleData = buildCameraPoleLines(cameraPositions);
+                console.log('✅ Cameras:', cameraPositions.length, 'Poles:', poleData.features.length);
+                if (cameraPositions.length > 0) {
+                    const cam = cameraPositions[0];
+                    const pole = poleData.features[0];
+                    console.log('  Sample camera:', cam.id, 'at', cam.lng.toFixed(6), cam.lat.toFixed(6));
+                    console.log('  Sample pole line:', pole.geometry.coordinates);
+                }
 
                 map.addSource('cameras', { type: 'geojson', data: cameraData });
+                map.addSource('camera-poles', { type: 'geojson', data: poleData });
 
-                // Camera icon layer using 📹 emoji (visible in visualization mode)
+                if (modelLayerRef.current) {
+                    modelLayerRef.current.placeCameras(cameraPositions);
+                }
+
+                // Camera pole lines (simple vertical lines under cameras)
                 map.addLayer({
-                    id: 'camera-icon',
-                    type: 'symbol',
-                    source: 'cameras',
+                    id: 'camera-poles-lines',
+                    type: 'line',
+                    source: 'camera-poles',
                     layout: {
-                        'text-field': CAMERA_EMOJI,
-                        'text-size': [
+                        'visibility': 'none',
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    },
+                    paint: {
+                        'line-color': '#1e40af',
+                        'line-width': [
                             'interpolate',
                             ['linear'],
                             ['zoom'],
-                            14, 10,
-                            18, 18
+                            14, 6,
+                            18, 12
                         ],
-                        'text-allow-overlap': true,
-                        'visibility': 'none' // Hidden by default, shown in visualization mode
-                    },
-                    paint: {
-                        'text-color': '#ef4444',
-                        'text-halo-color': 'rgba(255, 255, 255, 0.8)',
-                        'text-halo-width': 2
+                        'line-opacity': 0.8
                     }
                 });
 
-                // Camera detection radius (glow)
-                map.addLayer({
-                    id: 'camera-glow',
-                    type: 'circle',
-                    source: 'cameras',
-                    layout: {
-                        'visibility': 'none' // Hidden by default
-                    },
-                    paint: {
-                        'circle-radius': 15,
-                        'circle-color': '#ef4444',
-                        'circle-opacity': 0.15,
-                        'circle-blur': 0.5
-                    }
-                });
+                // Camera overlay is now rendered by ModelLayer using the GLB asset.
 
                 // Road closure overlay (for actuation mode)
                 map.addSource('road-closures', {
@@ -948,14 +1271,13 @@ export default function MapContainer({
                 if (onBuildingsLoaded) onBuildingsLoaded(namedBuildings);
             }
 
+            // Keep the right-panel PedSim preview, but avoid drawing the synthetic
+            // PedSim scene over the main geo map to preserve campus context.
+
             // ----- Start Crowd Simulation -----
             if (simRef.current) {
                 simRef.current.stop();
-                // Remove old crowd layers to allow re-init
-                ['crowd-agents-dot', 'crowd-agents-glow'].forEach(id => {
-                    if (map.getLayer(id)) map.removeLayer(id);
-                });
-                if (map.getSource('crowd-agents')) map.removeSource('crowd-agents');
+                removeCrowdLayers(map);
             }
 
             const sim = new CrowdSimulator();
@@ -972,6 +1294,8 @@ export default function MapContainer({
             if (currentMode === 'visualize') {
                 sim.populateGreenAreas(filteredGreenAreas);
             }
+
+            syncCrowdLayerVisibility('map-data-loaded');
 
             // Build tree positions from green areas (use filtered green areas)
             let treePositions = [];
@@ -1126,7 +1450,7 @@ export default function MapContainer({
                     ? '#ffffff'
                     : '#1e293b',
                 intensity: isDay
-                    ? 0.6 + (dayCurve * 0.6)
+                    ? Math.min(1.0, 0.6 + (dayCurve * 0.6))
                     : 0.15,
                 position: [1.5, 180 - (dayCurve * 120), 60]
             });
@@ -1180,8 +1504,6 @@ export default function MapContainer({
         // Mode-specific layer visibility and simulation behavior
         const showCameras = currentMode === 'visualize';
         const showRoadClosures = currentMode === 'actuate' || currentMode === 'simulate';
-        const isSimulationMode = currentMode === 'simulate';
-        const hideAgents = currentMode === 'actuate'; // Hide agents in actuation mode
 
         // Toggle camera visibility
         if (map.getLayer('camera-icon')) {
@@ -1190,6 +1512,14 @@ export default function MapContainer({
         if (map.getLayer('camera-glow')) {
             map.setLayoutProperty('camera-glow', 'visibility', showCameras ? 'visible' : 'none');
         }
+        // Toggle camera pole visibility (all pole structures)
+        if (map.getLayer('camera-poles-lines')) {
+            map.setLayoutProperty('camera-poles-lines', 'visibility', showCameras ? 'visible' : 'none');
+        }
+        if (map.getLayer('camera-pole-base')) {
+            map.setLayoutProperty('camera-pole-base', 'visibility', showCameras ? 'visible' : 'none');
+        }
+
 
         // Toggle road closures visibility
         if (map.getLayer('road-closures-highlight')) {
@@ -1207,36 +1537,11 @@ export default function MapContainer({
                 // Actuation mode: Hide agents (focus on road controls)
                 sim.setMode('actuate');
             } else if (currentMode === 'simulate') {
-                // Simulation mode: Start with blank map - no agents until play is pressed
                 sim.setMode('simulate');
-                if (!sim.isSimulationActive) {
-                    sim.clearAgents();
-                }
             }
         }
 
-        // Update crowd layer opacity and visibility based on mode
-        if (map.getLayer('crowd-agents-layer')) {
-            if ((isSimulationMode && !simRef.current?.isSimulationActive) || hideAgents) {
-                // Hide agents in simulation mode (until play) or actuation mode
-                map.setLayoutProperty('crowd-agents-layer', 'visibility', 'none');
-            } else {
-                map.setLayoutProperty('crowd-agents-layer', 'visibility', 'visible');
-                const opacity = isSimulationMode ? 0.8 : (currentMode === 'visualize' ? 0.9 : 0.95);
-                map.setPaintProperty('crowd-agents-layer', 'text-opacity', opacity);
-            }
-        }
-        
-        // Similar for dot and glow layers
-        ['crowd-agents-dot', 'crowd-agents-glow'].forEach(layerId => {
-            if (map.getLayer(layerId)) {
-                if ((isSimulationMode && !simRef.current?.isSimulationActive) || hideAgents) {
-                    map.setLayoutProperty(layerId, 'visibility', 'none');
-                } else {
-                    map.setLayoutProperty(layerId, 'visibility', 'visible');
-                }
-            }
-        });
+        syncCrowdLayerVisibility('mode-change');
 
         console.log(`MapContainer: Mode changed to ${currentMode}`);
 
@@ -1248,9 +1553,7 @@ export default function MapContainer({
 
         const updateLastFeedTime = async () => {
             try {
-                const response = await fetch('http://localhost:8000/building-occupancy');
-                if (!response.ok) throw new Error('Failed to fetch');
-                const data = await response.json();
+                const data = await getBuildingOccupancy();
                 
                 // Get the most recent timestamp from building occupancy data
                 if (data.buildings && Object.keys(data.buildings).length > 0) {
@@ -1292,23 +1595,9 @@ export default function MapContainer({
         const map = mapRef.current;
         if (!map || !map.isStyleLoaded() || currentMode !== 'simulate') return;
 
-        // Poll every 100ms to check if simulation is active
         const pollInterval = setInterval(() => {
-            if (!simRef.current) return;
-            
-            const isSimActive = simRef.current.isSimulationActive;
-            
-            // Show agents only when simulation is actually active
-            const agentLayers = ['crowd-agents-layer', 'crowd-agents-dot', 'crowd-agents-glow'];
-            agentLayers.forEach(layerId => {
-                if (map.getLayer(layerId)) {
-                    const visibility = isSimActive ? 'visible' : 'none';
-                    if (map.getLayoutProperty(layerId, 'visibility') !== visibility) {
-                        map.setLayoutProperty(layerId, 'visibility', visibility);
-                    }
-                }
-            });
-        }, 100);
+            syncCrowdLayerVisibility('simulate-poll');
+        }, 250);
 
         return () => clearInterval(pollInterval);
     }, [currentMode]);
@@ -1443,9 +1732,10 @@ export default function MapContainer({
             updateAreaSelectionLayer(mapRef.current, selectedArea);
 
             // Re-filter buildings and green areas when selectedArea changes
-            if (allBuildingsRef.current && allGreenAreasRef.current) {
+            if (allBuildingsRef.current && allGreenAreasRef.current && allPathwaysRef.current) {
                 const buildings = allBuildingsRef.current;
                 const greenAreas = allGreenAreasRef.current;
+                const pathways = allPathwaysRef.current;
 
                 // Filter by selected area
                 const filteredBuildings = selectedArea ? {
@@ -1486,23 +1776,26 @@ export default function MapContainer({
                     mapRef.current.getSource('greenAreas').setData(filteredGreenAreas);
                 }
 
+                syncBoundaryPreviewAndExport(filteredBuildings, pathways, selectedArea);
+
                 // Restart simulation with filtered buildings
-                if (simRef.current && allPathwaysRef.current) {
+                if (simRef.current) {
                     simRef.current.stop();
-                    ['crowd-agents-dot', 'crowd-agents-glow'].forEach(id => {
-                        if (mapRef.current.getLayer(id)) mapRef.current.removeLayer(id);
-                    });
-                    if (mapRef.current.getSource('crowd-agents')) mapRef.current.removeSource('crowd-agents');
+                    removeCrowdLayers(mapRef.current);
 
                     const sim = new CrowdSimulator();
                     simRef.current = sim;
                     sim.setSimTime(simTime);
                     sim.modelLayer = modelLayerRef.current || null;
-                    sim.init(mapRef.current, allPathwaysRef.current, filteredBuildings, selectedArea);
-                    sim.populateGreenAreas(filteredGreenAreas);
+                    sim.init(mapRef.current, pathways, filteredBuildings, selectedArea);
+                    sim.setMode(currentMode);
+                    if (currentMode === 'visualize') {
+                        sim.populateGreenAreas(filteredGreenAreas);
+                    }
 
                     // Notify parent about new simulator instance
                     if (onSimulatorReady) onSimulatorReady(sim);
+                    syncCrowdLayerVisibility('selected-area-change');
                 }
             }
         };

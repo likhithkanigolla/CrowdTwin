@@ -1,8 +1,20 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const API_BASE_CANDIDATES = Array.from(new Set([
   API_BASE,
-  ...(API_BASE === '/api' ? ['http://localhost:8000'] : []),
+  ...(API_BASE === '/api' ? ['http://localhost:8904'] : []),
 ]));
+
+const toWebSocketBase = (base) => {
+  if (!base || base === '/api') return 'ws://localhost:8904';
+  if (base.startsWith('https://')) return base.replace(/^https:\/\//, 'wss://');
+  if (base.startsWith('http://')) return base.replace(/^http:\/\//, 'ws://');
+  return base;
+};
+
+export const PEDSIM_WS_CANDIDATES = Array.from(new Set([
+  toWebSocketBase(API_BASE),
+  ...(API_BASE === '/api' ? ['ws://localhost:8904'] : []),
+])).map((base) => `${base.replace(/\/$/, '')}/pedsim/ws`);
 
 const buildUrl = (base, path) => `${base}${path.startsWith('/') ? path : `/${path}`}`;
 
@@ -224,5 +236,21 @@ export async function evaluateSimulation(config) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(config),
+  });
+}
+
+export async function getPedSimState() {
+  return requestJson('/pedsim/state');
+}
+
+export async function clearPedSimState() {
+  return requestJson('/pedsim/state', { method: 'DELETE' });
+}
+
+export async function exportPedSimSceneFromMap(payload) {
+  return requestJson('/pedsim/scene-from-map', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
   });
 }

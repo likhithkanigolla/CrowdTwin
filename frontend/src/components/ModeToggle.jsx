@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Layers, Zap, Activity } from 'lucide-react';
 
 export default function ModeToggle({ currentMode, setMode }) {

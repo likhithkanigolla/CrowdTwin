@@ -55,7 +55,7 @@ export default function DecisionPanel({ availableBuildings, simTime }) {
             setSuggestion(data);
         } catch (err) {
             console.error(err);
-            alert("Failed to connect to FastAPI backend. Ensure it is running on port 8000.");
+            alert("Failed to connect to FastAPI backend. Ensure it is running on the configured backend port.");
         } finally {
             setLoading(false);
         }

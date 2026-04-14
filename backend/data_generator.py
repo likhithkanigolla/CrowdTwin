@@ -21,7 +21,7 @@ from typing import Dict, List, Optional
 import sys
 
 # Backend API URL
-API_BASE_URL = "http://localhost:8000"
+API_BASE_URL = "http://localhost:8904"
 OVERPASS_API_URL = "https://overpass-api.de/api/interpreter"
 DEFAULT_CENTER_LAT = 17.4464
 DEFAULT_CENTER_LNG = 78.3487
@@ -520,8 +520,8 @@ Examples:
     )
     parser.add_argument(
         "--api-url",
-        default="http://localhost:8000",
-        help="Backend API URL (default: http://localhost:8000)"
+        default="http://localhost:8904",
+        help="Backend API URL (default: http://localhost:8904)"
     )
     
     args = parser.parse_args()
