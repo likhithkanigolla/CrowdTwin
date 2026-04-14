@@ -1,16 +1,86 @@
 {
-  "updated_at": "2026-04-15T05:01:59.761427",
-  "total_agents": 60,
+  "updated_at": "2026-04-15T05:06:55.492330",
+  "total_agents": 120,
   "groups": [
     {
       "group_index": 0,
       "agent_id_start": 0,
-      "agent_id_end": 59,
-      "cohort_id": "ug1",
-      "color": "#ef4444",
+      "agent_id_end": 14,
+      "cohort_id": "pedsim",
+      "color": null,
       "start_index": 0,
       "waypoint_id": "p31",
-      "count": 60
+      "count": 15
+    },
+    {
+      "group_index": 1,
+      "agent_id_start": 15,
+      "agent_id_end": 29,
+      "cohort_id": "pedsim",
+      "color": null,
+      "start_index": 1,
+      "waypoint_id": "p32",
+      "count": 15
+    },
+    {
+      "group_index": 2,
+      "agent_id_start": 30,
+      "agent_id_end": 44,
+      "cohort_id": "pedsim",
+      "color": null,
+      "start_index": 2,
+      "waypoint_id": "p35",
+      "count": 15
+    },
+    {
+      "group_index": 3,
+      "agent_id_start": 45,
+      "agent_id_end": 59,
+      "cohort_id": "pedsim",
+      "color": null,
+      "start_index": 3,
+      "waypoint_id": "p36",
+      "count": 15
+    },
+    {
+      "group_index": 4,
+      "agent_id_start": 60,
+      "agent_id_end": 74,
+      "cohort_id": "pedsim",
+      "color": null,
+      "start_index": 4,
+      "waypoint_id": "p41",
+      "count": 15
+    },
+    {
+      "group_index": 5,
+      "agent_id_start": 75,
+      "agent_id_end": 89,
+      "cohort_id": "pedsim",
+      "color": null,
+      "start_index": 5,
+      "waypoint_id": "p42",
+      "count": 15
+    },
+    {
+      "group_index": 6,
+      "agent_id_start": 90,
+      "agent_id_end": 104,
+      "cohort_id": "pedsim",
+      "color": null,
+      "start_index": 6,
+      "waypoint_id": "p46",
+      "count": 15
+    },
+    {
+      "group_index": 7,
+      "agent_id_start": 105,
+      "agent_id_end": 119,
+      "cohort_id": "pedsim",
+      "color": null,
+      "start_index": 7,
+      "waypoint_id": "p48",
+      "count": 15
     }
   ],
   "spawn_points": [

@@ -31,6 +31,39 @@ export const COHORTS = [
   { id: 'staff',   name: 'Staff',           color: '#a78bfa', darkColor: '#7c3aed', count: 15 },
 ];
 
+const FALLBACK_AGENT_COLORS = ['#60a5fa', '#34d399', '#f59e0b', '#f87171', '#a78bfa', '#22d3ee'];
+
+function normalizeCssColor(value) {
+  if (typeof value !== 'string') return null;
+  const color = value.trim();
+  if (!color) return null;
+
+  const isHex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color);
+  const isRgb = /^rgba?\(.*\)$/i.test(color);
+  const isHsl = /^hsla?\(.*\)$/i.test(color);
+  return (isHex || isRgb || isHsl) ? color : null;
+}
+
+function hashColorIndex(seed, size) {
+  const key = String(seed || 'pedsim');
+  let hash = 0;
+  for (let index = 0; index < key.length; index += 1) {
+    hash = ((hash * 31) + key.charCodeAt(index)) >>> 0;
+  }
+  return hash % size;
+}
+
+function resolveCrowdColor({ explicitColor, cohortId, agentId }) {
+  const customColor = normalizeCssColor(explicitColor);
+  if (customColor) return customColor;
+
+  const normalizedCohort = String(cohortId || '').toLowerCase();
+  const cohortMatch = COHORTS.find((item) => item.id === normalizedCohort);
+  if (cohortMatch?.color) return cohortMatch.color;
+
+  return FALLBACK_AGENT_COLORS[hashColorIndex(agentId || normalizedCohort, FALLBACK_AGENT_COLORS.length)];
+}
+
 // Default schedule (will be overridden by backend if available)
 const DEFAULT_SCHEDULES = {
   ug1:     { 0:'hostel',7:'hostel',8:'academic',12:'canteen',13:'academic',17:'recreation',19:'canteen',21:'hostel' },
@@ -546,7 +579,11 @@ export class CrowdSimulator {
       return {
         id: String(agent.agent_id || agent.id || `pedsim_${index}`),
         cohortId,
-        color: colorOverride || cohort?.color || '#6366f1',
+        color: resolveCrowdColor({
+          explicitColor: colorOverride,
+          cohortId,
+          agentId: agent.agent_id || agent.id || `pedsim_${index}`,
+        }),
         path: [{ lng: safeLng, lat: safeLat }, { lng: safeLng, lat: safeLat }],
         pathIndex: 0,
         lng: safeLng,
@@ -1311,7 +1348,13 @@ export class CrowdSimulator {
       properties: {
         cohortId: agent.cohortId,
         // In visualization mode, use single color (can't detect cohort from cameras)
-          color: this.currentMode === 'visualize' ? '#6366f1' : (agent.color || '#22c55e'),
+          color: this.currentMode === 'visualize'
+            ? '#6366f1'
+            : resolveCrowdColor({
+              explicitColor: agent.color,
+              cohortId: agent.cohortId,
+              agentId: agent.id,
+            }),
         icon: this._getHumanEmoji(agent.id || agent.cohortId)
       }
     }));
