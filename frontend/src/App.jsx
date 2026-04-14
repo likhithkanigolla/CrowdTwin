@@ -6,7 +6,14 @@ import BuildingPanel from './components/BuildingPanel';
 import RightSidePanel from './components/RightSidePanel';
 import CSVUploadPanel from './components/CSVUploadPanel';
 import { useSchedule } from './hooks/useSchedule';
-import { clearPedSimState, PEDSIM_WS_CANDIDATES, getPedSimState } from './api';
+import {
+  clearPedSimState,
+  PEDSIM_WS_CANDIDATES,
+  getPedSimState,
+  getPedSimRuntimeStatus,
+  startPedSimRuntime,
+  stopPedSimRuntime,
+} from './api';
 
 // How fast time runs:  1 real second = N simulated minutes
 const SIM_SPEED_MINUTES_PER_SECOND = 1; // 1s real = 1 min sim by default
@@ -37,6 +44,8 @@ function App() {
   const [actuationEvents, setActuationEvents] = useState([]);
   const [simulatorReadyToken, setSimulatorReadyToken] = useState(0);
   const [mapBoundaryPreview, setMapBoundaryPreview] = useState(null);
+  const [pedsimSceneStatus, setPedSimSceneStatus] = useState(null);
+  const [pedsimRuntimeStatus, setPedSimRuntimeStatus] = useState(null);
 
   // Focus area state (lifted from MapContainer)
   const [areaPoints, setAreaPoints] = useState([]);
@@ -121,13 +130,33 @@ function App() {
   };
 
   // Handle simulator actions from RightSidePanel
-  const handleSimulatorAction = (action) => {
-    if (!simulatorRef.current) return;
+  const handleSimulatorAction = async (action) => {
+    if (!simulatorRef.current) {
+      return { ok: false, message: 'Simulator is not ready yet.' };
+    }
     
     const sim = simulatorRef.current;
     
     switch (action.type) {
       case 'start_simulation':
+        try {
+          const runtimeStatus = await startPedSimRuntime({
+            scene_file: pedsimSceneStatus?.demoapp_scene_file || undefined,
+            listen_port: 2222,
+            force_restart: true,
+          });
+          setPedSimRuntimeStatus(runtimeStatus);
+        } catch (error) {
+          setPedSimRuntimeStatus({
+            running: false,
+            error: error?.message || 'Unable to start PedSim runtime',
+          });
+          return {
+            ok: false,
+            message: error?.message || 'Unable to start PedSim runtime',
+          };
+        }
+
         // PedSim-only start: clear existing agents and wait for PedSim frames
         sim.clearAgents();
         
@@ -140,26 +169,68 @@ function App() {
         
         // Mark simulation as active but do not generate browser-side agents
         sim.startCustomSimulation(action.schedule, action.initialPopulation);
-        break;
+        return { ok: true };
         
       case 'stop_simulation':
         sim.stopCustomSimulation();
         sim.clearAgents();
         clearPedSimState().catch(() => {});
-        break;
+
+        try {
+          const runtimeStatus = await stopPedSimRuntime();
+          setPedSimRuntimeStatus(runtimeStatus);
+        } catch (error) {
+          setPedSimRuntimeStatus((prev) => ({
+            ...(prev || {}),
+            running: false,
+            error: error?.message || 'Unable to stop PedSim runtime cleanly',
+          }));
+        }
+
+        return { ok: true };
         
       case 'road_closure':
         sim.setRoadClosure(action.road_id, action.status);
-        break;
+        return { ok: true };
         
       case 'clear_road':
         sim.setRoadClosure(action.road_id, 'open');
-        break;
+        return { ok: true };
         
       default:
         console.log('Unknown simulator action:', action.type);
+        return { ok: false, message: 'Unknown simulator action.' };
     }
   };
+
+  useEffect(() => {
+    if (currentMode !== 'simulate') {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadRuntimeStatus = async () => {
+      try {
+        const status = await getPedSimRuntimeStatus();
+        if (!cancelled) {
+          setPedSimRuntimeStatus(status);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPedSimRuntimeStatus((prev) => prev || { running: false });
+        }
+      }
+    };
+
+    loadRuntimeStatus();
+    const intervalId = setInterval(loadRuntimeStatus, 2000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [currentMode]);
 
   // PedSim-only stream consumer for simulation mode.
   useEffect(() => {
@@ -259,6 +330,7 @@ function App() {
             setSimulatorReadyToken((prev) => prev + 1);
           }}
           onMapBoundaryChange={setMapBoundaryPreview}
+          onPedSimSceneExport={setPedSimSceneStatus}
           simTime={simTime}
           isPlacingPoints={isPlacingPoints}
           setIsPlacingPoints={setIsPlacingPoints}
@@ -301,6 +373,8 @@ function App() {
           areaPoints={areaPoints}
           selectedArea={selectedArea}
           mapBoundaryPreview={mapBoundaryPreview}
+          pedsimSceneStatus={pedsimSceneStatus}
+          pedsimRuntimeStatus={pedsimRuntimeStatus}
           togglePointPlacement={togglePointPlacement}
           useDefaultArea={useDefaultArea}
           clearAreaSelection={clearAreaSelection}

@@ -254,3 +254,21 @@ export async function exportPedSimSceneFromMap(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export async function getPedSimRuntimeStatus() {
+  return requestJson('/pedsim/runtime/status');
+}
+
+export async function startPedSimRuntime(payload = {}) {
+  return requestJson('/pedsim/runtime/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function stopPedSimRuntime() {
+  return requestJson('/pedsim/runtime/stop', {
+    method: 'POST',
+  });
+}

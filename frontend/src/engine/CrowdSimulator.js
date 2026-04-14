@@ -490,6 +490,24 @@ export class CrowdSimulator {
     if (!state || !Array.isArray(state.agents)) return;
 
     const isLikelyGeo = (lng, lat) => lng >= 60 && lng <= 100 && lat >= 0 && lat <= 40;
+    const sceneTransform = state.scene_transform || state.metadata?.scene_transform || null;
+    const sceneScale = Number(sceneTransform?.scale);
+    const sceneOriginLng = Number(sceneTransform?.origin_lng);
+    const sceneOriginLat = Number(sceneTransform?.origin_lat);
+    const toSceneGeo = (x, y) => {
+      if (
+        Number.isFinite(sceneOriginLng)
+        && Number.isFinite(sceneOriginLat)
+        && Number.isFinite(sceneScale)
+        && sceneScale > 0
+      ) {
+        return [
+          sceneOriginLng + (x * sceneScale),
+          sceneOriginLat - (y * sceneScale),
+        ];
+      }
+      return sceneToGeo([x, y]);
+    };
 
     const inCampusWindow = (lng, lat) => {
       // Keep a generous campus window and drop obvious distant outliers.
@@ -508,7 +526,7 @@ export class CrowdSimulator {
       // Demo-app PedSim emits local XY coordinates. Convert them into the shared
       // scene overlay frame so agents align with the same walls/roads on the map.
       if (!isLikelyGeo(safeLng, safeLat)) {
-        [safeLng, safeLat] = sceneToGeo([safeLng, safeLat]);
+        [safeLng, safeLat] = toSceneGeo(safeLng, safeLat);
       }
 
       return {
@@ -1269,7 +1287,7 @@ export class CrowdSimulator {
         cohortId: agent.cohortId,
         // In visualization mode, use single color (can't detect cohort from cameras)
         color: this.currentMode === 'visualize' ? '#6366f1' : agent.color,
-        icon: this.currentMode === 'visualize' ? this._getHumanEmoji(agent.cohortId) : ''
+        icon: this.currentMode === 'visualize' ? this._getHumanEmoji(agent.cohortId) : '🚶'
       }
     }));
 

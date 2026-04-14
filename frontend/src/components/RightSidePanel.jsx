@@ -53,6 +53,36 @@ const toBoundaryRing = (selectedArea) => {
     return null;
 };
 
+const extractPolygonRings = (geometry) => {
+    if (!geometry) return [];
+
+    if (geometry.type === 'Polygon') {
+        return Array.isArray(geometry.coordinates?.[0]) ? [geometry.coordinates[0]] : [];
+    }
+
+    if (geometry.type === 'MultiPolygon') {
+        return (geometry.coordinates || [])
+            .map((polygon) => polygon?.[0])
+            .filter((ring) => Array.isArray(ring));
+    }
+
+    return [];
+};
+
+const extractLineStrings = (geometry) => {
+    if (!geometry) return [];
+
+    if (geometry.type === 'LineString') {
+        return [geometry.coordinates || []];
+    }
+
+    if (geometry.type === 'MultiLineString') {
+        return (geometry.coordinates || []).filter((line) => Array.isArray(line));
+    }
+
+    return [];
+};
+
 const PedSimBoundaryPreview = ({ compact = false, selectedArea = null, previewBoundary = null }) => {
     const boundaryRing = toBoundaryRing(previewBoundary) || toBoundaryRing(selectedArea);
     const boundarySource = toBoundaryRing(previewBoundary)
@@ -60,6 +90,8 @@ const PedSimBoundaryPreview = ({ compact = false, selectedArea = null, previewBo
         : toBoundaryRing(selectedArea)
             ? 'selected area'
             : 'pending';
+    const previewBuildingFeatures = previewBoundary?.preview_buildings?.features || [];
+    const previewPathwayFeatures = previewBoundary?.preview_pathways?.features || [];
     const viewWidth = compact ? 240 : 280;
     const viewHeight = compact ? 150 : 180;
     const padding = compact ? 10 : 14;
@@ -135,6 +167,14 @@ const PedSimBoundaryPreview = ({ compact = false, selectedArea = null, previewBo
     };
 
     const linePoints = (lineCoords) => lineCoords.map(mapPoint).map(([x, y]) => `${x},${y}`).join(' ');
+    const previewBuildingRings = previewBuildingFeatures
+        .flatMap((feature) => extractPolygonRings(feature?.geometry))
+        .filter((ring) => Array.isArray(ring) && ring.length >= 3)
+        .slice(0, 220);
+    const previewPathLines = previewPathwayFeatures
+        .flatMap((feature) => extractLineStrings(feature?.geometry))
+        .filter((line) => Array.isArray(line) && line.length >= 2)
+        .slice(0, 280);
 
     return (
         <div style={{
@@ -154,6 +194,26 @@ const PedSimBoundaryPreview = ({ compact = false, selectedArea = null, previewBo
             </div>
             <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} width="100%" height={compact ? 132 : 160} preserveAspectRatio="none">
                 <rect x="0" y="0" width={viewWidth} height={viewHeight} rx="12" fill="rgba(15, 23, 42, 0.6)" stroke="rgba(251, 191, 36, 0.15)" />
+                {previewPathLines.map((line, index) => (
+                    <polyline
+                        key={`path-${index}`}
+                        points={linePoints(line)}
+                        fill="none"
+                        stroke="rgba(148, 163, 184, 0.85)"
+                        strokeWidth="1.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                ))}
+                {previewBuildingRings.map((ring, index) => (
+                    <polygon
+                        key={`bldg-${index}`}
+                        points={linePoints(ring)}
+                        fill="rgba(125, 211, 252, 0.12)"
+                        stroke="rgba(148, 163, 184, 0.75)"
+                        strokeWidth="0.8"
+                    />
+                ))}
                 <polygon
                     points={linePoints(boundaryRing)}
                     fill="rgba(251, 191, 36, 0.08)"
@@ -951,7 +1011,9 @@ function SimulatePanel({
     categoryOccupancy,
     onSimulatorAction,
     selectedArea,
-    mapBoundaryPreview
+    mapBoundaryPreview,
+    pedsimSceneStatus,
+    pedsimRuntimeStatus
 }) {
     const [showSchedule, setShowSchedule] = useState(true);
     const [showRoadConfig, setShowRoadConfig] = useState(false);
@@ -975,6 +1037,7 @@ function SimulatePanel({
     // Evaluation results
     const [evalResults, setEvalResults] = useState(null);
     const [evalLoading, setEvalLoading] = useState(false);
+    const [isRuntimeTransitioning, setIsRuntimeTransitioning] = useState(false);
 
     const SPEED_OPTIONS = [
         { label: '1×', value: 1 },
@@ -1045,32 +1108,46 @@ function SimulatePanel({
         setSimRoadClosures(prev => prev.filter(r => r.id !== id));
     };
 
-    const startSimulation = () => {
-        setIsSimulationActive(true);
-        setIsRunning(true);
-        
-        // Notify simulator to start custom simulation
-        if (onSimulatorAction) {
-            onSimulatorAction({
-                type: 'start_simulation',
-                schedule: scheduleEntries,
-                roadClosures: simRoadClosures,
-                initialPopulation: scheduleEntries.reduce((sum, e) => sum + e.count, 0)
-            });
+    const startSimulation = async () => {
+        setIsRuntimeTransitioning(true);
+
+        try {
+            if (onSimulatorAction) {
+                const result = await onSimulatorAction({
+                    type: 'start_simulation',
+                    schedule: scheduleEntries,
+                    roadClosures: simRoadClosures,
+                    initialPopulation: scheduleEntries.reduce((sum, e) => sum + e.count, 0)
+                });
+
+                if (result?.ok === false) {
+                    return;
+                }
+            }
+
+            setIsSimulationActive(true);
+            setIsRunning(true);
+        } finally {
+            setIsRuntimeTransitioning(false);
         }
     };
 
-    const stopSimulation = () => {
-        setIsSimulationActive(false);
-        setIsRunning(false);
-        
-        if (onSimulatorAction) {
-            onSimulatorAction({ type: 'stop_simulation' });
+    const stopSimulation = async () => {
+        setIsRuntimeTransitioning(true);
+
+        try {
+            if (onSimulatorAction) {
+                await onSimulatorAction({ type: 'stop_simulation' });
+            }
+        } finally {
+            setIsSimulationActive(false);
+            setIsRunning(false);
+            setIsRuntimeTransitioning(false);
         }
     };
 
-    const handleClearAllSimulation = () => {
-        stopSimulation();
+    const handleClearAllSimulation = async () => {
+        await stopSimulation();
         setScheduleEntries([]);
         setSimRoadClosures([]);
         setEvalResults(null);
@@ -1121,10 +1198,141 @@ function SimulatePanel({
     };
 
     const totalPeople = scheduleEntries.reduce((sum, e) => sum + e.count, 0);
+    const sceneExportStatus = pedsimSceneStatus?.status || 'pending';
+    const sceneBoundarySource = pedsimSceneStatus?.scene_transform?.boundary_source || 'unknown';
+    const sceneFile = pedsimSceneStatus?.scene_file || null;
+    const demoappSceneFile = pedsimSceneStatus?.demoapp_scene_file || null;
+    const seededAgents = Number(pedsimSceneStatus?.agents_seeded || 0);
+    const exportMessage = pedsimSceneStatus?.message || '';
+    const runtimeRunning = Boolean(pedsimRuntimeStatus?.running);
+    const bridgeRunning = Boolean(pedsimRuntimeStatus?.bridge?.running);
+    const bridgeManaged = Boolean(pedsimRuntimeStatus?.bridge?.managed);
+    const bridgeExternal = Boolean(pedsimRuntimeStatus?.bridge?.external);
+    const bridgeOwner = pedsimRuntimeStatus?.bridge?.owner || null;
+    const demoappRunning = Boolean(pedsimRuntimeStatus?.demoapp?.running);
+    const runtimeError = pedsimRuntimeStatus?.error || null;
 
     return (
         <div style={panelStyle}>
             <PedSimBoundaryPreview selectedArea={selectedArea} previewBoundary={mapBoundaryPreview} />
+            <div style={{
+                background: 'rgba(15, 23, 42, 0.55)',
+                border: '1px solid rgba(59, 130, 246, 0.28)',
+                borderRadius: '8px',
+                padding: '10px',
+                fontSize: '0.68rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.45,
+            }}>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '6px',
+                }}>
+                    <span style={{ color: '#93c5fd', fontWeight: 700, letterSpacing: '0.03em' }}>PedSim Scene XML</span>
+                    <span style={{
+                        color: sceneExportStatus === 'ready'
+                            ? '#22c55e'
+                            : sceneExportStatus === 'error'
+                                ? '#ef4444'
+                                : '#facc15',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                    }}>
+                        {sceneExportStatus}
+                    </span>
+                </div>
+
+                <div style={{ marginBottom: '6px' }}>
+                    Boundary source: <strong style={{ color: '#e2e8f0' }}>{sceneBoundarySource}</strong>
+                </div>
+                {seededAgents > 0 && (
+                    <div style={{ marginBottom: '6px' }}>
+                        Seeded agents in XML: <strong style={{ color: '#e2e8f0' }}>{seededAgents}</strong>
+                    </div>
+                )}
+                {sceneFile && (
+                    <div style={{ marginBottom: '4px', wordBreak: 'break-all' }}>
+                        Export file: <span style={{ color: '#e2e8f0' }}>{sceneFile}</span>
+                    </div>
+                )}
+                {demoappSceneFile && (
+                    <div style={{ marginBottom: '6px', wordBreak: 'break-all' }}>
+                        Demoapp file: <span style={{ color: '#e2e8f0' }}>{demoappSceneFile}</span>
+                    </div>
+                )}
+
+                <div style={{
+                    background: 'rgba(30, 41, 59, 0.55)',
+                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    borderRadius: '6px',
+                    padding: '8px',
+                }}>
+                    <div style={{ color: '#cbd5e1', marginBottom: '4px' }}>
+                        Demoapp reads scene XML at startup. Restart demoapp after export to load the latest boundary and agents.
+                    </div>
+                    {exportMessage && (
+                        <div style={{
+                            color: sceneExportStatus === 'error' ? '#fecaca' : 'rgba(226, 232, 240, 0.85)',
+                        }}>
+                            {exportMessage}
+                        </div>
+                    )}
+                </div>
+            </div>
+            <div style={{
+                background: 'rgba(15, 23, 42, 0.55)',
+                border: `1px solid ${runtimeRunning ? 'rgba(34,197,94,0.35)' : 'rgba(148,163,184,0.28)'}`,
+                borderRadius: '8px',
+                padding: '10px',
+                fontSize: '0.68rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.45,
+            }}>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '6px',
+                }}>
+                    <span style={{ color: '#86efac', fontWeight: 700, letterSpacing: '0.03em' }}>PedSim Runtime</span>
+                    <span style={{
+                        color: runtimeRunning ? '#22c55e' : '#f59e0b',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                    }}>
+                        {runtimeRunning ? 'running' : 'stopped'}
+                    </span>
+                </div>
+
+                <div style={{ marginBottom: '4px' }}>
+                    Bridge (UDP to Backend): <strong style={{ color: bridgeRunning ? '#22c55e' : '#fca5a5' }}>{bridgeRunning ? 'up' : 'down'}</strong>
+                </div>
+                {(bridgeManaged || bridgeExternal) && (
+                    <div style={{ marginBottom: '4px' }}>
+                        Bridge source: <strong style={{ color: '#e2e8f0' }}>{bridgeManaged ? 'managed by backend' : 'external process'}</strong>
+                    </div>
+                )}
+                {bridgeOwner?.pid && (
+                    <div style={{ marginBottom: '4px' }}>
+                        Bridge PID: <strong style={{ color: '#e2e8f0' }}>{bridgeOwner.pid}</strong>
+                    </div>
+                )}
+                <div style={{ marginBottom: '4px' }}>
+                    Demoapp (PedSim UI): <strong style={{ color: demoappRunning ? '#22c55e' : '#fca5a5' }}>{demoappRunning ? 'up' : 'down'}</strong>
+                </div>
+                {pedsimRuntimeStatus?.listen_port && (
+                    <div style={{ marginBottom: '4px' }}>
+                        UDP listen port: <strong style={{ color: '#e2e8f0' }}>{pedsimRuntimeStatus.listen_port}</strong>
+                    </div>
+                )}
+                {runtimeError && (
+                    <div style={{ color: '#fecaca' }}>
+                        {runtimeError}
+                    </div>
+                )}
+            </div>
             {/* Sandbox Header */}
             <div style={{
                 background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15))',
@@ -1156,7 +1364,14 @@ function SimulatePanel({
                 />
                 <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
                     <button
-                        onClick={() => isSimulationActive ? stopSimulation() : startSimulation()}
+                        onClick={() => {
+                            if (isSimulationActive) {
+                                stopSimulation();
+                            } else {
+                                startSimulation();
+                            }
+                        }}
+                        disabled={isRuntimeTransitioning}
                         style={{
                             flex: 1,
                             padding: '6px 12px',
@@ -1164,12 +1379,15 @@ function SimulatePanel({
                             border: `1px solid ${isSimulationActive ? '#ef4444' : '#10b981'}`,
                             color: isSimulationActive ? '#ef4444' : '#10b981',
                             borderRadius: '5px',
-                            cursor: 'pointer',
+                            cursor: isRuntimeTransitioning ? 'not-allowed' : 'pointer',
+                            opacity: isRuntimeTransitioning ? 0.75 : 1,
                             fontWeight: 700,
                             fontSize: '0.75rem'
                         }}
                     >
-                        {isSimulationActive ? '⏹ Stop' : '▶ Run Simulation'}
+                        {isRuntimeTransitioning
+                            ? (isSimulationActive ? 'Stopping...' : 'Starting...')
+                            : (isSimulationActive ? '⏹ Stop' : '▶ Run Simulation')}
                     </button>
                     <div style={{ display: 'flex', gap: '2px' }}>
                         {SPEED_OPTIONS.map(opt => (
@@ -1626,6 +1844,8 @@ export default function RightSidePanel({
     areaPoints,
     selectedArea,
     mapBoundaryPreview,
+    pedsimSceneStatus,
+    pedsimRuntimeStatus,
     togglePointPlacement,
     useDefaultArea,
     clearAreaSelection
@@ -1725,6 +1945,8 @@ export default function RightSidePanel({
                     onSimulatorAction={onSimulatorAction}
                     selectedArea={selectedArea}
                     mapBoundaryPreview={mapBoundaryPreview}
+                    pedsimSceneStatus={pedsimSceneStatus}
+                    pedsimRuntimeStatus={pedsimRuntimeStatus}
                 />
             );
         }

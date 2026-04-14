@@ -13,6 +13,7 @@ import socket
 import argparse
 import re
 import json
+import os
 import requests
 import time
 import threading
@@ -34,6 +35,12 @@ logger = logging.getLogger(__name__)
 PEDSIM_SCENE_CENTER_LNG = 78.3487
 PEDSIM_SCENE_CENTER_LAT = 17.4464
 PEDSIM_SCENE_SCALE = 0.00003
+DEFAULT_SCENE_TRANSFORM = {
+    "origin_lng": PEDSIM_SCENE_CENTER_LNG,
+    "origin_lat": PEDSIM_SCENE_CENTER_LAT,
+    "scale": PEDSIM_SCENE_SCALE,
+}
+SCENE_TRANSFORM_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "pedsim_scene_transform.json")
 
 
 class PedSimBridge:
@@ -49,6 +56,46 @@ class PedSimBridge:
         self.recent_agents: Dict[str, Dict[str, Any]] = {}
         self.recent_agent_seen_at: Dict[str, float] = {}
         self.agent_ttl_seconds = 1.5
+        self.scene_transform: Dict[str, Any] = dict(DEFAULT_SCENE_TRANSFORM)
+        self.scene_transform_mtime: float = 0.0
+
+    def _refresh_scene_transform(self):
+        try:
+            stat = os.stat(SCENE_TRANSFORM_PATH)
+        except FileNotFoundError:
+            return
+        except Exception as exc:
+            logger.warning(f"Could not stat scene transform file: {exc}")
+            return
+
+        if stat.st_mtime <= self.scene_transform_mtime:
+            return
+
+        try:
+            with open(SCENE_TRANSFORM_PATH, "r", encoding="utf-8") as transform_file:
+                payload = json.load(transform_file)
+        except Exception as exc:
+            logger.warning(f"Could not load scene transform file: {exc}")
+            return
+
+        if not isinstance(payload, dict):
+            return
+
+        origin_lng = float(payload.get("origin_lng", DEFAULT_SCENE_TRANSFORM["origin_lng"]))
+        origin_lat = float(payload.get("origin_lat", DEFAULT_SCENE_TRANSFORM["origin_lat"]))
+        scale = float(payload.get("scale", DEFAULT_SCENE_TRANSFORM["scale"])) or DEFAULT_SCENE_TRANSFORM["scale"]
+        self.scene_transform = {
+            "origin_lng": origin_lng,
+            "origin_lat": origin_lat,
+            "scale": scale,
+            "updated_at": payload.get("updated_at"),
+            "boundary_source": payload.get("boundary_source"),
+        }
+        self.scene_transform_mtime = stat.st_mtime
+        logger.info(
+            "Loaded PedSim scene transform: "
+            f"origin=({origin_lng:.6f}, {origin_lat:.6f}) scale={scale:.8f}"
+        )
         
     def start(self) -> bool:
         """Start listening for PedSim frames."""
@@ -69,6 +116,7 @@ class PedSimBridge:
             raise
         logger.info(f"🔗 PedSim Bridge started, listening on UDP port {self.listen_port}")
         logger.info(f"📍 Backend target: {self.backend_url}/pedsim/state")
+        self._refresh_scene_transform()
         
         try:
             while self.running:
@@ -104,6 +152,7 @@ class PedSimBridge:
                 return
             
             # Parse agents from the frame
+            self._refresh_scene_transform()
             agents = self._parse_agents(frame_text)
             
             # Extract sim time from frame if available
@@ -145,6 +194,7 @@ class PedSimBridge:
                     "frame_number": self.frame_count,
                     "packet_agents": len(agents),
                     "merged_agents": len(merged_agents),
+                    "scene_transform": self.scene_transform,
                 }
             }
             
@@ -174,8 +224,11 @@ class PedSimBridge:
 
         def _to_geo(x_local: float, y_local: float) -> tuple[float, float]:
             """Map PedSim local XY coordinates into map lon/lat frame."""
-            lng = PEDSIM_SCENE_CENTER_LNG + (x_local * PEDSIM_SCENE_SCALE)
-            lat = PEDSIM_SCENE_CENTER_LAT - (y_local * PEDSIM_SCENE_SCALE)
+            origin_lng = float(self.scene_transform.get("origin_lng", DEFAULT_SCENE_TRANSFORM["origin_lng"]))
+            origin_lat = float(self.scene_transform.get("origin_lat", DEFAULT_SCENE_TRANSFORM["origin_lat"]))
+            scale = float(self.scene_transform.get("scale", DEFAULT_SCENE_TRANSFORM["scale"])) or DEFAULT_SCENE_TRANSFORM["scale"]
+            lng = origin_lng + (x_local * scale)
+            lat = origin_lat - (y_local * scale)
             return lng, lat
 
         def _is_likely_geo(lng: float, lat: float) -> bool:

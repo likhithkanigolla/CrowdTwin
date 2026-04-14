@@ -486,6 +486,61 @@ const toBoundaryFeatureCollection = (selectedArea) => {
     return null;
 };
 
+const dedupeCoords = (coords) => {
+    const seen = new Set();
+    const unique = [];
+
+    coords.forEach((point) => {
+        if (!Array.isArray(point) || point.length < 2) return;
+        const lng = Number(point[0]);
+        const lat = Number(point[1]);
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+
+        const key = `${lng.toFixed(7)}|${lat.toFixed(7)}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        unique.push([lng, lat]);
+    });
+
+    return unique;
+};
+
+const convexHull = (points) => {
+    if (!Array.isArray(points) || points.length < 3) return null;
+
+    const sorted = [...points].sort((left, right) => {
+        if (left[0] !== right[0]) return left[0] - right[0];
+        return left[1] - right[1];
+    });
+
+    const cross = (origin, a, b) => {
+        return (a[0] - origin[0]) * (b[1] - origin[1]) - (a[1] - origin[1]) * (b[0] - origin[0]);
+    };
+
+    const lower = [];
+    sorted.forEach((point) => {
+        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], point) <= 0) {
+            lower.pop();
+        }
+        lower.push(point);
+    });
+
+    const upper = [];
+    for (let index = sorted.length - 1; index >= 0; index -= 1) {
+        const point = sorted[index];
+        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], point) <= 0) {
+            upper.pop();
+        }
+        upper.push(point);
+    }
+
+    lower.pop();
+    upper.pop();
+    const hull = [...lower, ...upper];
+
+    return hull.length >= 3 ? hull : null;
+};
+
 const buildBoundaryFromFeatureCollections = (...collections) => {
     const coords = [];
 
@@ -503,20 +558,41 @@ const buildBoundaryFromFeatureCollections = (...collections) => {
                 });
             } else if (geometry.type === 'LineString') {
                 (geometry.coordinates || []).forEach((point) => coords.push(point));
+            } else if (geometry.type === 'MultiLineString') {
+                (geometry.coordinates || []).forEach((line) => {
+                    (line || []).forEach((point) => coords.push(point));
+                });
             }
         });
     });
 
-    if (coords.length < 3) return null;
+    const uniqueCoords = dedupeCoords(coords);
+    if (uniqueCoords.length < 3) return null;
 
-    const lngs = coords.map((point) => point[0]);
-    const lats = coords.map((point) => point[1]);
+    const hull = convexHull(uniqueCoords);
+    if (hull && hull.length >= 3) {
+        const ring = [...hull, hull[0]];
+        return {
+            type: 'FeatureCollection',
+            features: [{
+                type: 'Feature',
+                properties: { source: 'map_hull' },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [ring],
+                },
+            }],
+        };
+    }
+
+    const lngs = uniqueCoords.map((point) => point[0]);
+    const lats = uniqueCoords.map((point) => point[1]);
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
     const minLat = Math.min(...lats);
     const maxLat = Math.max(...lats);
-    const padLng = Math.max(0.0004, (maxLng - minLng) * 0.06);
-    const padLat = Math.max(0.0004, (maxLat - minLat) * 0.06);
+    const padLng = Math.max(0.0002, (maxLng - minLng) * 0.04);
+    const padLat = Math.max(0.0002, (maxLat - minLat) * 0.04);
 
     const ring = [
         [minLng - padLng, minLat - padLat],
@@ -557,6 +633,7 @@ export default function MapContainer({
     onBuildingsLoaded,
     onSimulatorReady,
     onMapBoundaryChange,
+    onPedSimSceneExport,
     simTime,
     isPlacingPoints,
     setIsPlacingPoints,
@@ -575,6 +652,7 @@ export default function MapContainer({
     const mapOriginRef = useRef({ lng: 78.3487, lat: 17.4464 });
     const crowdVisibilityStateRef = useRef('');
     const roadStatusByIdRef = useRef({});
+    const sceneExportStateRef = useRef({ signature: '', inFlight: false });
     const [loading, setLoading] = useState(false);
 
     const [lng, setLng] = useState(78.3487);
@@ -741,8 +819,49 @@ export default function MapContainer({
         const boundaryForExport = toBoundaryFeatureCollection(area)
             || buildBoundaryFromFeatureCollections(buildingsGeoJSON, pathwaysGeoJSON);
 
+        if (!boundaryForExport) {
+            if (onPedSimSceneExport) {
+                onPedSimSceneExport({
+                    status: 'error',
+                    message: 'No boundary available to export for PedSim scene.',
+                });
+            }
+            return null;
+        }
+
         if (onMapBoundaryChange) {
-            onMapBoundaryChange(boundaryForExport || null);
+            const previewPayload = boundaryForExport
+                ? {
+                    ...boundaryForExport,
+                    preview_buildings: buildingsGeoJSON,
+                    preview_pathways: pathwaysGeoJSON,
+                }
+                : null;
+            onMapBoundaryChange(previewPayload);
+        }
+
+        const boundaryRing = boundaryForExport?.features?.[0]?.geometry?.coordinates?.[0] || [];
+        const payloadSignature = JSON.stringify({
+            origin: mapOriginRef.current,
+            buildings: buildingsGeoJSON.features?.length || 0,
+            pathways: pathwaysGeoJSON.features?.length || 0,
+            boundary: boundaryRing,
+        });
+
+        if (sceneExportStateRef.current.signature === payloadSignature && sceneExportStateRef.current.inFlight) {
+            return boundaryForExport;
+        }
+
+        sceneExportStateRef.current = {
+            signature: payloadSignature,
+            inFlight: true,
+        };
+
+        if (onPedSimSceneExport) {
+            onPedSimSceneExport({
+                status: 'exporting',
+                message: 'Exporting map boundary to PedSim scene...',
+            });
         }
 
         exportPedSimSceneFromMap({
@@ -754,7 +873,30 @@ export default function MapContainer({
             boundary: boundaryForExport,
             include_agents: true,
             default_agent_count: 120,
+        }).then((result) => {
+            sceneExportStateRef.current = {
+                signature: payloadSignature,
+                inFlight: false,
+            };
+
+            if (onPedSimSceneExport) {
+                onPedSimSceneExport({
+                    status: 'ready',
+                    ...result,
+                });
+            }
         }).catch((error) => {
+            sceneExportStateRef.current = {
+                signature: payloadSignature,
+                inFlight: false,
+            };
+
+            if (onPedSimSceneExport) {
+                onPedSimSceneExport({
+                    status: 'error',
+                    message: error?.message || 'PedSim scene export failed',
+                });
+            }
             console.warn('Map to PedSim scene export failed:', error);
         });
 

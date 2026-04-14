@@ -2,6 +2,10 @@ from fastapi import FastAPI, HTTPException, File, UploadFile, WebSocket, WebSock
 from typing import List, Optional, Dict, Any
 import os
 import csv
+import json
+import subprocess
+import sys
+import time
 from io import StringIO
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,6 +27,7 @@ from schemas import (
     SimulationConfig,
     PedSimStateUpdate,
     PedSimSceneFromMapRequest,
+    PedSimRuntimeStartRequest,
     UserRole,
 )
 from logic import (
@@ -118,15 +123,336 @@ app.add_middleware(
 )
 
 
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(BACKEND_DIR)
+
 # Create uploads directory if it doesn't exist
-UPLOADS_DIR = "uploads"
+UPLOADS_DIR = os.path.join(BACKEND_DIR, "uploads")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
+PEDSIM_TRANSFORM_PATH = os.path.join(UPLOADS_DIR, "pedsim_scene_transform.json")
+PEDSIM_SCENE_EXPORT_PATH = os.path.join(UPLOADS_DIR, "pedsim_scene_from_map.xml")
+PEDSIM_DEMOAPP_SCENE_PATH = os.path.join(REPO_ROOT, "pedsim", "ecosystem", "demoapp", "scene.xml")
+
+pedsim_scene_transform_store: Dict[str, Any] = {
+    "origin_lng": 78.3487,
+    "origin_lat": 17.4464,
+    "scale": 0.00003,
+    "updated_at": None,
+    "boundary_source": None,
+    "scene_file": PEDSIM_SCENE_EXPORT_PATH,
+    "demoapp_scene_file": PEDSIM_DEMOAPP_SCENE_PATH,
+}
+
+
+class PedSimRuntimeManager:
+    """Owns the local PedSim demoapp and bridge subprocess lifecycle."""
+
+    def __init__(self):
+        self.bridge_process: Optional[subprocess.Popen] = None
+        self.demoapp_process: Optional[subprocess.Popen] = None
+        self.listen_port: int = int(os.getenv("PEDSIM_LISTEN_PORT", "2222"))
+        self.backend_url: str = os.getenv("PEDSIM_BACKEND_URL", f"http://127.0.0.1:{os.getenv('PORT', '8904')}")
+        self.scene_file: Optional[str] = None
+        self.started_at: Optional[str] = None
+        self.external_bridge_owner: Optional[Dict[str, Any]] = None
+
+    @staticmethod
+    def _process_snapshot(process: Optional[subprocess.Popen]) -> Dict[str, Any]:
+        if not process:
+            return {"running": False, "pid": None, "return_code": None}
+
+        return {
+            "running": process.poll() is None,
+            "pid": process.pid,
+            "return_code": process.poll(),
+        }
+
+    @staticmethod
+    def _resolve_demoapp_binary() -> Optional[str]:
+        candidates = [
+            os.path.join(REPO_ROOT, "pedsim", "ecosystem", "demoapp", "pedsim.app", "Contents", "MacOS", "pedsim"),
+            os.path.join(REPO_ROOT, "pedsim", "ecosystem", "demoapp", "pedsim"),
+        ]
+
+        for candidate in candidates:
+            if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+                return candidate
+
+        return None
+
+    @staticmethod
+    def _read_process_command(pid: int) -> Optional[str]:
+        try:
+            result = subprocess.run(
+                ["ps", "-p", str(pid), "-o", "command="],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            command = (result.stdout or "").strip()
+            return command or None
+        except Exception:
+            return None
+
+    @classmethod
+    def _detect_udp_port_owners(cls, port: int) -> List[Dict[str, Any]]:
+        try:
+            result = subprocess.run(
+                ["lsof", "-nP", f"-iUDP:{port}"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except Exception:
+            return []
+
+        if not result.stdout:
+            return []
+
+        lines = [line for line in result.stdout.splitlines() if line.strip()]
+        if len(lines) <= 1:
+            return []
+
+        owners: List[Dict[str, Any]] = []
+        for line in lines[1:]:
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+
+            pid: Optional[int] = None
+            try:
+                pid = int(parts[1])
+            except (TypeError, ValueError):
+                pid = None
+
+            owner = {
+                "command": parts[0],
+                "pid": pid,
+                "command_line": cls._read_process_command(pid) if pid is not None else None,
+            }
+            owners.append(owner)
+
+        return owners
+
+    @staticmethod
+    def _is_bridge_owner(owner: Dict[str, Any]) -> bool:
+        command_line = str(owner.get("command_line") or "").lower()
+        return "pedsim_bridge.py" in command_line or "pedsim_bridge" in command_line
+
+    def _bridge_status_snapshot(self) -> Dict[str, Any]:
+        managed = self._process_snapshot(self.bridge_process)
+        owners = self._detect_udp_port_owners(self.listen_port)
+        external_bridge_owner = next((owner for owner in owners if self._is_bridge_owner(owner)), None)
+
+        if not managed["running"]:
+            self.external_bridge_owner = external_bridge_owner
+
+        effective_owner = None
+        if managed["running"]:
+            effective_owner = {
+                "pid": managed["pid"],
+                "command": "python",
+                "command_line": "managed-by-backend",
+            }
+        elif external_bridge_owner:
+            effective_owner = external_bridge_owner
+
+        return {
+            "running": bool(managed["running"] or external_bridge_owner),
+            "managed": bool(managed["running"]),
+            "external": bool(external_bridge_owner),
+            "pid": managed["pid"] if managed["running"] else (external_bridge_owner or {}).get("pid"),
+            "return_code": managed["return_code"],
+            "owner": effective_owner,
+            "udp_port_in_use": len(owners) > 0,
+            "udp_port_owners": owners,
+        }
+
+    def _cleanup_finished(self):
+        if self.bridge_process and self.bridge_process.poll() is not None:
+            self.bridge_process = None
+        if self.demoapp_process and self.demoapp_process.poll() is not None:
+            self.demoapp_process = None
+
+        if not self.bridge_process and not self.demoapp_process:
+            self.started_at = None
+
+    @staticmethod
+    def _stop_process(process: Optional[subprocess.Popen], timeout_seconds: float = 3.0):
+        if not process or process.poll() is not None:
+            return
+
+        process.terminate()
+        try:
+            process.wait(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=timeout_seconds)
+
+    def status(self) -> Dict[str, Any]:
+        self._cleanup_finished()
+        bridge = self._bridge_status_snapshot()
+        demoapp = self._process_snapshot(self.demoapp_process)
+        return {
+            "running": bridge["running"] and demoapp["running"],
+            "bridge": bridge,
+            "demoapp": demoapp,
+            "listen_port": self.listen_port,
+            "backend_url": self.backend_url,
+            "scene_file": self.scene_file,
+            "started_at": self.started_at,
+        }
+
+    def stop(self) -> Dict[str, Any]:
+        self._stop_process(self.demoapp_process)
+        self._stop_process(self.bridge_process)
+        self.demoapp_process = None
+        self.bridge_process = None
+        self.started_at = None
+        self.external_bridge_owner = None
+        return self.status()
+
+    def _has_running_runtime(self) -> bool:
+        bridge = self._bridge_status_snapshot()
+        demoapp_running = bool(self.demoapp_process and self.demoapp_process.poll() is None)
+        return bool(bridge["running"] and demoapp_running)
+
+    def _resolve_start_inputs(
+        self,
+        scene_file: Optional[str],
+        listen_port: Optional[int],
+        backend_url: Optional[str],
+    ) -> tuple[str, str, str, int, str]:
+        resolved_scene_file = scene_file or pedsim_scene_transform_store.get("demoapp_scene_file") or PEDSIM_DEMOAPP_SCENE_PATH
+        if not os.path.exists(resolved_scene_file):
+            raise FileNotFoundError(f"Scene file not found: {resolved_scene_file}")
+
+        demoapp_binary = self._resolve_demoapp_binary()
+        if not demoapp_binary:
+            raise FileNotFoundError(
+                "PedSim demoapp binary not found. Build the demoapp first under pedsim/ecosystem/demoapp."
+            )
+
+        bridge_script = os.path.join(BACKEND_DIR, "pedsim_bridge.py")
+        if not os.path.exists(bridge_script):
+            raise FileNotFoundError(f"PedSim bridge script not found: {bridge_script}")
+
+        resolved_listen_port = int(listen_port or self.listen_port)
+        resolved_backend_url = backend_url or self.backend_url
+        return resolved_scene_file, demoapp_binary, bridge_script, resolved_listen_port, resolved_backend_url
+
+    def _start_bridge(self, bridge_script: str, listen_port: int, backend_url: str):
+        self.bridge_process = subprocess.Popen(
+            [
+                sys.executable,
+                bridge_script,
+                "--listen-port",
+                str(listen_port),
+                "--backend-url",
+                backend_url,
+            ],
+            cwd=BACKEND_DIR,
+        )
+
+        time.sleep(0.25)
+        if self.bridge_process.poll() is not None:
+            raise RuntimeError(
+                "PedSim bridge exited immediately. Confirm UDP 2222 is free and backend URL is reachable."
+            )
+
+    def _ensure_bridge_available(self, bridge_script: str, listen_port: int, backend_url: str):
+        owners = self._detect_udp_port_owners(listen_port)
+        if not owners:
+            self.external_bridge_owner = None
+            self._start_bridge(bridge_script, listen_port, backend_url)
+            return
+
+        existing_bridge_owner = next((owner for owner in owners if self._is_bridge_owner(owner)), None)
+        if existing_bridge_owner:
+            # Reuse an already running external bridge (e.g., started manually).
+            self.bridge_process = None
+            self.external_bridge_owner = existing_bridge_owner
+            return
+
+        owner = owners[0]
+        raise RuntimeError(
+            f"UDP port {listen_port} is in use by pid={owner.get('pid')} command={owner.get('command')}. "
+            "Stop that process or choose a different bridge listen port."
+        )
+
+    def _start_demoapp(self, demoapp_binary: str, scene_file: str):
+        self.demoapp_process = subprocess.Popen(
+            [demoapp_binary, scene_file],
+            cwd=os.path.dirname(scene_file),
+        )
+
+        time.sleep(0.25)
+        if self.demoapp_process.poll() is not None:
+            self._stop_process(self.bridge_process)
+            self.bridge_process = None
+            raise RuntimeError("PedSim demoapp exited immediately. Verify scene XML format and demoapp binary.")
+
+    def start(
+        self,
+        scene_file: Optional[str] = None,
+        listen_port: Optional[int] = None,
+        backend_url: Optional[str] = None,
+        force_restart: bool = True,
+    ) -> Dict[str, Any]:
+        self._cleanup_finished()
+
+        if force_restart and (self.bridge_process or self.demoapp_process):
+            self.stop()
+        elif self._has_running_runtime():
+            return self.status()
+
+        (
+            resolved_scene_file,
+            demoapp_binary,
+            bridge_script,
+            resolved_listen_port,
+            resolved_backend_url,
+        ) = self._resolve_start_inputs(scene_file, listen_port, backend_url)
+
+        self.listen_port = resolved_listen_port
+        self.backend_url = resolved_backend_url
+        self.scene_file = resolved_scene_file
+
+        self._ensure_bridge_available(bridge_script, resolved_listen_port, resolved_backend_url)
+        self._start_demoapp(demoapp_binary, resolved_scene_file)
+
+        self.started_at = datetime.now().isoformat()
+        return self.status()
+
+
+pedsim_runtime_manager = PedSimRuntimeManager()
+
+
+def _load_scene_transform_store():
+    if not os.path.exists(PEDSIM_TRANSFORM_PATH):
+        return
+
+    try:
+        with open(PEDSIM_TRANSFORM_PATH, "r", encoding="utf-8") as transform_file:
+            payload = json.load(transform_file)
+    except Exception as exc:
+        print(f"Could not restore PedSim scene transform: {exc}")
+        return
+
+    if isinstance(payload, dict):
+        pedsim_scene_transform_store.update(payload)
+
+
+def _persist_scene_transform_store():
+    with open(PEDSIM_TRANSFORM_PATH, "w", encoding="utf-8") as transform_file:
+        json.dump(pedsim_scene_transform_store, transform_file, indent=2)
 
 
 @app.on_event("startup")
 def _restore_schedule_on_startup():
     """Restore the last uploaded CSV on backend restart."""
     global current_schedule
+    _load_scene_transform_store()
     filepath = os.path.join(UPLOADS_DIR, "current_movement_plan.csv")
     if not os.path.exists(filepath):
         return
@@ -157,6 +483,15 @@ def _restore_schedule_on_startup():
         print(f"Restored schedule from {filepath}")
     except Exception as e:
         print(f"Could not restore schedule: {e}")
+
+
+@app.on_event("shutdown")
+def _shutdown_runtime_on_exit():
+    """Ensure external PedSim processes are not left behind on server shutdown."""
+    try:
+        pedsim_runtime_manager.stop()
+    except Exception:
+        pass
 
 def _build_movement_plan_from_rows(text: str) -> dict:
     """Parse CSV text and build movement plan. Raises HTTPException on errors."""
@@ -742,6 +1077,7 @@ async def push_pedsim_state(update: PedSimStateUpdate):
         "agents": pedsim_state_store.get("agents", []),
         "metadata": pedsim_state_store.get("metadata", {}),
         "agent_count": len(pedsim_state_store.get("agents", [])),
+        "scene_transform": dict(pedsim_scene_transform_store),
     }
 
     await pedsim_stream_manager.broadcast(payload)
@@ -762,6 +1098,7 @@ def get_pedsim_state():
         "agents": pedsim_state_store.get("agents", []),
         "metadata": pedsim_state_store.get("metadata", {}),
         "agent_count": len(pedsim_state_store.get("agents", [])),
+        "scene_transform": dict(pedsim_scene_transform_store),
     }
 
 
@@ -773,6 +1110,44 @@ def clear_pedsim_state():
     pedsim_state_store["agents"] = []
     pedsim_state_store["metadata"] = {}
     return {"message": "PedSim state cleared"}
+
+
+@app.get("/pedsim/runtime/status")
+def get_pedsim_runtime_status():
+    """Report health and process status for demoapp + bridge."""
+    return pedsim_runtime_manager.status()
+
+
+@app.post("/pedsim/runtime/start")
+def start_pedsim_runtime(request: PedSimRuntimeStartRequest):
+    """Start (or restart) the PedSim demoapp and UDP bridge."""
+    try:
+        status = pedsim_runtime_manager.start(
+            scene_file=request.scene_file,
+            listen_port=request.listen_port,
+            backend_url=request.backend_url,
+            force_restart=request.force_restart,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return {
+        "message": "PedSim runtime started",
+        **status,
+    }
+
+
+@app.post("/pedsim/runtime/stop")
+def stop_pedsim_runtime():
+    """Stop PedSim demoapp and bridge processes."""
+    status = pedsim_runtime_manager.stop()
+    clear_pedsim_state()
+    return {
+        "message": "PedSim runtime stopped",
+        **status,
+    }
 
 
 def _geo_to_local(lng: float, lat: float, origin_lng: float, origin_lat: float, scale: float) -> tuple[float, float]:
@@ -801,17 +1176,102 @@ def _iter_lines(geometry: Dict[str, Any]) -> List[List[List[float]]]:
     return []
 
 
+def _collect_geometry_points(*feature_groups: Any) -> List[List[float]]:
+    coords: List[List[float]] = []
+
+    for group in feature_groups:
+        features = group or []
+        for feature in features:
+            geometry = feature.get("geometry") or {}
+            for ring in _iter_polygon_rings(geometry):
+                coords.extend([point for point in ring if len(point) >= 2])
+            for line in _iter_lines(geometry):
+                coords.extend([point for point in line if len(point) >= 2])
+            if geometry.get("type") == "Point":
+                point = geometry.get("coordinates") or []
+                if len(point) >= 2:
+                    coords.append(point)
+
+    return coords
+
+
+def _compute_scene_origin(
+    boundary_feature: Optional[Dict[str, Any]],
+    building_features: List[Dict[str, Any]],
+    pathway_features: List[Dict[str, Any]],
+    fallback_lng: float,
+    fallback_lat: float,
+) -> tuple[float, float]:
+    points = _collect_geometry_points(
+        [boundary_feature] if boundary_feature else [],
+        building_features,
+        pathway_features,
+    )
+    if not points:
+        return fallback_lng, fallback_lat
+
+    lngs = [point[0] for point in points]
+    lats = [point[1] for point in points]
+    return (min(lngs) + max(lngs)) / 2.0, (min(lats) + max(lats)) / 2.0
+
+
+def _feature_center(feature: Dict[str, Any]) -> Optional[List[float]]:
+    center = feature.get("properties", {}).get("center")
+    if isinstance(center, list) and len(center) >= 2:
+        return [float(center[0]), float(center[1])]
+
+    geometry = feature.get("geometry") or {}
+    points = _collect_geometry_points([feature])
+    if not points:
+        return None
+
+    return [
+        sum(point[0] for point in points) / len(points),
+        sum(point[1] for point in points) / len(points),
+    ]
+
+
+def _dedupe_waypoint_candidates(candidates: List[Dict[str, Any]], min_distance: float = 6.0) -> List[Dict[str, Any]]:
+    deduped: List[Dict[str, Any]] = []
+
+    for candidate in candidates:
+        x = candidate["x"]
+        y = candidate["y"]
+        if any(((x - existing["x"]) ** 2 + (y - existing["y"]) ** 2) ** 0.5 < min_distance for existing in deduped):
+            continue
+        deduped.append(candidate)
+
+    return deduped
+
+
+def _write_scene_file(path: str, contents: str):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as scene_file:
+        scene_file.write(contents)
+
+
 @app.post("/pedsim/scene-from-map")
 def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
     """Generate a PedSim scene XML file from map-extracted geometry."""
     scale = payload.scale if payload.scale > 0 else 0.00003
-    origin_lng = payload.origin_lng
-    origin_lat = payload.origin_lat
 
     building_features = payload.buildings.get("features", []) if isinstance(payload.buildings, dict) else []
     pathway_features = payload.pathways.get("features", []) if isinstance(payload.pathways, dict) else []
 
-    xml_lines = ["<welcome>"]
+    boundary_feature = None
+    if isinstance(payload.boundary, dict):
+        features = payload.boundary.get("features", [])
+        boundary_feature = features[0] if features else None
+
+    origin_lng, origin_lat = _compute_scene_origin(
+        boundary_feature,
+        building_features,
+        pathway_features,
+        payload.origin_lng,
+        payload.origin_lat,
+    )
+
+    xml_lines = ["<scenario>"]
 
     obstacle_count = 0
     for feature in building_features:
@@ -831,15 +1291,10 @@ def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
                 )
                 obstacle_count += 1
 
-    boundary_feature = None
-    if isinstance(payload.boundary, dict):
-        features = payload.boundary.get("features", [])
-        boundary_feature = features[0] if features else None
-
     if boundary_feature:
-        rings = _iter_polygon_rings(boundary_feature.get("geometry") or {})
-        if rings:
-            ring = rings[0]
+        for ring in _iter_polygon_rings(boundary_feature.get("geometry") or {}):
+            if len(ring) < 2:
+                continue
             for i in range(len(ring) - 1):
                 start = ring[i]
                 end = ring[i + 1]
@@ -852,56 +1307,111 @@ def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
                 )
                 obstacle_count += 1
 
-    sampled_waypoints: List[tuple[str, float, float]] = []
-    for feature in pathway_features[:200]:
+    waypoint_candidates: List[Dict[str, Any]] = []
+    for feature_index, feature in enumerate(building_features[:24]):
+        center = _feature_center(feature)
+        if not center:
+            continue
+        x, y = _geo_to_local(center[0], center[1], origin_lng, origin_lat, scale)
+        waypoint_candidates.append({
+            "id": f"b{feature_index + 1}",
+            "x": x,
+            "y": y,
+            "r": 14,
+            "kind": "building",
+        })
+
+    for feature in pathway_features[:180]:
         geometry = feature.get("geometry") or {}
         for line in _iter_lines(geometry):
             if len(line) < 2:
                 continue
-            sample_indices = sorted({0, len(line) // 2, len(line) - 1})
+            sample_indices = sorted({0, len(line) // 3, (2 * len(line)) // 3, len(line) - 1})
             for idx in sample_indices:
                 point = line[idx]
                 if len(point) < 2:
                     continue
                 x, y = _geo_to_local(point[0], point[1], origin_lng, origin_lat, scale)
-                waypoint_id = f"w{len(sampled_waypoints)+1}"
-                sampled_waypoints.append((waypoint_id, x, y))
-            if len(sampled_waypoints) >= 40:
-                break
-        if len(sampled_waypoints) >= 40:
-            break
+                waypoint_candidates.append({
+                    "id": f"p{len(waypoint_candidates) + 1}",
+                    "x": x,
+                    "y": y,
+                    "r": 10,
+                    "kind": "pathway",
+                })
 
-    for waypoint_id, x, y in sampled_waypoints:
-        xml_lines.append(f"  <waypoint id=\"{waypoint_id}\" x=\"{x:.2f}\" y=\"{y:.2f}\" r=\"10\" />")
+    sampled_waypoints = _dedupe_waypoint_candidates(waypoint_candidates, min_distance=8.0)[:48]
 
-    if payload.include_agents and len(sampled_waypoints) >= 3:
-        start_id = sampled_waypoints[0][0]
-        route_ids = [wp[0] for wp in sampled_waypoints[1: min(10, len(sampled_waypoints))]]
-        start_x = sampled_waypoints[0][1]
-        start_y = sampled_waypoints[0][2]
+    for waypoint in sampled_waypoints:
         xml_lines.append(
-            f"  <agent x=\"{start_x:.2f}\" y=\"{start_y:.2f}\" n=\"{max(20, payload.default_agent_count)}\" dx=\"30\" dy=\"30\">"
+            f"  <waypoint id=\"{waypoint['id']}\" x=\"{waypoint['x']:.2f}\" y=\"{waypoint['y']:.2f}\" r=\"{waypoint['r']:.0f}\" />"
         )
-        xml_lines.append(f"    <addwaypoint id=\"{start_id}\" />")
-        for route_id in route_ids:
-            xml_lines.append(f"    <addwaypoint id=\"{route_id}\" />")
-        for route_id in reversed(route_ids):
-            xml_lines.append(f"    <addwaypoint id=\"{route_id}\" />")
-        xml_lines.append("  </agent>")
 
-    xml_lines.append("</welcome>")
+    agent_group_count = 0
+    seeded_agents = 0
+    if payload.include_agents and len(sampled_waypoints) >= 4:
+        building_waypoints = [waypoint for waypoint in sampled_waypoints if waypoint["kind"] == "building"] or sampled_waypoints
+        total_agents = max(20, payload.default_agent_count)
+        group_count = min(6, max(2, len(building_waypoints)))
+        agents_per_group = max(10, total_agents // group_count)
 
-    output_path = os.path.join(UPLOADS_DIR, "pedsim_scene_from_map.xml")
-    with open(output_path, "w", encoding="utf-8") as scene_file:
-        scene_file.write("\n".join(xml_lines) + "\n")
+        for group_index in range(group_count):
+            start_waypoint = building_waypoints[group_index % len(building_waypoints)]
+            route: List[Dict[str, Any]] = [start_waypoint]
+
+            stride = max(1, len(sampled_waypoints) // max(2, group_count))
+            for step in range(1, min(6, len(sampled_waypoints))):
+                candidate = sampled_waypoints[(group_index * stride + step * stride) % len(sampled_waypoints)]
+                if candidate["id"] not in {item["id"] for item in route}:
+                    route.append(candidate)
+
+            if len(route) < 2:
+                continue
+
+            xml_lines.append(
+                f"  <agent x=\"{start_waypoint['x']:.2f}\" y=\"{start_waypoint['y']:.2f}\" n=\"{agents_per_group}\" dx=\"14\" dy=\"14\">"
+            )
+            for waypoint in route:
+                xml_lines.append(f"    <addwaypoint id=\"{waypoint['id']}\" />")
+            for waypoint in reversed(route[1:-1]):
+                xml_lines.append(f"    <addwaypoint id=\"{waypoint['id']}\" />")
+            xml_lines.append("  </agent>")
+
+            agent_group_count += 1
+            seeded_agents += agents_per_group
+
+    xml_lines.append("</scenario>")
+
+    scene_contents = "\n".join(xml_lines) + "\n"
+    _write_scene_file(PEDSIM_SCENE_EXPORT_PATH, scene_contents)
+
+    try:
+        _write_scene_file(PEDSIM_DEMOAPP_SCENE_PATH, scene_contents)
+    except Exception as exc:
+        print(f"Could not mirror PedSim scene into demoapp scene.xml: {exc}")
+
+    pedsim_scene_transform_store.update({
+        "origin_lng": origin_lng,
+        "origin_lat": origin_lat,
+        "scale": scale,
+        "updated_at": datetime.now().isoformat(),
+        "boundary_source": "selected_area" if boundary_feature else "map_bbox",
+        "scene_file": PEDSIM_SCENE_EXPORT_PATH,
+        "demoapp_scene_file": PEDSIM_DEMOAPP_SCENE_PATH,
+    })
+    _persist_scene_transform_store()
 
     return {
         "message": "PedSim scene generated from map geometry",
-        "scene_file": output_path,
+        "scene_file": PEDSIM_SCENE_EXPORT_PATH,
+        "demoapp_scene_file": PEDSIM_DEMOAPP_SCENE_PATH,
         "building_features": len(building_features),
         "pathway_features": len(pathway_features),
         "obstacles_written": obstacle_count,
         "waypoints_written": len(sampled_waypoints),
+        "agent_groups_written": agent_group_count,
+        "agents_seeded": seeded_agents,
+        "scene_transform": dict(pedsim_scene_transform_store),
     }
 
 
@@ -916,6 +1426,7 @@ async def pedsim_state_stream(websocket: WebSocket):
             "agents": pedsim_state_store.get("agents", []),
             "metadata": pedsim_state_store.get("metadata", {}),
             "agent_count": len(pedsim_state_store.get("agents", [])),
+            "scene_transform": dict(pedsim_scene_transform_store),
             "type": "snapshot",
         })
 

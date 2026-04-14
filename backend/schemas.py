@@ -173,6 +173,14 @@ class PedSimSceneFromMapRequest(BaseModel):
     default_agent_count: int = 120
 
 
+class PedSimRuntimeStartRequest(BaseModel):
+    """Runtime launch options for PedSim demoapp + UDP bridge."""
+    scene_file: Optional[str] = None
+    listen_port: int = 2222
+    backend_url: Optional[str] = None
+    force_restart: bool = True
+
+
 class BehaviorRequest(BaseModel):
     """Request to update agent behavior parameters"""
     agent_id: Optional[str] = None
