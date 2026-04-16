@@ -5,6 +5,7 @@ import MapContainer from './components/MapContainer';
 import BuildingPanel from './components/BuildingPanel';
 import RightSidePanel from './components/RightSidePanel';
 import CSVUploadPanel from './components/CSVUploadPanel';
+import ActuationControlWorkspace from './components/actuationControl/ActuationControlWorkspace';
 import { useSchedule } from './hooks/useSchedule';
 import {
   clearPedSimState,
@@ -418,6 +419,10 @@ function App() {
       }
     };
   }, [currentMode, simulatorReadyToken]);
+
+  if (currentMode === 'actuate') {
+    return <ActuationControlWorkspace />;
+  }
 
   return (
     <div className="app-layout">

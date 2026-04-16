@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "configs": [
+    {
+      "id": "cfg-IIITH-main",
+      "campusName": "IIITH — Main Campus",
+      "center": { "lat": 17.4464, "lng": 78.3487 },
+      "radiusMeters": 400,
+      "buildings": [],
+      "gates": [],
+      "displays": [
+        {
+          "id": "disp-1",
+          "name": "Display — Main Junction",
+          "lat": 17.44698,
+          "lng": 78.34812,
+          "routeMode": "normal",
+          "activeMessage": "All routes operational"
+        }
+      ],
+      "timetables": [],
+      "rules": [],
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z"
+    }
+  ]
+}

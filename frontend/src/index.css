@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   --bg-dark: #0f1115;
   --glass-bg: rgba(20, 24, 32, 0.65);
@@ -9,6 +13,52 @@
   --accent-green: #10b981;
   --accent-red: #ef4444;
   --accent-yellow: #f59e0b;
+
+  /* Tailwind/shadcn-like design tokens */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 212 91% 45%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 30% 94%;
+  --secondary-foreground: 222 47% 16%;
+  --muted: 210 25% 93%;
+  --muted-foreground: 215 16% 40%;
+  --accent: 209 80% 93%;
+  --accent-foreground: 222 47% 16%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214 25% 84%;
+  --input: 214 25% 84%;
+  --ring: 212 91% 45%;
+  --status-green: 145 63% 49%;
+  --status-yellow: 43 96% 56%;
+  --status-red: 0 84% 60%;
+}
+
+.dark {
+  --background: 222 47% 7%;
+  --foreground: 210 40% 96%;
+  --card: 222 39% 12%;
+  --card-foreground: 210 40% 96%;
+  --popover: 222 39% 12%;
+  --popover-foreground: 210 40% 96%;
+  --primary: 212 100% 64%;
+  --primary-foreground: 222 47% 10%;
+  --secondary: 215 27% 21%;
+  --secondary-foreground: 210 40% 96%;
+  --muted: 217 24% 18%;
+  --muted-foreground: 215 20% 72%;
+  --accent: 215 35% 19%;
+  --accent-foreground: 210 40% 96%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 96%;
+  --border: 217 24% 24%;
+  --input: 217 24% 24%;
+  --ring: 212 100% 64%;
 }
 
 * {
@@ -24,8 +74,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: var(--bg-dark);
-  color: var(--text-primary);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
   overflow: hidden;
 }
 
@@ -152,4 +202,58 @@ body {
   font-size: 0.7rem;
   color: var(--text-secondary);
   margin-top: 2px;
+}
+
+@layer components {
+  .ct-panel {
+    border: 1px solid hsl(var(--border) / 0.65);
+    border-radius: 0.75rem;
+    background: linear-gradient(140deg, hsl(var(--card) / 0.88), hsl(var(--card) / 0.72));
+    box-shadow: 0 14px 34px rgba(2, 6, 23, 0.45);
+    backdrop-filter: blur(14px) saturate(165%);
+    -webkit-backdrop-filter: blur(14px) saturate(165%);
+  }
+
+  .ct-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid hsl(var(--border) / 0.8);
+    border-radius: 9999px;
+    padding: 0.15rem 0.5rem;
+    background: hsl(var(--muted) / 0.45);
+    color: hsl(var(--foreground) / 0.95);
+    line-height: 1;
+    font-weight: 500;
+  }
+}
+
+@layer utilities {
+  .ct-mono {
+    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ct-status-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  .ct-status-green {
+    background-color: hsl(var(--status-green));
+    color: hsl(var(--status-green));
+  }
+
+  .ct-status-yellow {
+    background-color: hsl(var(--status-yellow));
+    color: hsl(var(--status-yellow));
+  }
+
+  .ct-status-red {
+    background-color: hsl(var(--status-red));
+    color: hsl(var(--status-red));
+  }
 }

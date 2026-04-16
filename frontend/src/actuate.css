@@ -1,0 +1,218 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   CrowdTwin Actuation Control — Design System
+   Dark glass control-room (default) + light operations mode
+   All colors are HSL.
+   ========================================================================== */
+
+@layer base {
+  :root {
+    /* light "operations" mode */
+    --background: 210 30% 96%;
+    --foreground: 222 35% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 35% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 35% 12%;
+
+    --primary: 196 92% 42%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 215 25% 92%;
+    --secondary-foreground: 222 35% 12%;
+
+    --muted: 215 25% 92%;
+    --muted-foreground: 215 16% 40%;
+
+    --accent: 175 84% 39%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 25% 85%;
+    --input: 215 25% 85%;
+    --ring: 196 92% 42%;
+
+    --radius: 0.625rem;
+
+    /* Status semantics (used by gates / road / displays) */
+    --status-green: 152 72% 42%;
+    --status-yellow: 42 96% 55%;
+    --status-red: 0 84% 58%;
+    --status-info: 212 92% 56%;
+
+    /* Glass panel tokens */
+    --glass-bg: 0 0% 100% / 0.72;
+    --glass-border: 215 30% 80% / 0.6;
+    --glass-blur: 14px;
+
+    /* Map-overlay chip background */
+    --overlay-bg: 215 30% 98% / 0.85;
+
+    /* Sidebar (kept for shadcn compatibility) */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 222 35% 18%;
+    --sidebar-primary: 196 92% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 25% 92%;
+    --sidebar-accent-foreground: 222 35% 12%;
+    --sidebar-border: 215 25% 85%;
+    --sidebar-ring: 196 92% 42%;
+
+    /* Gradients & shadows */
+    --gradient-control: linear-gradient(135deg, hsl(196 92% 42% / 0.18), hsl(175 84% 39% / 0.10));
+    --gradient-status-red: linear-gradient(135deg, hsl(0 84% 58% / 0.25), transparent);
+    --gradient-status-amber: linear-gradient(135deg, hsl(42 96% 55% / 0.25), transparent);
+    --gradient-status-green: linear-gradient(135deg, hsl(152 72% 42% / 0.25), transparent);
+    --shadow-glass: 0 10px 40px -12px hsl(222 60% 10% / 0.25);
+    --shadow-elevated: 0 20px 60px -20px hsl(196 92% 42% / 0.45);
+
+    --transition-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .dark {
+    /* dark glass control-room mode (default in workspace) */
+    --background: 220 40% 6%;
+    --foreground: 210 30% 96%;
+
+    --card: 220 35% 10%;
+    --card-foreground: 210 30% 96%;
+
+    --popover: 220 35% 10%;
+    --popover-foreground: 210 30% 96%;
+
+    --primary: 196 100% 55%;
+    --primary-foreground: 220 40% 6%;
+
+    --secondary: 220 25% 16%;
+    --secondary-foreground: 210 30% 96%;
+
+    --muted: 220 25% 14%;
+    --muted-foreground: 215 18% 65%;
+
+    --accent: 175 84% 50%;
+    --accent-foreground: 220 40% 6%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 30% 98%;
+
+    --border: 215 30% 22%;
+    --input: 215 30% 18%;
+    --ring: 196 100% 55%;
+
+    --status-green: 152 72% 50%;
+    --status-yellow: 42 96% 60%;
+    --status-red: 0 84% 62%;
+    --status-info: 212 95% 65%;
+
+    --glass-bg: 220 35% 10% / 0.55;
+    --glass-border: 196 60% 50% / 0.18;
+    --glass-blur: 18px;
+    --overlay-bg: 220 40% 8% / 0.78;
+
+    --sidebar-background: 220 40% 7%;
+    --sidebar-foreground: 210 30% 90%;
+    --sidebar-primary: 196 100% 55%;
+    --sidebar-primary-foreground: 220 40% 6%;
+    --sidebar-accent: 220 25% 14%;
+    --sidebar-accent-foreground: 210 30% 96%;
+    --sidebar-border: 215 30% 18%;
+    --sidebar-ring: 196 100% 55%;
+
+    --gradient-control: linear-gradient(135deg, hsl(196 100% 55% / 0.22), hsl(175 84% 50% / 0.12));
+    --shadow-glass: 0 10px 40px -8px hsl(0 0% 0% / 0.6);
+    --shadow-elevated: 0 25px 70px -25px hsl(196 100% 55% / 0.55);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+}
+
+@layer components {
+  .ct-glass {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: var(--shadow-glass);
+  }
+
+  .ct-panel {
+    @apply ct-glass rounded-xl;
+  }
+
+  .ct-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+    background: hsl(var(--overlay-bg));
+    border: 1px solid hsl(var(--border));
+  }
+
+  .ct-status-dot {
+    @apply inline-block h-2 w-2 rounded-full;
+    box-shadow: 0 0 0 3px hsl(var(--background) / 0.4);
+  }
+
+  .ct-status-green  { background: hsl(var(--status-green)); }
+  .ct-status-yellow { background: hsl(var(--status-yellow)); }
+  .ct-status-red    { background: hsl(var(--status-red));   }
+  .ct-status-info   { background: hsl(var(--status-info));  }
+
+  .ct-grid-bg {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.35) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.35) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .ct-mono {
+    font-family: ui-monospace, "JetBrains Mono", "Fira Code", monospace;
+    font-feature-settings: "ss01";
+  }
+}
+
+/* MapLibre overrides — make controls match glass theme */
+.maplibregl-ctrl-group {
+  background: hsl(var(--overlay-bg)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 0.5rem !important;
+  overflow: hidden;
+}
+.maplibregl-ctrl-group button {
+  background: transparent !important;
+}
+.maplibregl-ctrl-attrib {
+  background: hsl(var(--overlay-bg)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 10px;
+}
+.maplibregl-popup-content {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem !important;
+  font-size: 12px;
+}
+.maplibregl-popup-tip {
+  border-top-color: hsl(var(--card)) !important;
+  border-bottom-color: hsl(var(--card)) !important;
+}
