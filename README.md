@@ -118,6 +118,175 @@ CrowdTwin operates in **three integrated modes**:
 
 ---
 
+# Setup Guide (Ubuntu, Linux, Windows + PedSim)
+
+This section is for setting up CrowdTwin on a fresh machine.
+
+## 1) Common Prerequisites
+
+- Git
+- Node.js 20+ and npm
+- Python 3.10+
+- CMake 3.16+
+- A C/C++ compiler toolchain
+
+Clone the repository:
+
+```bash
+git clone <your-repo-url>
+cd Crowd
+```
+
+## 2) Frontend Setup (All Platforms)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend default URL: http://localhost:5173
+
+## 3) Backend Setup (All Platforms)
+
+### Linux/macOS shell
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python main.py
+```
+
+### Windows PowerShell
+
+```powershell
+cd backend
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python main.py
+```
+
+Backend default URL: http://localhost:8904
+
+## 4) PedSim Setup
+
+PedSim integration path in this project:
+
+- PedSim simulator sends UDP frames on port 2222
+- Bridge receives UDP and forwards to backend endpoint /pedsim/state
+- Frontend polls backend and renders agents
+
+Detailed bridge docs: backend/PEDSIM_BRIDGE.md
+
+### Ubuntu (22.04/24.04)
+
+Install build dependencies:
+
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake qtbase5-dev qtchooser qt5-qmake qttools5-dev-tools libgl1-mesa-dev
+```
+
+Build PedSim from the repository folder:
+
+```bash
+cd pedsim
+mkdir -p build
+cd build
+cmake ..
+cmake --build . -j"$(nproc)"
+```
+
+Start bridge:
+
+```bash
+cd backend
+chmod +x start_pedsim_bridge.sh
+./start_pedsim_bridge.sh
+```
+
+Run simulator (example flags; adapt to your PedSim binary/options):
+
+```bash
+cd pedsim/build
+./pedsim_simulator --output-format=udp --output-address=127.0.0.1 --output-port=2222 ../scenarios/test_scenario.xml
+```
+
+If your build uses different binaries/options, refer to your PedSim executable help and backend/PEDSIM_BRIDGE.md.
+
+### Other Linux Distributions
+
+Use your distro-equivalent packages:
+
+- Fedora: Development Tools, cmake, qt5-qtbase-devel, qt5-qttools-devel, mesa-libGL-devel
+- Arch: base-devel, cmake, qt5-base, qt5-tools, mesa
+- Debian: similar to Ubuntu package names
+
+Then follow the same build and run sequence as Ubuntu.
+
+### Windows
+
+Recommended approach for PedSim: WSL2 (Ubuntu).
+
+1. Install WSL2 and Ubuntu.
+2. Open Ubuntu shell and follow the Ubuntu steps above for backend + PedSim + bridge.
+3. Access the UI from Windows browser at http://localhost:5173
+
+Why WSL2: PedSim and UDP bridge workflow are significantly more reliable in Linux userspace than native Windows C++/Qt toolchain setup.
+
+## 5) Run Everything (Reference 4-Terminal Flow)
+
+Terminal 1 (Backend):
+
+```bash
+cd backend
+python main.py
+```
+
+Terminal 2 (Bridge):
+
+```bash
+cd backend
+./start_pedsim_bridge.sh
+```
+
+Terminal 3 (PedSim):
+
+```bash
+cd pedsim/build
+./pedsim_simulator --output-format=udp --output-address=127.0.0.1 --output-port=2222 ../scenarios/test_scenario.xml
+```
+
+Terminal 4 (Frontend):
+
+```bash
+cd frontend
+npm run dev
+```
+
+## 6) Verify PedSim Pipeline
+
+Run backend integration checks:
+
+```bash
+cd backend
+python test_pedsim_bridge.py
+python test_pipeline.py
+```
+
+Expected: bridge receives frames, backend updates pedsim state, frontend can render agents in simulate mode.
+
+## 7) Existing Platform Docs
+
+- macOS-specific PedSim guide: backend/PEDSIM_SETUP_MACOS.md
+- Bridge details and troubleshooting: backend/PEDSIM_BRIDGE.md
+- Quick integration notes: backend/QUICKSTART.md
+
+---
+
 # 🌐 IoT Sensor Architecture (Prototype Assumption)
 
 ```
