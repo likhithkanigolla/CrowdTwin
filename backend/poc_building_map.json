@@ -140,6 +140,14 @@
       "lng": 78.35158,
       "category": "gate",
       "cohorts": ["Entry Exit"]
+    },
+    {
+      "id": "new_boys_hostel",
+      "name": "New Boys Hostel (NBH)",
+      "lat": 17.44716,
+      "lng": 78.34760,
+      "category": "hostel",
+      "cohorts": ["MS", "PhD"]
     }
   ]
 }
