@@ -49,7 +49,7 @@ export default function VirtualActuationPanel({ config, store, audit }) {
     for (const building of config.buildings || []) {
       for (const floor of building.floors || []) {
         for (const room of floor.rooms || []) {
-          if (["classroom", "seminar", "auditorium", "lab"].includes(room.roomType)) {
+          if (["classroom", "lecture", "seminar", "auditorium", "lab"].includes(room.roomType)) {
             result.push({
               id: room.id,
               label: `${building.name} / F${floor.floorNumber} / ${room.name}`,

@@ -278,7 +278,7 @@ class BuildingCreate(BaseModel):
     siteId: str
     name: str
     location: Optional[Dict[str, float]] = None
-
+    category: Optional[str] = None
 
 class RoomCreate(BaseModel):
     buildingId: str

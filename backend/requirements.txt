@@ -3,3 +3,4 @@ uvicorn
 pydantic
 langgraph
 python-multipart
+psycopg2-binary

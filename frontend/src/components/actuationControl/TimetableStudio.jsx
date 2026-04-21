@@ -361,9 +361,21 @@ function flattenRooms(cfg) {
   );
 }
 
+function normalizeRoomType(value) {
+  const rt = String(value || "").toLowerCase();
+  if (!rt) return "classroom";
+  if (rt === "lecture" || rt === "tutorial" || rt === "classroom") return "classroom";
+  if (rt.includes("lab")) return "lab";
+  if (rt.includes("seminar")) return "seminar";
+  if (rt.includes("auditorium") || rt.includes("arena")) return "auditorium";
+  if (rt.includes("office")) return "office";
+  return rt;
+}
+
 function allocate(entries, rooms) {
-  // Per-room timeline; mark as conflict if no room of preferred type+capacity is free.
+  // Per-room timeline; prefer exact matches but gracefully fallback to any free room.
   const timeline = new Map(); // roomId -> [{day,start,end}]
+  const roomsById = new Map(rooms.map((r) => [r.id, r]));
   const isFree = (roomId, day, start, end) => {
     const lst = timeline.get(roomId) || [];
     return !lst.some((s) => s.day === day && !(end <= s.start || start >= s.end));
@@ -375,15 +387,50 @@ function allocate(entries, rooms) {
   };
   return entries.map((e) => {
     const start = toMins(e.startTime), end = toMins(e.endTime);
-    const cands = rooms
-      .filter((r) => r.roomType === e.preferredRoomType && r.capacity >= (Number(e.expectedStrength) || 0))
-      .sort((a, b) => a.capacity - b.capacity);
+
+    // If a slot already has a room and that room is free, keep it.
+    if (e.allocatedRoomId && roomsById.has(e.allocatedRoomId) && isFree(e.allocatedRoomId, e.day, start, end)) {
+      reserve(e.allocatedRoomId, e.day, start, end);
+      return { ...e, status: "allocated" };
+    }
+
+    const needed = Number(e.expectedStrength) || 0;
+    const wantedType = normalizeRoomType(e.preferredRoomType);
+    const exactType = rooms.filter((r) => normalizeRoomType(r.roomType) === wantedType);
+    const otherTypes = rooms.filter((r) => normalizeRoomType(r.roomType) !== wantedType);
+
+    // Candidate pools in order of preference.
+    const pools = [
+      exactType.filter((r) => Number(r.capacity) >= needed),
+      otherTypes.filter((r) => Number(r.capacity) >= needed),
+      exactType,
+      otherTypes,
+    ];
+
+    const seen = new Set();
+    const cands = [];
+    for (const pool of pools) {
+      const sorted = [...pool].sort((a, b) => (Number(a.capacity) || 0) - (Number(b.capacity) || 0));
+      for (const room of sorted) {
+        if (!seen.has(room.id)) {
+          seen.add(room.id);
+          cands.push(room);
+        }
+      }
+    }
+
     for (const r of cands) {
       if (isFree(r.id, e.day, start, end)) {
         reserve(r.id, e.day, start, end);
-        return { ...e, allocatedRoomId: r.id, status: "allocated" };
+        return {
+          ...e,
+          allocatedRoomId: r.id,
+          preferredRoomType: normalizeRoomType(r.roomType),
+          status: "allocated",
+        };
       }
     }
+
     return { ...e, allocatedRoomId: null, status: "conflict" };
   });
 }

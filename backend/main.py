@@ -15,6 +15,9 @@ import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 
+from models import init_db, close_db_pool
+import db_ops
+
 from schemas import (
     Event,
     EventRequest,
@@ -82,6 +85,23 @@ from allocation_engine import (
 )
 
 app = FastAPI(title="Digital Twin Backend")
+
+# Initialize PostgreSQL database on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup."""
+    try:
+        init_db()
+        print("✓ PostgreSQL database initialized")
+    except Exception as e:
+        print(f"✗ Failed to initialize database: {e}")
+        raise
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close database connections on shutdown."""
+    close_db_pool()
+    print("✓ Database connections closed")
 
 
 class PedSimStreamManager:
@@ -2108,24 +2128,41 @@ def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
 @app.post("/sites")
 def create_site_endpoint(payload: SiteCreate):
     try:
-        return create_site(payload.dict())
-    except ValueError as exc:
+        return db_ops.create_site(
+            name=payload.name,
+            geoBoundary=payload.geoBoundary
+        )
+    except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.post("/buildings")
 def create_building_endpoint(payload: BuildingCreate):
     try:
-        return create_building(payload.dict())
-    except ValueError as exc:
+        return db_ops.create_building(
+            siteId=payload.siteId,
+            name=payload.name,
+            location=payload.location,
+            category=payload.category
+        )
+    except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.post("/rooms")
 def create_room_endpoint(payload: RoomCreate):
     try:
-        return create_room(payload.dict())
-    except ValueError as exc:
+        return db_ops.create_room(
+            buildingId=payload.buildingId,
+            name=payload.name,
+            floor=payload.floor,
+            capacity=payload.capacity,
+            roomType=payload.roomType,
+            status=payload.status,
+            accessibilityScore=payload.accessibilityScore,
+            estimatedCost=payload.estimatedCost
+        )
+    except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
@@ -2144,32 +2181,54 @@ def upsert_room_facilities_endpoint(room_id: str, payload: RoomFacilitiesUpsertR
 @app.post("/event-types")
 def create_event_type_endpoint(payload: EventTypeCreate):
     try:
-        return create_event_type(payload.dict())
-    except ValueError as exc:
+        return db_ops.create_event_type(
+            name=payload.name,
+            isCustom=payload.isCustom
+        )
+    except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.post("/event-profiles")
 def create_event_profile_endpoint(payload: EventProfileCreate):
     try:
-        return create_event_profile(payload.dict())
-    except ValueError as exc:
+        return db_ops.create_event_profile(
+            eventTypeId=payload.eventTypeId,
+            configJson=payload.configJson
+        )
+    except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.post("/bookings")
 def create_booking_endpoint(payload: BookingCreate):
     try:
-        return create_booking(payload.dict())
-    except ValueError as exc:
+        # Extract siteId from siteScope (will be set if siteScope provided)
+        site_id = payload.siteScope[0] if payload.siteScope else None
+        return db_ops.create_booking(
+            siteId=site_id,
+            eventName=payload.eventName,
+            eventTypeId=payload.eventTypeId,
+            expectedAttendance=payload.expectedAttendance,
+            startAt=payload.startAt,
+            endAt=payload.endAt,
+            status=payload.status,
+            buildingScope=payload.buildingScope
+        )
+    except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.post("/occupancy-signals")
 def create_occupancy_signal_endpoint(payload: OccupancySignalCreate):
     try:
-        return create_occupancy_signal(payload.dict())
-    except ValueError as exc:
+        return db_ops.create_occupancy_signal(
+            roomId=payload.roomId,
+            currentOccupancy=payload.currentOccupancy,
+            capacity=payload.capacity,
+            source=payload.source
+        )
+    except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
@@ -2193,6 +2252,21 @@ def run_allocation_endpoint(payload: AllocationRunRequest):
         return run_allocation(allocation_input)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/allocations/catalog")
+def get_allocation_catalog():
+    try:
+        return {
+            "sites": db_ops.get_sites(),
+            "buildings": db_ops.get_buildings(),
+            "rooms": db_ops.get_rooms(),
+            "eventTypes": db_ops.get_event_types(),
+            "bookings": db_ops.get_bookings(),
+            "occupancySignals": db_ops.get_occupancy_signals(),
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.get("/allocations/{run_id}")
@@ -2219,21 +2293,6 @@ def manual_override_endpoint(run_id: str, payload: ManualOverrideRequest):
 @app.post("/allocations/seed")
 def seed_allocation_data(force: bool = False):
     return seed_default_data(force=force)
-
-
-@app.get("/allocations/catalog")
-def get_allocation_catalog():
-    return {
-        "sites": list(sites_store.values()),
-        "buildings": list(buildings_store.values()),
-        "rooms": list(rooms_store.values()),
-        "facilityTypes": list(facility_types_store.values()),
-        "eventTypes": list(event_types_store.values()),
-        "eventProfiles": list(event_profiles_store.values()),
-        "bookings": list(bookings_store.values()),
-        "bookingRooms": booking_rooms_store,
-        "occupancySignals": occupancy_signals_store,
-    }
 
 
 @app.websocket("/pedsim/ws")
