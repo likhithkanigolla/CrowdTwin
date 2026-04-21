@@ -1,0 +1,136 @@
+{
+  "query_center": {
+    "lat": 17.4464,
+    "lng": 78.3487
+  },
+  "source": "user-mapped-priority-buildings",
+  "count": 18,
+  "buildings": [
+    {
+      "name": "OBH-FF",
+      "lat": 17.44476,
+      "lng": 78.34572,
+      "category_hint": "hostel",
+      "note": "UG1 and UG4 residents"
+    },
+    {
+      "name": "Block E, Faculty and Staff Quarters",
+      "lat": 17.44434,
+      "lng": 78.34796,
+      "category_hint": "residential",
+      "note": "Interns and some PhD"
+    },
+    {
+      "name": "Block D, Faculty and Staff Quarters",
+      "lat": 17.44385,
+      "lng": 78.34777,
+      "category_hint": "residential",
+      "note": "Faculty and families"
+    },
+    {
+      "name": "Ananda Nivas",
+      "lat": 17.44397,
+      "lng": 78.34848,
+      "category_hint": "residential",
+      "note": "Faculty and families"
+    },
+    {
+      "name": "Block C, Faculty and Staff QUarters",
+      "lat": 17.44334,
+      "lng": 78.34783,
+      "category_hint": "residential",
+      "note": "Faculty and families"
+    },
+    {
+      "name": "Buddha Nivas",
+      "lat": 17.44331,
+      "lng": 78.34852,
+      "category_hint": "residential",
+      "note": "Faculty and families"
+    },
+    {
+      "name": "Academic Office",
+      "lat": 17.44495,
+      "lng": 78.34989,
+      "category_hint": "research",
+      "note": "Research labs"
+    },
+    {
+      "name": "Himalaya",
+      "lat": 17.44544,
+      "lng": 78.34913,
+      "category_hint": "academics",
+      "note": "Classroom block"
+    },
+    {
+      "name": "T-Hub",
+      "lat": 17.44568,
+      "lng": 78.34882,
+      "category_hint": "research",
+      "note": "Research labs"
+    },
+    {
+      "name": "Building #639403216",
+      "lat": 17.44699,
+      "lng": 78.34685,
+      "category_hint": "girls_hostel",
+      "note": "Girls hostel cluster"
+    },
+    {
+      "name": "Building #639403215",
+      "lat": 17.44730,
+      "lng": 78.34715,
+      "category_hint": "girls_hostel",
+      "note": "Girls hostel cluster"
+    },
+    {
+      "name": "Girls Hostel",
+      "lat": 17.44757,
+      "lng": 78.34741,
+      "category_hint": "girls_hostel",
+      "note": "Girls hostel main"
+    },
+    {
+      "name": "Amphitheater",
+      "lat": 17.44797,
+      "lng": 78.34791,
+      "category_hint": "venue",
+      "note": "Event area"
+    },
+    {
+      "name": "Juice Canteen",
+      "lat": 17.44793,
+      "lng": 78.34758,
+      "category_hint": "canteen",
+      "note": "Food point"
+    },
+    {
+      "name": "Basketball Canteen",
+      "lat": 17.44785,
+      "lng": 78.34753,
+      "category_hint": "canteen",
+      "note": "Food point"
+    },
+    {
+      "name": "Bakul Nivas",
+      "lat": 17.44819,
+      "lng": 78.34850,
+      "category_hint": "hostel",
+      "note": "Mostly UG3 and UG4"
+    },
+    {
+      "name": "SBI ATM - IIIT Hyderabad Main Gate",
+      "lat": 17.44584,
+      "lng": 78.35158,
+      "category_hint": "gate",
+      "note": "Primary entry and exit"
+    },
+    {
+      "name": "New Boys Hostel",
+      "lat": 17.44716,
+      "lng": 78.34760,
+      "category_hint": "hostel",
+      "note": "Mostly MS and PhD"
+    }
+  ]
+}
