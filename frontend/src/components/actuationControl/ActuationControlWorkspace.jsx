@@ -187,11 +187,11 @@ export default function ActuationControlWorkspace() {
             <label className="inline-flex">
               <input type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])} />
               <Button asChild size="sm" variant="outline">
-                <span><Upload className="mr-1 h-3.5 w-3.5" /> Import</span>
+                <span><Upload className="mr-1 h-3.5 w-3.5" /></span>
               </Button>
             </label>
             <Button size="sm" variant="outline" onClick={store.exportJson}>
-              <Download className="mr-1 h-3.5 w-3.5" /> Export
+              <Download className="mr-1 h-3.5 w-3.5" />
             </Button>
             <Button size="sm" variant="ghost" onClick={() => { if (confirm("Reset to seed data? This wipes local edits.")) store.resetToSeed(); }} title="Reset to seed">
               <RotateCcw className="h-4 w-4" />

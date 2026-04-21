@@ -1,0 +1,145 @@
+{
+  "center": {
+    "lat": 17.4464,
+    "lng": 78.3487
+  },
+  "notes": "User-provided PoC mapping used for hardcoded camera generation.",
+  "buildings": [
+    {
+      "id": "obh_ff",
+      "name": "OBH-FF",
+      "lat": 17.44476,
+      "lng": 78.34572,
+      "category": "hostel",
+      "cohorts": ["UG1", "UG4"]
+    },
+    {
+      "id": "block_e_fsq",
+      "name": "Block E, Faculty and Staff Quarters",
+      "lat": 17.44434,
+      "lng": 78.34796,
+      "category": "residential",
+      "cohorts": ["Interns", "PhD"]
+    },
+    {
+      "id": "block_d_fsq",
+      "name": "Block D, Faculty and Staff Quarters",
+      "lat": 17.44385,
+      "lng": 78.34777,
+      "category": "residential",
+      "cohorts": ["Faculty Families"]
+    },
+    {
+      "id": "ananda_nivas",
+      "name": "Ananda Nivas",
+      "lat": 17.44397,
+      "lng": 78.34848,
+      "category": "residential",
+      "cohorts": ["Faculty Families"]
+    },
+    {
+      "id": "block_c_fsq",
+      "name": "Block C, Faculty and Staff QUarters",
+      "lat": 17.44334,
+      "lng": 78.34783,
+      "category": "residential",
+      "cohorts": ["Faculty Families"]
+    },
+    {
+      "id": "buddha_nivas",
+      "name": "Buddha Nivas",
+      "lat": 17.44331,
+      "lng": 78.34852,
+      "category": "residential",
+      "cohorts": ["Faculty Families"]
+    },
+    {
+      "id": "academic_office",
+      "name": "Academic Office",
+      "lat": 17.44495,
+      "lng": 78.34989,
+      "category": "research",
+      "cohorts": ["Research"]
+    },
+    {
+      "id": "himalaya",
+      "name": "Himalaya",
+      "lat": 17.44544,
+      "lng": 78.34913,
+      "category": "classroom",
+      "cohorts": ["Classroom"]
+    },
+    {
+      "id": "t_hub",
+      "name": "T-Hub",
+      "lat": 17.44568,
+      "lng": 78.34882,
+      "category": "research",
+      "cohorts": ["Research Labs"]
+    },
+    {
+      "id": "building_639403216",
+      "name": "Building #639403216",
+      "lat": 17.44699,
+      "lng": 78.34685,
+      "category": "girls_hostel",
+      "cohorts": ["Girls Hostel"]
+    },
+    {
+      "id": "building_639403215",
+      "name": "Building #639403215",
+      "lat": 17.44730,
+      "lng": 78.34715,
+      "category": "girls_hostel",
+      "cohorts": ["Girls Hostel"]
+    },
+    {
+      "id": "girls_hostel",
+      "name": "Girls Hostel",
+      "lat": 17.44757,
+      "lng": 78.34741,
+      "category": "girls_hostel",
+      "cohorts": ["Girls Hostel"]
+    },
+    {
+      "id": "amphitheater",
+      "name": "Amphitheater",
+      "lat": 17.44797,
+      "lng": 78.34791,
+      "category": "venue",
+      "cohorts": ["Events"]
+    },
+    {
+      "id": "juice_canteen",
+      "name": "Juice Canteen",
+      "lat": 17.44793,
+      "lng": 78.34758,
+      "category": "canteen",
+      "cohorts": ["Food"]
+    },
+    {
+      "id": "basketball_canteen",
+      "name": "Basketball Canteen",
+      "lat": 17.44785,
+      "lng": 78.34753,
+      "category": "canteen",
+      "cohorts": ["Food"]
+    },
+    {
+      "id": "bakul_nivas",
+      "name": "Bakul Nivas",
+      "lat": 17.44819,
+      "lng": 78.34850,
+      "category": "hostel",
+      "cohorts": ["UG3", "UG4"]
+    },
+    {
+      "id": "sbi_atm_main_gate",
+      "name": "SBI ATM - IIIT Hyderabad Main Gate",
+      "lat": 17.44584,
+      "lng": 78.35158,
+      "category": "gate",
+      "cohorts": ["Entry Exit"]
+    }
+  ]
+}

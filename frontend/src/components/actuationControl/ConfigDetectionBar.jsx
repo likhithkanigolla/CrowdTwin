@@ -22,7 +22,8 @@ export default function ConfigDetectionBar({
     <div className="flex flex-wrap items-center gap-2 text-xs">
       <Crosshair className="h-3.5 w-3.5 text-primary" />
       <span className="ct-mono text-muted-foreground">
-        {cursor ? `${formatCoord(cursor.lat)}, ${formatCoord(cursor.lng)}` : ""}
+        {/* {cursor ? `${formatCoord(cursor.lat)}, ${formatCoord(cursor.lng)}` : ""} */}
+        {cursor ? `` : ""}
       </span>
 
       {nearest && (

@@ -1,0 +1,361 @@
+{
+  "query_center": {
+    "lat": 17.4464,
+    "lng": 78.3487
+  },
+  "radius_m": 1000,
+  "named_buildings_count": 50,
+  "unnamed_building_footprints_count": 677,
+  "buildings": [
+    {
+      "name": "Academic Office",
+      "lat": 17.4448916,
+      "lng": 78.3498978,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Am- Pm cafe",
+      "lat": 17.4469187,
+      "lng": 78.3532799,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Amphitheater",
+      "lat": 17.4480199,
+      "lng": 78.3479181,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Ananda Nivas",
+      "lat": 17.4438913,
+      "lng": 78.3484402,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Bakul Nivas",
+      "lat": 17.4481725,
+      "lng": 78.3485242,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Bakul warehouse",
+      "lat": 17.4483315,
+      "lng": 78.3481234,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Basketball Canteen",
+      "lat": 17.4478386,
+      "lng": 78.3475256,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 1",
+      "lat": 17.440525,
+      "lng": 78.3466317,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 10",
+      "lat": 17.4409523,
+      "lng": 78.3446428,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 11",
+      "lat": 17.4407936,
+      "lng": 78.3442847,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 12",
+      "lat": 17.4410009,
+      "lng": 78.3438354,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 13",
+      "lat": 17.4413523,
+      "lng": 78.3437251,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 14",
+      "lat": 17.4415025,
+      "lng": 78.3440782,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 15",
+      "lat": 17.4413055,
+      "lng": 78.3445395,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 16",
+      "lat": 17.4411469,
+      "lng": 78.3441895,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 2",
+      "lat": 17.4400829,
+      "lng": 78.3464285,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 3",
+      "lat": 17.4399831,
+      "lng": 78.3460731,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 4",
+      "lat": 17.4403043,
+      "lng": 78.3459148,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 5",
+      "lat": 17.4406352,
+      "lng": 78.3457487,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 6",
+      "lat": 17.4407431,
+      "lng": 78.3461133,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 7",
+      "lat": 17.4403989,
+      "lng": 78.3462742,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 8",
+      "lat": 17.4410489,
+      "lng": 78.3454225,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block 9",
+      "lat": 17.4411136,
+      "lng": 78.3449874,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block C, Faculty and Staff QUarters",
+      "lat": 17.4433255,
+      "lng": 78.3478334,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block D, Faculty and Staff Quarters",
+      "lat": 17.4438313,
+      "lng": 78.3477759,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Block E, Faculty and Staff Quarters",
+      "lat": 17.4443253,
+      "lng": 78.3479581,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Buddha Nivas",
+      "lat": 17.4433235,
+      "lng": 78.3484936,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "C R Rao Advanced Institute of Mathematics, Statistics and Computer Science (AIMSCS)",
+      "lat": 17.4521098,
+      "lng": 78.3412348,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Canteen",
+      "lat": 17.4457432,
+      "lng": 78.3471695,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "David's",
+      "lat": 17.4458868,
+      "lng": 78.347087,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "dlf",
+      "lat": 17.4475018,
+      "lng": 78.355294,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Dr. Reddy's Institute of Life Sciences (DRILS)",
+      "lat": 17.4505101,
+      "lng": 78.3422657,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Ellaa Hotel",
+      "lat": 17.4419061,
+      "lng": 78.3444569,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "EPTRI Hostel",
+      "lat": 17.4387944,
+      "lng": 78.3520704,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Girls Hostel",
+      "lat": 17.4476,
+      "lng": 78.3474226,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "globallogic",
+      "lat": 17.4479642,
+      "lng": 78.3555042,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "GMC Balayogi SATS Indoor Stadium",
+      "lat": 17.4481155,
+      "lng": 78.3451562,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Haniman Temple",
+      "lat": 17.4420158,
+      "lng": 78.3561818,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Himalaya",
+      "lat": 17.4454294,
+      "lng": 78.3491398,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "IDBI Bank",
+      "lat": 17.4443705,
+      "lng": 78.3525868,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Juice Canteen",
+      "lat": 17.4479355,
+      "lng": 78.3475844,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Kohli Center on Intelligent Systems(KCIS)",
+      "lat": 17.4450861,
+      "lng": 78.3495595,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "New Boys Hostel",
+      "lat": 17.4471555,
+      "lng": 78.3474627,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Nilgiri",
+      "lat": 17.4472347,
+      "lng": 78.3487219,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "OBH-FF",
+      "lat": 17.4447395,
+      "lng": 78.3457172,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "PSR Prime Towers",
+      "lat": 17.447021,
+      "lng": 78.3541704,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "SBI ATM - IIIT Hyderabad Main Gate",
+      "lat": 17.4458345,
+      "lng": 78.3515742,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Sri Padmavathi Venkateshwara Temple",
+      "lat": 17.4420319,
+      "lng": 78.3559472,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "T-Hub",
+      "lat": 17.4457222,
+      "lng": 78.3488215,
+      "source": "osm-overpass",
+      "mapped_category": null
+    },
+    {
+      "name": "Vindhya",
+      "lat": 17.4458109,
+      "lng": 78.3498467,
+      "source": "osm-overpass",
+      "mapped_category": null
+    }
+  ]
+}
