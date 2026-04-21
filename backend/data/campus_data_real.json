@@ -1,0 +1,3430 @@
+{
+  "rooms": [
+    "B4302",
+    "B4304",
+    "CR1",
+    "H101",
+    "H102",
+    "H103",
+    "H104",
+    "H105",
+    "H201",
+    "H202",
+    "H203",
+    "H204",
+    "H205",
+    "H301",
+    "H302",
+    "H303",
+    "H304",
+    "SH1",
+    "SH2",
+    "SH3"
+  ],
+  "courses": {
+    "Introduction to Software Systems (H)": {
+      "course_id": "CS6.201",
+      "name": "Introduction to Software Systems (H)",
+      "credits": "1-0-3-2",
+      "faculty": "Anil Nelakanti + Anoop Namboodiri"
+    },
+    "Data Structures and Algorithms": {
+      "course_id": "CS1.201",
+      "name": "Data Structures and Algorithms",
+      "credits": "3-1-3-5",
+      "faculty": "Lini Thomas + Kshitij Gajjar + Raghavendra"
+    },
+    "Computer Systems Organization": {
+      "course_id": "CS2.201",
+      "name": "Computer Systems Organization",
+      "credits": "3-1-0-4",
+      "faculty": "Deepak Gangadhar + Abhishek Kumar Singh"
+    },
+    "Introduction to IoT": {
+      "course_id": "CS3.303",
+      "name": "Introduction to IoT",
+      "credits": "1-0-3-3",
+      "faculty": "Kavitha V + Suresh Purini"
+    },
+    "Linear Algebra": {
+      "course_id": "MA2.101",
+      "name": "Linear Algebra",
+      "credits": "3-1-0-4",
+      "faculty": "Atul Singh Arora + Siddhartha Das + Gowtham Kurri"
+    },
+    "Arts-2 (H1&H2)": {
+      "course_id": "OC2.102",
+      "name": "Arts-2 (H1&H2)",
+      "credits": "2-0-0-2",
+      "faculty": "Saroja TK (Coordinator)"
+    },
+    "Sports-2": {
+      "course_id": "OC1.102",
+      "name": "Sports-2",
+      "credits": "0-2-0-1",
+      "faculty": "Physical Education Centre"
+    },
+    "Analog Electronic Circuits": {
+      "course_id": "EC2.103",
+      "name": "Analog Electronic Circuits",
+      "credits": "3-1-3-5",
+      "faculty": "Zia Abbas"
+    },
+    "Information and Communication": {
+      "course_id": "EC5.102",
+      "name": "Information and Communication",
+      "credits": "3-1-0-4",
+      "faculty": "Arti Yardi + Lalitha V"
+    },
+    "Computing in Sciences II (H2)": {
+      "course_id": "SC4.102",
+      "name": "Computing in Sciences II (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Abhishek Deshpande"
+    },
+    "Classical Mechanics (H1)": {
+      "course_id": "SC1.102",
+      "name": "Classical Mechanics (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Diganta Das"
+    },
+    "Electrodynamics (H2)": {
+      "course_id": "SC1.101",
+      "name": "Electrodynamics (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Diganta Das"
+    },
+    "General and Structural Chemistry": {
+      "course_id": "SC2.101",
+      "name": "General and Structural Chemistry",
+      "credits": "3-1-0-4",
+      "faculty": "Tapan K Sau"
+    },
+    "Introduction to Linguistics II": {
+      "course_id": "CL1.102",
+      "name": "Introduction to Linguistics II",
+      "credits": "3-1-0-4",
+      "faculty": "Aditi Mukherjee"
+    },
+    "Computational Linguistics 1": {
+      "course_id": "CL3.101",
+      "name": "Computational Linguistics 1",
+      "credits": "3-1-0-4",
+      "faculty": "Parameshwari Krishnamurthy + Manish Shrivastava"
+    },
+    "Making of Contemporary World": {
+      "course_id": "HS8.101",
+      "name": "Making of Contemporary World",
+      "credits": "3-1-0-4",
+      "faculty": "Khaliq Parkar + Angarika Rakshit"
+    },
+    "Thinking and Knowing in the Human Sciences-I": {
+      "course_id": "HS0.201",
+      "name": "Thinking and Knowing in the Human Sciences-I",
+      "credits": "3-1-0-4",
+      "faculty": "Saurabh Todariya + Nazia Akhtar"
+    },
+    "Introduction to Spatial Sciences & Technology (H2)": {
+      "course_id": "GS0.301",
+      "name": "Introduction to Spatial Sciences & Technology (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "RC Prasad + Kuldeep K"
+    },
+    "Design and Analysis of Software Systems": {
+      "course_id": "CS6.301",
+      "name": "Design and Analysis of Software Systems",
+      "credits": "3-1-0-4",
+      "faculty": "Raghu Reddy"
+    },
+    "Machine, Data and Learning": {
+      "course_id": "CS7.301",
+      "name": "Machine, Data and Learning",
+      "credits": "3-1-0-4",
+      "faculty": "Sujit Gujar + Praveen P"
+    },
+    "Intro to Human Sciences": {
+      "course_id": "HS8.102a",
+      "name": "Intro to Human Sciences",
+      "credits": "3-1-0-4",
+      "faculty": "Coordinated by Aniket Alam + Ashwin J (co-taught by 6 HSRC teachers)"
+    },
+    "Science II": {
+      "course_id": "SC1.111b",
+      "name": "Science II",
+      "credits": "3-1-0-4",
+      "faculty": "Chittaranjan Hens and Prabhakar B"
+    },
+    "Value Education II (H)": {
+      "course_id": "OC3.102",
+      "name": "Value Education II (H)",
+      "credits": "0-2-0-2",
+      "faculty": "Anil Kumar V + Indranil Ch (Coordinator)"
+    },
+    "Sports-4": {
+      "course_id": "OC2.104",
+      "name": "Sports-4",
+      "credits": "0-2-0-1",
+      "faculty": "Physical Education Centre"
+    },
+    "Introduction to Information Security (H1)": {
+      "course_id": "CS8.301",
+      "name": "Introduction to Information Security (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Ankit Gangwal"
+    },
+    "Introduction to Coding Theory (H2)": {
+      "course_id": "EC5.205",
+      "name": "Introduction to Coding Theory (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Lalitha V"
+    },
+    "Introduction to Algorithms Engineering(H2)": {
+      "course_id": "CS1.305",
+      "name": "Introduction to Algorithms Engineering(H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Kishore Kothapalli"
+    },
+    "Introduction to Quantum Information and Computation (H1)": {
+      "course_id": "CS9.312",
+      "name": "Introduction to Quantum Information and Computation (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Uttam Singh"
+    },
+    "Numerical Algorithms (H1)": {
+      "course_id": "CS1.306",
+      "name": "Numerical Algorithms (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Pawan Kumar"
+    },
+    "The Mathematics of Information: Theory & Application (H1)": {
+      "course_id": "EC5.207",
+      "name": "The Mathematics of Information: Theory & Application (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Prasad Krishnan"
+    },
+    "Foundations for Trustworthy Parallel Computing (H2)": {
+      "course_id": "CS6.303",
+      "name": "Foundations for Trustworthy Parallel Computing (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Abhishek Kumar Singh"
+    },
+    "Digital Signal Analysis (H2)": {
+      "course_id": "CS7.303",
+      "name": "Digital Signal Analysis (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Chiranjeevi Yarra"
+    },
+    "Data Visualisation (H1) - Max (45)": {
+      "course_id": "CS4.302",
+      "name": "Data Visualisation (H1) - Max (45)",
+      "credits": "2-0-1-2",
+      "faculty": "Kamal Karlapalem"
+    },
+    "Introduction to Brain and Cognition (H2)": {
+      "course_id": "CS9.311",
+      "name": "Introduction to Brain and Cognition (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Bapi Raju S"
+    },
+    "Computer Graphics (H2)": {
+      "course_id": "CS7.302",
+      "name": "Computer Graphics (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Raghavendra GS + PJ Narayanan"
+    },
+    "Performance Modeling of Computer Systems (H1)": {
+      "course_id": "CS3.307",
+      "name": "Performance Modeling of Computer Systems (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Tejas Bodas"
+    },
+    "Software Programming for Performance (H1)": {
+      "course_id": "CS3.302",
+      "name": "Software Programming for Performance (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Suresh Purini"
+    },
+    "Engineering Virtual Reality Systems (H)": {
+      "course_id": "CS6.402",
+      "name": "Engineering Virtual Reality Systems (H)",
+      "credits": "3-1-0-2",
+      "faculty": "Sai Anirudh Karre+Raghu Reddy"
+    },
+    "Intro to Robotics: Perception and Planning (H1) - Max:20": {
+      "course_id": "EC4.202",
+      "name": "Intro to Robotics: Perception and Planning (H1) - Max:20",
+      "credits": "3-1-0-2",
+      "faculty": "K Madhava Krishna + Antony Thomas"
+    },
+    "Communication Theory": {
+      "course_id": "EC5.203",
+      "name": "Communication Theory",
+      "credits": "3-1-0-4",
+      "faculty": "Sachin Chaudhari"
+    },
+    "Electronics Workshop II": {
+      "course_id": "EC2.202",
+      "name": "Electronics Workshop II",
+      "credits": "0-1-3-4",
+      "faculty": "Arti Yardi + Priyesh Shukla"
+    },
+    "Intro to Processor Architecture (H1)": {
+      "course_id": "EC2.204",
+      "name": "Intro to Processor Architecture (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Priyesh Shukla"
+    },
+    "Sports-4 (for LED Sports-2)": {
+      "course_id": "OC1.104",
+      "name": "Sports-4 (for LED Sports-2)",
+      "credits": "0-2-0-1",
+      "faculty": "Physical Education Centre"
+    },
+    "Introduction to Statistical Signal Processing (H2)": {
+      "course_id": "EC5.206",
+      "name": "Introduction to Statistical Signal Processing (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Santosh Nannuru"
+    },
+    "Intro to Robotics: Perception and Planning (H1)": {
+      "course_id": "EC4.202",
+      "name": "Intro to Robotics: Perception and Planning (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "K Madhava Krishna + Antony Thomas"
+    },
+    "Foundations of RF and Microwave Sensors (H2)": {
+      "course_id": "EC2.206",
+      "name": "Foundations of RF and Microwave Sensors (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Andleeb Zahra"
+    },
+    "Intro to VLSI and Embedded Systems (H1)": {
+      "course_id": "EC2.207",
+      "name": "Intro to VLSI and Embedded Systems (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Aftab Hussain (Coordinator)"
+    },
+    "Thermodynamics (H1)": {
+      "course_id": "SC1.204",
+      "name": "Thermodynamics (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Harjinder Singh"
+    },
+    "Statistical Mechanics (H2)": {
+      "course_id": "SC1.205",
+      "name": "Statistical Mechanics (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Marimutu Krishnan"
+    },
+    "Biomolecular Structures (H1)": {
+      "course_id": "SC2.203",
+      "name": "Biomolecular Structures (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Deva Priyakumar"
+    },
+    "Organic Chemistry (H2)": {
+      "course_id": "SC2.202",
+      "name": "Organic Chemistry (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Prabhakar Bhimalpuram"
+    },
+    "Science Lab II (H)": {
+      "course_id": "SC4.111",
+      "name": "Science Lab II (H)",
+      "credits": "0-0-3-2",
+      "faculty": "Tapan Kumar Sau + Chittaranjan Hens"
+    },
+    "Language Typology and Universals": {
+      "course_id": "CL2.204",
+      "name": "Language Typology and Universals",
+      "credits": "3-1-0-4",
+      "faculty": "Radhika Mamidi"
+    },
+    "Introduction to NLP": {
+      "course_id": "CS7.401",
+      "name": "Introduction to NLP",
+      "credits": "3-1-0-4",
+      "faculty": "Manish Shrivastava + Parameshwari Krishnamurthy"
+    },
+    "Introduction to Human Sciences": {
+      "course_id": "HS8.102a",
+      "name": "Introduction to Human Sciences",
+      "credits": "3-1-0-4",
+      "faculty": "Coordinated by Aniket Alam + Ashwin J (co- taught by 6 HSRC teachers)"
+    },
+    "Research Methods in Human Sciences": {
+      "course_id": "HS0.302",
+      "name": "Research Methods in Human Sciences",
+      "credits": "3-1-0-4",
+      "faculty": "Anirban Dasgupa + Rajorshi Ray"
+    },
+    "Science, Technology and Society": {
+      "course_id": "HS7.301",
+      "name": "Science, Technology and Society",
+      "credits": "3-1-0-4",
+      "faculty": "Radhika Krishnan"
+    },
+    "Knowing India Through Data (H2)": {
+      "course_id": "HS8.305",
+      "name": "Knowing India Through Data (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Angarika Rakshit"
+    },
+    "Optical Remote Sensing": {
+      "course_id": "GS1.401",
+      "name": "Optical Remote Sensing",
+      "credits": "3-1-0-4",
+      "faculty": "RC Prasad + Kiran Chand T"
+    },
+    "Geospatial for Sustainable Development (Project based)": {
+      "course_id": "GS3.401",
+      "name": "Geospatial for Sustainable Development (Project based)",
+      "credits": "3-1-0-4",
+      "faculty": "T R Kiran Chand (Faculty Coordinator)"
+    },
+    "Theory/Foundation Breadth Elective \u2013 2": {
+      "course_id": "CSx.3nn",
+      "name": "Theory/Foundation Breadth Elective \u2013 2",
+      "credits": "3-1-0-2",
+      "faculty": "List is available under UG2 CSE/D courses"
+    },
+    "Value Education-2": {
+      "course_id": "OC3.102",
+      "name": "Value Education-2",
+      "credits": "0-2-0-2",
+      "faculty": "Anil Kumar V + Indranil Ch (Coordinator)"
+    },
+    "BTP I / CSE-Honours Project 2": {
+      "course_id": "CS9.301/C\nS9.303",
+      "name": "BTP I / CSE-Honours Project 2",
+      "credits": "0-2-6-2",
+      "faculty": ""
+    },
+    "CSE-Honours Project 2": {
+      "course_id": "CS9.303",
+      "name": "CSE-Honours Project 2",
+      "credits": "0-2-6-2",
+      "faculty": ""
+    },
+    "BTP-I/ECE-Honours Project 2": {
+      "course_id": "EC9.301/E\nC9.303",
+      "name": "BTP-I/ECE-Honours Project 2",
+      "credits": "0-2-6-2",
+      "faculty": ""
+    },
+    "ECE-Honours Project 2": {
+      "course_id": "EC9.303",
+      "name": "ECE-Honours Project 2",
+      "credits": "0-2-6-2",
+      "faculty": ""
+    },
+    "CNS-Honours Project II": {
+      "course_id": "SC9.303",
+      "name": "CNS-Honours Project II",
+      "credits": "0-2-6-2",
+      "faculty": ""
+    },
+    "CCNSB Seminar": {
+      "course_id": "SC9.600",
+      "name": "CCNSB Seminar",
+      "credits": "0 Cr",
+      "faculty": "Abhishek Deshpande"
+    },
+    "CL-Honours Project 2": {
+      "course_id": "CL9.303",
+      "name": "CL-Honours Project 2",
+      "credits": "0-2-6-2",
+      "faculty": ""
+    },
+    "HS-Honours Project 2": {
+      "course_id": "HS9.303",
+      "name": "HS-Honours Project 2",
+      "credits": "0-2-6-2",
+      "faculty": ""
+    },
+    "CS-Honours Project 4": {
+      "course_id": "CS9.403",
+      "name": "CS-Honours Project 4",
+      "credits": "0-2-6-2",
+      "faculty": ""
+    },
+    "ECE-Honours Project 4": {
+      "course_id": "EC9.403",
+      "name": "ECE-Honours Project 4",
+      "credits": "0-2-6-2",
+      "faculty": ""
+    },
+    "CNS-Honours Project 4": {
+      "course_id": "SC9.403",
+      "name": "CNS-Honours Project 4",
+      "credits": "0-2-6-2",
+      "faculty": ""
+    },
+    "CCNSB Seminar 4": {
+      "course_id": "SC9.600",
+      "name": "CCNSB Seminar 4",
+      "credits": "0 Cr",
+      "faculty": "Abhishek Deshpande"
+    },
+    "CL-Honours Project 4": {
+      "course_id": "CL9.403",
+      "name": "CL-Honours Project 4",
+      "credits": "0-2-6-2",
+      "faculty": ""
+    },
+    "HS-Honours Project 4": {
+      "course_id": "HS9.403",
+      "name": "HS-Honours Project 4",
+      "credits": "0-2-6-2",
+      "faculty": ""
+    },
+    "Classical Text Readings II": {
+      "course_id": "HS8.302",
+      "name": "Classical Text Readings II",
+      "credits": "3-1-0-4",
+      "faculty": "Radhika Krishnan (Coordinator)"
+    },
+    "Basics of Ethics (H1 + H2)": {
+      "course_id": "HS0.203a",
+      "name": "Basics of Ethics (H1 + H2)",
+      "credits": "3-0-0-2",
+      "faculty": "Saurabh Todariya + Guest faculty"
+    },
+    "Language and Power (H1)": {
+      "course_id": "HS0.220",
+      "name": "Language and Power (H1)",
+      "credits": "3-0-0-2",
+      "faculty": "Priya Prithiviraj"
+    },
+    "Ethics and the Digital Society (H1)": {
+      "course_id": "HS0.217",
+      "name": "Ethics and the Digital Society (H1)",
+      "credits": "3-0-0-2",
+      "faculty": "Nimmi Rangaswamy"
+    },
+    "Literature and the Ethics of telling a Story (H2)": {
+      "course_id": "HS0.210",
+      "name": "Literature and the Ethics of telling a Story (H2)",
+      "credits": "3-0-0-2",
+      "faculty": "Sushmita Banerji"
+    },
+    "Ethics in Research (H2)": {
+      "course_id": "HS0.218a",
+      "name": "Ethics in Research (H2)",
+      "credits": "3-0-0-2",
+      "faculty": "Priyanka Srivastava + Bhaktee Dongaonkar"
+    },
+    "AI and Human Rights (H1)": {
+      "course_id": "HS0.215",
+      "name": "AI and Human Rights (H1)",
+      "credits": "3-0-0-2",
+      "faculty": "Aakansha Natani"
+    },
+    "Constitutional Ethics (H2)": {
+      "course_id": "HS0.221",
+      "name": "Constitutional Ethics (H2)",
+      "credits": "3-0-0-2",
+      "faculty": "Khaliq Parkar"
+    },
+    "Thesis": {
+      "course_id": "EC9.605",
+      "name": "Thesis",
+      "credits": "12 Cr",
+      "faculty": ""
+    },
+    "Institute Seminar": {
+      "course_id": "OC9.600",
+      "name": "Institute Seminar",
+      "credits": "1 Cr",
+      "faculty": ""
+    },
+    "CCNSB seminar - 5": {
+      "course_id": "SC9.600",
+      "name": "CCNSB seminar - 5",
+      "credits": "0 Cr",
+      "faculty": ""
+    },
+    "System and Network Security": {
+      "course_id": "CS8.403",
+      "name": "System and Network Security",
+      "credits": "3-1-0-4",
+      "faculty": "Ashok Kumar Das"
+    },
+    "Principles of Information Security": {
+      "course_id": "CS8.401",
+      "name": "Principles of Information Security",
+      "credits": "3-1-0-4",
+      "faculty": "Kannan Srinathan"
+    },
+    "PG-Project": {
+      "course_id": "CS9.412",
+      "name": "PG-Project",
+      "credits": "0-2-6-4",
+      "faculty": ""
+    },
+    "Information Security Audit and Assurance": {
+      "course_id": "CS8.402",
+      "name": "Information Security Audit and Assurance",
+      "credits": "3-1-0-4",
+      "faculty": "Shatrunjay Rawat"
+    },
+    "Computing Tools": {
+      "course_id": "CS0.302",
+      "name": "Computing Tools",
+      "credits": "3-1-3-4",
+      "faculty": "Vikram Pudi"
+    },
+    "CASE Project": {
+      "course_id": "CE9.403",
+      "name": "CASE Project",
+      "credits": "0-2-6-12",
+      "faculty": ""
+    },
+    "Business Finance": {
+      "course_id": "PD2.422",
+      "name": "Business Finance",
+      "credits": "3-1-0-4",
+      "faculty": "Dr. Sarath Babu A (Guest Faculty)"
+    },
+    "PDM Seminar": {
+      "course_id": "PD9.602",
+      "name": "PDM Seminar",
+      "credits": "0Cr",
+      "faculty": "Guest Speakers"
+    },
+    "PDM Project-4": {
+      "course_id": "PD9.404",
+      "name": "PDM Project-4",
+      "credits": "0-2-6-12",
+      "faculty": ""
+    },
+    "Optimization Methods": {
+      "course_id": "CS1.404",
+      "name": "Optimization Methods",
+      "credits": "3-1-0-4",
+      "faculty": "Naresh Manwani"
+    },
+    "Advanced Algorithms": {
+      "course_id": "CS1.406",
+      "name": "Advanced Algorithms",
+      "credits": "3-1-0-4",
+      "faculty": "Suryajith Ch"
+    },
+    "Data Systems (Max:160)": {
+      "course_id": "CS4.401",
+      "name": "Data Systems (Max:160)",
+      "credits": "3-1-0-4",
+      "faculty": "Kamal Karlapalem"
+    },
+    "Software Engineering": {
+      "course_id": "CS6.401",
+      "name": "Software Engineering",
+      "credits": "3-1-0-4",
+      "faculty": "Karthik Vaidhyanathan"
+    },
+    "Distributed Systems Prerequisite: Operating Systems. Networks desirable": {
+      "course_id": "CS3.401",
+      "name": "Distributed Systems Prerequisite: Operating Systems. Networks desirable",
+      "credits": "3-1-0-4",
+      "faculty": "Lini Thomas"
+    },
+    "Compilers": {
+      "course_id": "CS1.403",
+      "name": "Compilers",
+      "credits": "3-1-0-4",
+      "faculty": "Venkatesh Choppella"
+    },
+    "Statistical Methods in AI": {
+      "course_id": "CS7.403",
+      "name": "Statistical Methods in AI",
+      "credits": "3-1-0-4",
+      "faculty": "Vineet Gandhi + CV Jawahar"
+    },
+    "Computer Vision": {
+      "course_id": "CS7.505",
+      "name": "Computer Vision",
+      "credits": "3-1-0-4",
+      "faculty": "Makarand Tapaswi + Charu Sharma"
+    },
+    "Mechatronics System Design": {
+      "course_id": "EC4.404",
+      "name": "Mechatronics System Design",
+      "credits": "3-1-0-4",
+      "faculty": "Harikumar K + Antony Thomas"
+    },
+    "Spatial Data Sciences": {
+      "course_id": "GS2.503",
+      "name": "Spatial Data Sciences",
+      "credits": "3-1-0-4",
+      "faculty": "Kuldeep Kurte + KS Rajan"
+    },
+    "Growth and Development": {
+      "course_id": "HS5.301",
+      "name": "Growth and Development",
+      "credits": "3-1-0-4",
+      "faculty": "Anirban Dasgupta"
+    },
+    "Introduction to Philosophy of Technology": {
+      "course_id": "HS0.305",
+      "name": "Introduction to Philosophy of Technology",
+      "credits": "3-1-0-4",
+      "faculty": "Ashwin Jayanti"
+    },
+    "Readings in Russian Literature": {
+      "course_id": "HS1.302",
+      "name": "Readings in Russian Literature",
+      "credits": "3-1-0-4",
+      "faculty": "Nazia Akhtar"
+    },
+    "Critical Viewing and Reading": {
+      "course_id": "HS1.301",
+      "name": "Critical Viewing and Reading",
+      "credits": "3-1-0-4",
+      "faculty": "Sushmita Banerji"
+    },
+    "Digital Democracy and Data Governance in the European Union": {
+      "course_id": "HS4.303",
+      "name": "Digital Democracy and Data Governance in the European Union",
+      "credits": "3-1-0-4",
+      "faculty": "Aakansha Natani"
+    },
+    "Theories and Practices of Nationalism": {
+      "course_id": "HS3.303",
+      "name": "Theories and Practices of Nationalism",
+      "credits": "3-1-0-4",
+      "faculty": "Aniket Alam"
+    },
+    "Sociology of Platform Economies": {
+      "course_id": "HS2.304",
+      "name": "Sociology of Platform Economies",
+      "credits": "3-1-0-4",
+      "faculty": "Rajorshi Ray"
+    },
+    "The Digital City": {
+      "course_id": "HS8.304",
+      "name": "The Digital City",
+      "credits": "3-1-0-4",
+      "faculty": "Khaliq Parkar"
+    },
+    "Machine Learning for Natural Sciences": {
+      "course_id": "SC4.411",
+      "name": "Machine Learning for Natural Sciences",
+      "credits": "3-1-0-4",
+      "faculty": "Vinod PK + Deva Priyakumar + Prabhakar B"
+    },
+    "Physics of Soft Condensed Matter": {
+      "course_id": "SC2.301",
+      "name": "Physics of Soft Condensed Matter",
+      "credits": "3-1-0-4",
+      "faculty": "Marimuthu Krishnan"
+    },
+    "Molecular Modeling and Simulations": {
+      "course_id": "SC2.316",
+      "name": "Molecular Modeling and Simulations",
+      "credits": "3-1-0-4",
+      "faculty": "Marimuthu Krishnan + Deva Priyakumar"
+    },
+    "Mathematical Models in Biology": {
+      "course_id": "SC3.316",
+      "name": "Mathematical Models in Biology",
+      "credits": "3-1-0-4",
+      "faculty": "Abhishek Deshpande"
+    },
+    "Mathematical Methods in Sciences": {
+      "course_id": "SC5.450",
+      "name": "Mathematical Methods in Sciences",
+      "credits": "3-1-0-4",
+      "faculty": "Monalisa Patra"
+    },
+    "Introduction to Particle Physics": {
+      "course_id": "SC1.420",
+      "name": "Introduction to Particle Physics",
+      "credits": "3-1-0-4",
+      "faculty": "Subhadip Mitra"
+    },
+    "Molecular Biology": {
+      "course_id": "SC3.404",
+      "name": "Molecular Biology",
+      "credits": "3-1-0-4",
+      "faculty": "Jagan Pongubala"
+    },
+    "NGS Data Analysis": {
+      "course_id": "SC3.410",
+      "name": "NGS Data Analysis",
+      "credits": "3-1-0-4",
+      "faculty": "Nita Parekh"
+    },
+    "Computational Psycholinguistics": {
+      "course_id": "CL2.404",
+      "name": "Computational Psycholinguistics",
+      "credits": "3-1-0-4",
+      "faculty": "Rajakrishnan P Rajkumar"
+    },
+    "Topics in SSMT": {
+      "course_id": "CL5.401",
+      "name": "Topics in SSMT",
+      "credits": "3-1-0-4",
+      "faculty": "Chiranjeevi Yerra + Parameswari Krishnamurthy"
+    },
+    "Speech Signal Processing": {
+      "course_id": "EC5.408",
+      "name": "Speech Signal Processing",
+      "credits": "3-1-0-4",
+      "faculty": "Anil Kumar Vuppala"
+    },
+    "Applications of Language Models Max.25": {
+      "course_id": "CL3.408",
+      "name": "Applications of Language Models Max.25",
+      "credits": "3-1-0-4",
+      "faculty": "Vasudeva Varma"
+    },
+    "Evaluation Methods for NLP (H2)": {
+      "course_id": "CL3.409",
+      "name": "Evaluation Methods for NLP (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Manish Shrivastava + Parameswari Krishnamurthy"
+    },
+    "Linguistic Data 3: Data Modeling in ILs (H1)": {
+      "course_id": "CL3.406",
+      "name": "Linguistic Data 3: Data Modeling in ILs (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Rajakrishnan P Rajkumar"
+    },
+    "Information-Theoretic Methods in Computer Science": {
+      "course_id": "CS1.502",
+      "name": "Information-Theoretic Methods in Computer Science",
+      "credits": "3-1-0-4",
+      "faculty": "Gowtham Kurri"
+    },
+    "Machine Learning for Communication": {
+      "course_id": "EC5.414",
+      "name": "Machine Learning for Communication",
+      "credits": "3-1-0-4",
+      "faculty": "Saikiran Bulusu"
+    },
+    "Analog IC Design": {
+      "course_id": "EC2.401",
+      "name": "Analog IC Design",
+      "credits": "3-1-0-4",
+      "faculty": "Abhishek Srivastava"
+    },
+    "Flexible Electronics": {
+      "course_id": "EC2.502",
+      "name": "Flexible Electronics",
+      "credits": "3-1-0-4",
+      "faculty": "Aftab Hussain"
+    },
+    "Instrumentation and Devices": {
+      "course_id": "EC2.413",
+      "name": "Instrumentation and Devices",
+      "credits": "3-1-0-4",
+      "faculty": "Anshu Sarje"
+    },
+    "CMOS Oscillator Design": {
+      "course_id": "EC2.412",
+      "name": "CMOS Oscillator Design",
+      "credits": "3-1-0-4",
+      "faculty": "Abhishek Pullela"
+    },
+    "Intro to UAV Design": {
+      "course_id": "EC4.402",
+      "name": "Intro to UAV Design",
+      "credits": "3-1-0-4",
+      "faculty": "Harikumar K"
+    },
+    "Robotics: Planning and Navigation": {
+      "course_id": "EC4.403",
+      "name": "Robotics: Planning and Navigation",
+      "credits": "3-1-0-4",
+      "faculty": "Madhava Krishna K + Antony thomas"
+    },
+    "Advanced Structural Analysis": {
+      "course_id": "CE1.603",
+      "name": "Advanced Structural Analysis",
+      "credits": "3-1-0-4",
+      "faculty": "Pravin Kumar Venkat Rao"
+    },
+    "Analysis & Design of Precast and Prestressed Structures": {
+      "course_id": "CE1.608",
+      "name": "Analysis & Design of Precast and Prestressed Structures",
+      "credits": "3-1-0-4",
+      "faculty": "Shubham Singhal"
+    },
+    "Analysis and Design of Bridge Infrastructure": {
+      "course_id": "CE1.609",
+      "name": "Analysis and Design of Bridge Infrastructure",
+      "credits": "3-1-0-4",
+      "faculty": "Jofin George"
+    },
+    "Earthquake Engineering": {
+      "course_id": "CE1.601",
+      "name": "Earthquake Engineering",
+      "credits": "3-1-0-4",
+      "faculty": "Sunitha P"
+    },
+    "Product Design Workshop": {
+      "course_id": "PD1.411",
+      "name": "Product Design Workshop",
+      "credits": "3-1-0-4",
+      "faculty": "Prakash Yalla+Raghu Reddy"
+    },
+    "User Interaction and Usability of Digital Products": {
+      "course_id": "CS5.401",
+      "name": "User Interaction and Usability of Digital Products",
+      "credits": "3-1-0-4",
+      "faculty": "Raman Saxena"
+    },
+    "Technology Product Entrepreneurship": {
+      "course_id": "CS9.424",
+      "name": "Technology Product Entrepreneurship",
+      "credits": "3-1-0-4",
+      "faculty": "Ramesh Loganathan + Prakash Yalla"
+    },
+    "Sustainable Growth Strategy for Startup (H1)": {
+      "course_id": "PD2.403",
+      "name": "Sustainable Growth Strategy for Startup (H1)",
+      "credits": "3-1-0-2",
+      "faculty": "Sridhar Kalyanasundaram"
+    },
+    "Product Lifecycle Management": {
+      "course_id": "PD2.502",
+      "name": "Product Lifecycle Management",
+      "credits": "3-1-0-4",
+      "faculty": "Ravi Warrier"
+    },
+    "Introduction to Game Theory": {
+      "course_id": "CS1.408",
+      "name": "Introduction to Game Theory",
+      "credits": "3-1-0-4",
+      "faculty": "Sujit Gujar"
+    },
+    "Internals of Application Servers": {
+      "course_id": "CS3.404",
+      "name": "Internals of Application Servers",
+      "credits": "3-1-0-4",
+      "faculty": "Ramesh Loganathan + Arjun Rajashekar"
+    },
+    "Cognitive Science and AI": {
+      "course_id": "CG3.501",
+      "name": "Cognitive Science and AI",
+      "credits": "3-1-0-4",
+      "faculty": "Bapi Raju S"
+    },
+    "Behavioral Research: Statistical Methods": {
+      "course_id": "CG3.403",
+      "name": "Behavioral Research: Statistical Methods",
+      "credits": "3-0-1-4",
+      "faculty": "Vishnu Sreekumar + Bapi Raju S"
+    },
+    "Cognitive Neuroscience (Max:80)": {
+      "course_id": "CG2.401",
+      "name": "Cognitive Neuroscience (Max:80)",
+      "credits": "3-1-0-4",
+      "faculty": "Bhaktee Dongaonkar"
+    },
+    "Topics in Reinforcement Learning": {
+      "course_id": "CS7.603",
+      "name": "Topics in Reinforcement Learning",
+      "credits": "3-1-0-4",
+      "faculty": "Tejas Bodas + Harikumar K"
+    },
+    "Cognitive Science Seminar (For Cognitive Sci Students)": {
+      "course_id": "CG9.600",
+      "name": "Cognitive Science Seminar (For Cognitive Sci Students)",
+      "credits": "0-2-0-0",
+      "faculty": "Bapi Raju S + Priyanka Srivastava"
+    },
+    "Quantum Algorithms": {
+      "course_id": "CS1.409",
+      "name": "Quantum Algorithms",
+      "credits": "3-1-0-4",
+      "faculty": "Shantanav Chakraborty"
+    },
+    "Responsible & Safe AI Systems": {
+      "course_id": "CS7.405",
+      "name": "Responsible & Safe AI Systems",
+      "credits": "3-1-0-4",
+      "faculty": "Ponnurangam Kumaraguru"
+    },
+    "Quantum aspects of Cryptography": {
+      "course_id": "CS1.505",
+      "name": "Quantum aspects of Cryptography",
+      "credits": "3-1-0-4",
+      "faculty": "Atul Singh Arora"
+    },
+    "Learning and Memory (Max 70)": {
+      "course_id": "CG1.403",
+      "name": "Learning and Memory (Max 70)",
+      "credits": "3-1-0-4",
+      "faculty": "Bhaktee Dongaonkar"
+    },
+    "Art, Vision, & Feelings (H2)": {
+      "course_id": "CG5.405",
+      "name": "Art, Vision, & Feelings (H2)",
+      "credits": "3-1-0-2",
+      "faculty": "Priyanka Srivastava + Shrikant Bharadwaj, LVPEI"
+    },
+    "Law, Technology and Digital Governance": {
+      "course_id": "CS6.504",
+      "name": "Law, Technology and Digital Governance",
+      "credits": "3-1-0-4",
+      "faculty": "Raman Saxena + G.K. Goswami"
+    },
+    "Mathematics for Finance - Max:25 - Selection by faculty": {
+      "course_id": "MA8.402",
+      "name": "Mathematics for Finance - Max:25 - Selection by faculty",
+      "credits": "3-1-0-4",
+      "faculty": "Sukrit Mittal"
+    },
+    "Hydro Informatics & Climate Sciences (Max:40) Open Elective": {
+      "course_id": "CS9.433",
+      "name": "Hydro Informatics & Climate Sciences (Max:40) Open Elective",
+      "credits": "3-1-0-4",
+      "faculty": "Shaik Rehana"
+    },
+    "User Interaction and Usability of Digital Products (Open Elective)": {
+      "course_id": "CS5.401",
+      "name": "User Interaction and Usability of Digital Products (Open Elective)",
+      "credits": "3-1-0-4",
+      "faculty": "Raman Saxena"
+    },
+    "Disaster Management (40)": {
+      "course_id": "CE8.401",
+      "name": "Disaster Management (40)",
+      "credits": "3-1-0-4",
+      "faculty": "Jofin George + Shubham Singhal"
+    },
+    "Linear Partial Differential Equations and Variational Calculus": {
+      "course_id": "MA4.303",
+      "name": "Linear Partial Differential Equations and Variational Calculus",
+      "credits": "3-1-0-4",
+      "faculty": "Samyadeb Bhattacharya"
+    },
+    "Continuous Variable Quantum Information Theory and Computation": {
+      "course_id": "MA7.501",
+      "name": "Continuous Variable Quantum Information Theory and Computation",
+      "credits": "3-1-0-4",
+      "faculty": "UttamSingh"
+    },
+    "Topics in Discrete Mathematics": {
+      "course_id": "MA5.501",
+      "name": "Topics in Discrete Mathematics",
+      "credits": "3-1-0-4",
+      "faculty": "Prasad Krishnan"
+    },
+    "Differential Equations": {
+      "course_id": "MA4.301",
+      "name": "Differential Equations",
+      "credits": "3-1-0-4",
+      "faculty": "Lakshmi Burra"
+    },
+    "Machine Learning for Natural Sciences (20)": {
+      "course_id": "SC4.411",
+      "name": "Machine Learning for Natural Sciences (20)",
+      "credits": "3-1-0-4",
+      "faculty": "Vinod PK + Deva Priyakumar + Prabhakar B"
+    },
+    "Physics of Soft Condensed Matter (40)": {
+      "course_id": "SC2.301",
+      "name": "Physics of Soft Condensed Matter (40)",
+      "credits": "3-1-0-4",
+      "faculty": "Marimuthu Krishnan"
+    },
+    "Molecular Modeling and Simulations (50)": {
+      "course_id": "SC2.316",
+      "name": "Molecular Modeling and Simulations (50)",
+      "credits": "3-1-0-4",
+      "faculty": "Marimuthu Krishnan + Deva Priyakumar"
+    },
+    "The Universe Across Scales (150)": {
+      "course_id": "SC1.308",
+      "name": "The Universe Across Scales (150)",
+      "credits": "3-1-0-4",
+      "faculty": "Subhadip Mitra+Chittaranjan Hens+Diganta Das"
+    },
+    "Molecular Symmetry and Quantum Mechanics (No limit)": {
+      "course_id": "SC2.315",
+      "name": "Molecular Symmetry and Quantum Mechanics (No limit)",
+      "credits": "3-1-0-4",
+      "faculty": "Harjinder Singh"
+    },
+    "Topics in Physics": {
+      "course_id": "SC1.425",
+      "name": "Topics in Physics",
+      "credits": "3-1-0-4",
+      "faculty": "Mathimalar S"
+    },
+    "Growth and Development (80)": {
+      "course_id": "HS5.301",
+      "name": "Growth and Development (80)",
+      "credits": "3-1-0-4",
+      "faculty": "Anirban Dasgupta"
+    },
+    "Introduction to Philosophy of Technology (40)": {
+      "course_id": "HS0.305",
+      "name": "Introduction to Philosophy of Technology (40)",
+      "credits": "3-1-0-4",
+      "faculty": "Ashwin Jayanti"
+    },
+    "Readings in Russian Literature (40)": {
+      "course_id": "HS1.302",
+      "name": "Readings in Russian Literature (40)",
+      "credits": "3-1-0-4",
+      "faculty": "Nazia Akhtar"
+    },
+    "Science, Technology and Society (25)": {
+      "course_id": "HS7.301",
+      "name": "Science, Technology and Society (25)",
+      "credits": "3-1-0-4",
+      "faculty": "Radhika Krishnan"
+    },
+    "Music Language Creativity (50)": {
+      "course_id": "HS1.209",
+      "name": "Music Language Creativity (50)",
+      "credits": "3-1-0-4",
+      "faculty": "TK Saroja"
+    },
+    "Gender, Culture and Representation (40)": {
+      "course_id": "HS8.202",
+      "name": "Gender, Culture and Representation (40)",
+      "credits": "3-1-0-4",
+      "faculty": "Subha Chakraburtty"
+    },
+    "Critical Viewing and Reading (40)": {
+      "course_id": "HS1.301",
+      "name": "Critical Viewing and Reading (40)",
+      "credits": "3-1-0-4",
+      "faculty": "Sushmita Banerji"
+    },
+    "Digital Democracy and Data Governance in the European Union (80)": {
+      "course_id": "HS4.303",
+      "name": "Digital Democracy and Data Governance in the European Union (80)",
+      "credits": "3-1-0-4",
+      "faculty": "Aakansha Natani"
+    },
+    "Theories and Practices of Nationalism (40)": {
+      "course_id": "HS3.303",
+      "name": "Theories and Practices of Nationalism (40)",
+      "credits": "3-1-0-4",
+      "faculty": "Aniket Alam"
+    },
+    "Sociology of Platform Economies (50)": {
+      "course_id": "HS2.304",
+      "name": "Sociology of Platform Economies (50)",
+      "credits": "3-1-0-4",
+      "faculty": "Rajorshi Ray"
+    },
+    "The Digital City (40)": {
+      "course_id": "HS8.304",
+      "name": "The Digital City (40)",
+      "credits": "3-1-0-4",
+      "faculty": "Khaliq Parkar"
+    }
+  },
+  "bookings": [
+    {
+      "day": "Mon (A)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "The Mathematics of Information: Theory & Application (H1)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Introduction to Coding Theory (H2)- H101",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Advanced Structural Analysis-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Optimization Methods-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "CMOS Oscillator Design-H301",
+      "room": "H301"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Computer Systems Organization (Section A&B)-SH1 & SH2",
+      "room": "SH1"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "General and Structural Chemistry-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Introduction to Linguistics II-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Mathematical Models in Biology-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Making of Contemporary World-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Design and Analysis of Software Systems- H105",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Machine Learning for Natural Sciences-H202",
+      "room": "H202"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Earthquake Engineering-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Introduction to IoT- H205",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Physics of Soft Condensed Matter-H301",
+      "room": "H301"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Introduction to Particle Physics-H302",
+      "room": "H302"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Analog Electronic Circuits-SH2",
+      "room": "SH2"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Communication Theory-SH3",
+      "room": "SH3"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Computing in Sciences II (H2)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Introduction to Spatial Sciences & Technology(H2)-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Advanced Algorithms-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Topics in Reinforcement Learning-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Behavioral Research: Statistical Methods-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Organic Chemistry (H2)-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "User Interaction and Usability of Digital Products- H203",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Responsible & Safe AI Systems-H204",
+      "room": "H204"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Intro to Human Sciences (UG2 ECE/D",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "CLD",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "CGD & UG3 CND) (Sec A)-H205",
+      "room": "H205"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Foundations for Trustworthy Parallel Computing (H2)-H301",
+      "room": "H301"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Speech Signal Processing-H302",
+      "room": "H302"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Information & Communication-SH2",
+      "room": "SH2"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "1-2 PM",
+      "raw_text": "L U N C H B R E A K",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Basics of Ethics (H1/H2)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Differential Equations-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Learning and Memory-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Thermodynamics (H1)-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Intro to Human Sciences (UG2 CSE/D) (Sec B)-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Art",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Vision",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "& Feelings (H2)-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Computational Psycholinguistics-H202",
+      "room": "H202"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Topics in Discrete Mathematics-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Science II (UG3 ECE/D",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "LED & CHD) (Sec B)-H205",
+      "room": "H205"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Disaster Management-H301",
+      "room": "H301"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Linear Partial Differential Equations and Variational Calculus-H302",
+      "room": "H302"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Intro to Processor Architecture (H1)-SH2",
+      "room": "SH2"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Applications of Language Models-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Robotics: Planning and Navigation-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Introduction to Information Security (H1)-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Digital Signal Analysis (H2)- H103",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Statistical Methods in AI- H105",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Law",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Technology and Digital Governance-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Critical Viewing and Reading-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Growth and Development-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Mon (A)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Molecular Biology- H201",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Introduction to Quantum Information and Computation (H1)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Introduction to Algorithms Engineering (H2)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Product Lifecycle Management-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Intro to VLSI and Embedded Systems (H1)-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Introduction to Statistical Signal Processing (H2)-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Topics in Physics-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Mathematical Methods in Sciences- H202",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "The Universe Across Scales-H205",
+      "room": "H205"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Molecular Modeling and Simulations- H301",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Data Structures and Algorithms (Section A",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "B&C)-SH1",
+      "room": "SH1"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "SH2 & SH3",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Engineering Virtual Reality Systems (H)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Performance Modeling of Computer Systems (H1)-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Statistical Mechanics (H2)-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Biomolecular Structures (H1)-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Introduction to Brain and Cognition (H2)- H103",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Introduction to Game Theory-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Data Systems-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Computational Linguistics 1-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Spatial Data Sciences-H202",
+      "room": "H202"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Quantum Algorithms-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Analog IC Design-H204",
+      "room": "H204"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "TKHS-I-H301",
+      "room": "H301"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Science",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Technology and Society-H302",
+      "room": "H302"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Cognitive Neuroscience-H303",
+      "room": "H303"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Computing Tools-H304",
+      "room": "H304"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Instrumentation and Devices-B4-302",
+      "room": "B4302"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Classical Mechanics (H1)-CR1",
+      "room": "CR1"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Electrodynamics (H2)- CR1",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Language Typology and Universals-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Linguistic Data 3: Data Modeling in ILs (H1)- H102",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Numerical Algorithms (H1)-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Language and Power (H1)-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Geospatial for Sustainable Development-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Ethics and the Digital Society (H1)-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Evaluation Methods for NLP (H2)-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "AI and Human Rights (H1)-H204",
+      "room": "H204"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Literature and the Ethics of telling a Story (H2)- H204",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Analysis and Design of Bridge Infrastructure-H301",
+      "room": "H301"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Research Methods in Human Sciences-H302",
+      "room": "H302"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Ethics in Research (H2)-H303",
+      "room": "H303"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Constitutional Ethics (H2)-H304",
+      "room": "H304"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Linear Algebra (Section A",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "B&C)-SH1",
+      "room": "SH1"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "SH2 & SH3",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Information-Theoretic Methods in Computer Science-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Cognitive Science and AI-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Compilers-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Hydro Informatics & Climate Sciences- H104",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Science II (UG2 CSE/D",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "UG3 CLD) (Sec A)-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Mathematics for Finance-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Technology Product Entrepreneurship- H202",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Intro to Robotics: Perception and Planning (H1)-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Foundations of RF and Microwave Sensors (H2)-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Optical Remote Sensing-H204",
+      "room": "H204"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Distributed Systems-H205",
+      "room": "H205"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Machine Learning for Communication- H302",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Analysis & Design of Precast and Prestressed Structures-H304",
+      "room": "H304"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "NGS Data Analysis-B4-304",
+      "room": "B4304"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Vindhya",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Readings in Russian Literature- H101",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "The Digital City-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Software Programming for Performance (H1)-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Introduction to Philosophy of Technology-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Data Visualisation (H1)-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Sustainable Growth Strategy for Startup (H1)-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Theories and Practices of Nationalism-H202",
+      "room": "H202"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "System and Network Security- H205",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Knowing India Through Data (H2)-H302",
+      "room": "H302"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Music Language Creativity- N328",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Internals of Application Servers-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Intro to UAV Design-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Principles of Information Security- H105",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue (B)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Software Engineering- H205",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Computer Graphics (H2)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Information Security Audit and Assurance-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Molecular Symmetry and Quantum Mechanics-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Introduction to NLP-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Introduction to Software Systems (H) (A&B)-SH1 & SH2",
+      "room": "SH1"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Sociology of Platform Economies-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Digital Democracy and Data Governance in the European Union-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Mechatronics System Design-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Machine",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Data and Learning-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Gender",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Culture and Representation-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Product Design Workshop-H202",
+      "room": "H202"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Computer Vision-H205",
+      "room": "H205"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Arts-2 (H1&H2)- Nilgiri Classrooms",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Value Education-II (H)- H101",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "102",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "103",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "104",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "201",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "202",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "203",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "204",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "301",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "302",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "303",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "304",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "CR1 & A3-117",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed (C)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Free Slot / FSIS for Non UG1 students",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "The Mathematics of Information: Theory & Application (H1)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Introduction to Coding Theory (H2)- H101",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Advanced Structural Analysis-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Optimization Methods-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "CMOS Oscillator Design-H301",
+      "room": "H301"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Computer Systems Organization (Section A&B)-SH1 & SH2",
+      "room": "SH1"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "General and Structural Chemistry-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Introduction to Linguistics II-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Mathematical Models in Biology-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Making of Contemporary World-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Design and Analysis of Software Systems- H105",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Machine Learning for Natural Sciences-H202",
+      "room": "H202"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Earthquake Engineering-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Introduction to IoT- H205",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Physics of Soft Condensed Matter-H301",
+      "room": "H301"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Introduction to Particle Physics-H302",
+      "room": "H302"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Analog Electronic Circuits-SH2",
+      "room": "SH2"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Communication Theory-SH3",
+      "room": "SH3"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Computing in Sciences II (H2)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Introduction to Spatial Sciences & Technology(H2)-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Advanced Algorithms-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Topics in Reinforcement Learning-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Behavioral Research: Statistical Methods-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Organic Chemistry (H2)-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "User Interaction and Usability of Digital Products- H203",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Responsible & Safe AI Systems-H204",
+      "room": "H204"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Intro to Human Sciences (UG2 ECE/D",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "CLD",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "CGD & UG3 CND) (Sec A)-H205",
+      "room": "H205"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Foundations for Trustworthy Parallel Computing (H2)-H301",
+      "room": "H301"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Speech Signal Processing-H302",
+      "room": "H302"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Information & Communication-SH2",
+      "room": "SH2"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "1-2 PM",
+      "raw_text": "L U N C H B R E A",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Basics of Ethics (H1/H2)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Differential Equations-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Learning and Memory-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Thermodynamics (H1)-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Intro to Human Sciences (UG2 CSE/D) (Sec B)-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Art",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Vision",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "& Feelings (H2)-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Computational Psycholinguistics-H202",
+      "room": "H202"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Topics in Discrete Mathematics-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Science II (UG3 ECE/D",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "LED & CHD) (Sec B)-H205",
+      "room": "H205"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Disaster Management-H301",
+      "room": "H301"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Linear Partial Differential Equations and Variational Calculus-H302",
+      "room": "H302"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Intro to Processor Architecture (H1)-SH2",
+      "room": "SH2"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Applications of Language Models-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Robotics: Planning and Navigation-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Introduction to Information Security (H1)-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Digital Signal Analysis (H2)- H103",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Statistical Methods in AI- H105",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Law",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Technology and Digital Governance-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Critical Viewing and Reading-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Growth and Development-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Thu (A)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Molecular Biology- H201",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Introduction to Quantum Information and Computation (H1)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Introduction to Algorithms Engineering (H2)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Product Lifecycle Management-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Intro to VLSI and Embedded Systems (H1)-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Introduction to Statistical Signal Processing (H2)-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Topics in Physics-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Mathematical Methods in Sciences- H202",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "The Universe Across Scales-H205",
+      "room": "H205"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Molecular Modeling and Simulations- H301",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Data Structures and Algorithms (Section A",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "B&C)-SH1",
+      "room": "SH1"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "SH2 & SH3",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Performance Modeling of Computer Systems (H1)-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Statistical Mechanics (H2)-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Biomolecular Structures (H1)-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Introduction to Brain and Cognition (H2)- H103",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Introduction to Game Theory-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Data Systems-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Computational Linguistics 1-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Spatial Data Sciences-H202",
+      "room": "H202"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Quantum Algorithms-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Analog IC Design-H204",
+      "room": "H204"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "TKHS-I-H301",
+      "room": "H301"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Science",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Technology and Society-H302",
+      "room": "H302"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Cognitive Neuroscience-H303",
+      "room": "H303"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Computing Tools-H304",
+      "room": "H304"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Instrumentation and Devices-B4-302",
+      "room": "B4302"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Classical Mechanics (H1)-CR1",
+      "room": "CR1"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Electrodynamics (H2)- CR1",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Language Typology and Universals-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Linguistic Data 3: Data Modeling in ILs (H1)- H102",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Numerical Algorithms (H1)-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Language and Power (H1)-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Geospatial for Sustainable Development-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Ethics and the Digital Society (H1)-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Evaluation Methods for NLP (H2)-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "AI and Human Rights (H1)-H204",
+      "room": "H204"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Literature and the Ethics of telling a Story (H2)- H204",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Analysis and Design of Bridge Infrastructure- H301",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Research Methods in Human Sciences-H302",
+      "room": "H302"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Ethics in Research (H2)-H303",
+      "room": "H303"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Constitutional Ethics (H2)-H304",
+      "room": "H304"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Linear Algebra (Section A",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "B&C)-SH1",
+      "room": "SH1"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "SH2 & SH3",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Information-Theoretic Methods in Computer Science-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Cognitive Science and AI-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Compilers-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Hydro Informatics & Climate Sciences- H104",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Science II (UG2 CSE/D",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "UG3 CLD) (Sec A)-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Mathematics for Finance-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Technology Product Entrepreneurship- H202",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Intro to Robotics: Perception and Planning (H1)-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Foundations of RF and Microwave Sensors (H2)-H203",
+      "room": "H203"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Optical Remote Sensing-H204",
+      "room": "H204"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Distributed Systems-H205",
+      "room": "H205"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Machine Learning for Communication- H302",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Analysis & Design of Precast and Prestressed Structures-H304",
+      "room": "H304"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "NGS Data Analysis-B4-304",
+      "room": "B4304"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Vindhya",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Readings in Russian Literature- H101",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "The Digital City-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Software Programming for Performance (H1)-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Introduction to Philosophy of Technology-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Data Visualisation (H1)-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Sustainable Growth Strategy for Startup (H1)-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Theories and Practices of Nationalism-H202",
+      "room": "H202"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "System and Network Security- H205",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Knowing India Through Data (H2)-H302",
+      "room": "H302"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "3:35-5:00PM (5)",
+      "raw_text": "Music Language Creativity- N328",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Internals of Application Servers-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Intro to UAV Design-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Principles of Information Security- H105",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri (B)",
+      "slot": "5:10-6:40PM (6)",
+      "raw_text": "Software Engineering-H205",
+      "room": "H205"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Computer Graphics (H2)-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Information Security Audit and Assurance-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Molecular Symmetry and Quantum Mechanics-H104",
+      "room": "H104"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Introduction to NLP-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "8:30-9:55 AM (1)",
+      "raw_text": "Introduction to Software Systems (H) (A&B)-SH1 & SH2",
+      "room": "SH1"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Sociology of Platform Economies-H101",
+      "room": "H101"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Digital Democracy and Data Governance in the European Union-H102",
+      "room": "H102"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Mechatronics System Design-H103",
+      "room": "H103"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Machine",
+      "room": "Unknown"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Data and Learning-H105",
+      "room": "H105"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Gender",
+      "room": "Unknown"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Culture and Representation-H201",
+      "room": "H201"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Product Design Workshop-H202",
+      "room": "H202"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Computer Vision-H205",
+      "room": "H205"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "10:05-11:30AM (2)",
+      "raw_text": "Arts-2 (H1&H2)- Nilgiri Classrooms",
+      "room": "Unknown"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "11:40-1:05PM (3)",
+      "raw_text": "Tutorial Slot 11:40-12:40",
+      "room": "Unknown"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "Slot 4",
+      "raw_text": "Tutorial Slot 12:40-1:40",
+      "room": "Unknown"
+    },
+    {
+      "day": "Sat (C)",
+      "slot": "2:00-3:25PM (4)",
+      "raw_text": "Business Finance (2:00 to 5:00 PM) \u2013 H103",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "9:00-10:00 AM",
+      "raw_text": "Classical Mech. (H1) - (T) \u2013 H102 Electrodynamics (H2) - (T) \u2013 H102",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "12:00-1:00PM",
+      "raw_text": "CSO-(T) \u2013 G9",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "12:00-1:00PM",
+      "raw_text": "10",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "12:00-1:00PM",
+      "raw_text": "11",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "12:00-1:00PM",
+      "raw_text": "12 (H202",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "12:00-1:00PM",
+      "raw_text": "H303",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "12:00-1:00PM",
+      "raw_text": "H304",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "12:00-1:00PM",
+      "raw_text": "CR1) CSO-(T) -(UG2) \u2013 CHD",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "12:00-1:00PM",
+      "raw_text": "CND \u2013 SH1",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "1 to 2 PM",
+      "raw_text": "L U N C H B R E A K",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "2:00-3:00PM",
+      "raw_text": "Linear Alg.-(T) \u2013 G12 \u2013 H303 DSA-(T) \u2013 G11 \u2013 H204 Earthquake Eng.-(T) \u2013 SH1",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "3:30-4:30PM",
+      "raw_text": "Knowing India Through Data (H2)(T) (H-202) DSA-(T) \u2013 G9 (H301) Linear Alg.-(T) \u2013 G7",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "3:30-4:30PM",
+      "raw_text": "8",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "3:30-4:30PM",
+      "raw_text": "11 (H302",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "3:30-4:30PM",
+      "raw_text": "303",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "3:30-4:30PM",
+      "raw_text": "204) Intro. Lingu II (T)\u2013 (B4-304)",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "5:00 to 6:00PM",
+      "raw_text": "Machine",
+      "room": "Unknown"
+    },
+    {
+      "day": "Mon",
+      "slot": "5:00 to 6:00PM",
+      "raw_text": "Data and Learning (T) (H-205)",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue",
+      "slot": "10:30-11:30AM",
+      "raw_text": "DSA-(T) \u2013 G12 \u2013 SH2 Linear Alg.-(T) \u2013 G1",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue",
+      "slot": "10:30-11:30AM",
+      "raw_text": "2",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue",
+      "slot": "10:30-11:30AM",
+      "raw_text": "3",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue",
+      "slot": "10:30-11:30AM",
+      "raw_text": "5 SH3",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue",
+      "slot": "10:30-11:30AM",
+      "raw_text": "SH1",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue",
+      "slot": "10:30-11:30AM",
+      "raw_text": "B6-309",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue",
+      "slot": "10:30-11:30AM",
+      "raw_text": "A3-301",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue",
+      "slot": "2:00-3:00PM",
+      "raw_text": "DSA-(T) \u2013 G3 \u2013 H301",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue",
+      "slot": "3:30-4:30PM",
+      "raw_text": "DSA-(T) \u2013 G10 \u2013 H203 LA-(T) \u2013 G9 \u2013 H301",
+      "room": "Unknown"
+    },
+    {
+      "day": "Tue",
+      "slot": "5:00 to 6:00PM",
+      "raw_text": "Science II (B)-(T) (SH2) SM in AI-(T) (H105) (7.30pm \u2013 9.00pm)",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed",
+      "slot": "9:00-10:00 AM",
+      "raw_text": "Data Visualisation (H1) (T/Lab) (H-205) Intro to Processor Architecture (T) (SH3) Analysis & Design of Precast and Prestressed Structures-(T) (B4-304)",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed",
+      "slot": "10:30-11:30AM",
+      "raw_text": "ADBI-(T) \u2013 H301",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed",
+      "slot": "12:00-1:00PM",
+      "raw_text": "11:40 \u2013 12:40 PM",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed",
+      "slot": "Slot 4",
+      "raw_text": "12:40 to 1:40 PM",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed",
+      "slot": "2:00-3:00PM",
+      "raw_text": "Analog Electronic Circuit LAB (G5",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed",
+      "slot": "2:00-3:00PM",
+      "raw_text": "G6",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed",
+      "slot": "2:00-3:00PM",
+      "raw_text": "G7",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed",
+      "slot": "2:00-3:00PM",
+      "raw_text": "G8) (N-104 & N-114) Intro to Software System LAB (G1 to G5 & G11",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed",
+      "slot": "2:00-3:00PM",
+      "raw_text": "G12) - (H-105)",
+      "room": "Unknown"
+    },
+    {
+      "day": "Wed",
+      "slot": "5:00 to 6:00PM",
+      "raw_text": "Intro to infor. Security (T) \u2013 5pm \u2013 7.00pm (SH3) Info. And Comm.-(T) (SH1)",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "9:00-10:00 AM",
+      "raw_text": "Linear Alg",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "9:00-10:00 AM",
+      "raw_text": "-(T) \u2013 G8 \u2013 H201",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "12:00-1:00PM",
+      "raw_text": "CSO-(T) \u2013 G1",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "12:00-1:00PM",
+      "raw_text": "2",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "12:00-1:00PM",
+      "raw_text": "3",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "12:00-1:00PM",
+      "raw_text": "4",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "12:00-1:00PM",
+      "raw_text": "5 (H202",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "12:00-1:00PM",
+      "raw_text": "H303",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "12:00-1:00PM",
+      "raw_text": "H304",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "12:00-1:00PM",
+      "raw_text": "CR1",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "12:00-1:00PM",
+      "raw_text": "SH1)",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "2:00-3:00PM",
+      "raw_text": "Linear Alg",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "2:00-3:00PM",
+      "raw_text": "-(T) \u2013 G4",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "2:00-3:00PM",
+      "raw_text": "G10 \u2013 H304 DSA-(T) \u2013 G6",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "2:00-3:00PM",
+      "raw_text": "7 \u2013 H204",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "2:00-3:00PM",
+      "raw_text": "H303",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "3:30-4:30PM",
+      "raw_text": "Infor. Communi.-(T) (SH1)",
+      "room": "Unknown"
+    },
+    {
+      "day": "Thu",
+      "slot": "5:00 to 6:00PM",
+      "raw_text": "Science II (A)-(T) (H-205)",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri",
+      "slot": "10:30-11:30AM",
+      "raw_text": "DSA-(T) \u2013 G1",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri",
+      "slot": "10:30-11:30AM",
+      "raw_text": "G4 \u2013 H101",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri",
+      "slot": "10:30-11:30AM",
+      "raw_text": "SH2 Linear Alg.-G6 \u2013 SH1",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri",
+      "slot": "2:00-3:00PM",
+      "raw_text": "DSA-(T) \u2013 G2",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri",
+      "slot": "2:00-3:00PM",
+      "raw_text": "G5 \u2013 H301",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri",
+      "slot": "2:00-3:00PM",
+      "raw_text": "H303 Linear Alg.-G4 \u2013 (CR1)",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri",
+      "slot": "3:30-4:30PM",
+      "raw_text": "DSA-(T) \u2013 G8 H301",
+      "room": "Unknown"
+    },
+    {
+      "day": "Fri",
+      "slot": "5:00 to 6:00PM",
+      "raw_text": "Intro to Human Sciences (B)-(T) (SH2 & SH3) AEC-(T) \u2013 H203",
+      "room": "Unknown"
+    },
+    {
+      "day": "Sat",
+      "slot": "12:00-1:00PM",
+      "raw_text": "11:40 \u2013 12:40 PM",
+      "room": "Unknown"
+    },
+    {
+      "day": "Sat",
+      "slot": "Slot 4",
+      "raw_text": "12:40 to 1:40 PM",
+      "room": "Unknown"
+    },
+    {
+      "day": "Sat",
+      "slot": "2:00-3:00PM",
+      "raw_text": "Free Slot",
+      "room": "Unknown"
+    },
+    {
+      "day": "Sat",
+      "slot": "5:00 to 6:00PM",
+      "raw_text": "Intro to infor. Security (T) \u2013 5pm \u2013 7.00pm (SH3)",
+      "room": "Unknown"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
@@ -6,6 +7,8 @@ import RoomEquipmentEditor from "./RoomEquipmentEditor";
 const ROOM_TYPES = ["classroom", "lab", "seminar", "auditorium", "office", "other"];
 
 export default function FloorRoomEditor({ building, onChange }) {
+  const [expandedRoomId, setExpandedRoomId] = useState(null);
+  const toggleExpand = (id) => setExpandedRoomId(prev => prev === id ? null : id);
   const setFloors = (floors) => onChange({ floors });
 
   const addFloor = () => {
@@ -67,7 +70,7 @@ export default function FloorRoomEditor({ building, onChange }) {
               <div key={room.id} className="rounded-md border border-border/60 bg-background/40 p-2">
                 <div className="grid grid-cols-12 gap-2">
                   <Input
-                    className="col-span-5 h-8"
+                    className="col-span-4 h-8"
                     value={room.name}
                     onChange={(e) => updateRoom(floor.floorNumber, room.id, { name: e.target.value })}
                   />
@@ -78,22 +81,27 @@ export default function FloorRoomEditor({ building, onChange }) {
                     onChange={(e) => updateRoom(floor.floorNumber, room.id, { capacity: Number(e.target.value) })}
                   />
                   <select
-                    className="col-span-4 h-8 rounded-md border border-border bg-background px-2 text-xs"
+                    className="col-span-3 h-8 rounded-md border border-border bg-background px-2 text-xs"
                     value={room.roomType}
                     onChange={(e) => updateRoom(floor.floorNumber, room.id, { roomType: e.target.value })}
                   >
                     {ROOM_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
+                  <Button size="sm" variant="outline" className="col-span-2 h-8 text-[10px]" onClick={() => toggleExpand(room.id)}>
+                    {expandedRoomId === room.id ? "Hide Eqp" : "Edit Eqp"}
+                  </Button>
                   <Button size="icon" variant="ghost" className="col-span-1 h-8 w-8" onClick={() => removeRoom(floor.floorNumber, room.id)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
-                <div className="mt-2">
-                  <RoomEquipmentEditor
-                    equipment={room.equipment}
-                    onChange={(eq) => updateRoom(floor.floorNumber, room.id, { equipment: eq })}
-                  />
-                </div>
+                {expandedRoomId === room.id && (
+                  <div className="mt-2 border-t border-border/50 pt-2 pb-2">
+                    <RoomEquipmentEditor
+                      equipment={room.equipment}
+                      onChange={(eq) => updateRoom(floor.floorNumber, room.id, { equipment: eq })}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -3,14 +3,23 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 const LIGHT_RASTER_TILES = [
-  "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+  "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+  "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+  "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+  "https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
 ];
 
 const DARK_RASTER_TILES = [
-  "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
+  "https://a.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
+  "https://b.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
+  "https://c.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
+  "https://d.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
 ];
 
 const FALLBACK_RASTER_TILES = [
+  "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
   "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
 ];
@@ -34,9 +43,12 @@ function buildRasterStyle(tiles, backgroundColor, maxzoom = 19) {
   };
 }
 
-const LIGHT_STYLE = buildRasterStyle(LIGHT_RASTER_TILES, "#e8edf4", 19);
+const LIGHT_STYLE = buildRasterStyle(LIGHT_RASTER_TILES, "#e8edf4", 17);
 const DARK_STYLE = buildRasterStyle(DARK_RASTER_TILES, "#1f2937", 16);
 const FALLBACK_STYLE = buildRasterStyle(FALLBACK_RASTER_TILES, "#e8edf4", 19);
+
+// Keep image request fan-out under control on constrained browsers.
+maplibregl.setMaxParallelImageRequests(8);
 
 function cloneStyle(styleObject) {
   return JSON.parse(JSON.stringify(styleObject));

@@ -332,17 +332,8 @@ CAMPUS_BUILDINGS = [
 # ---------------------------------------------------------------------------
 # Spring 2026 Timetable  (extracted from PDFs)
 # ---------------------------------------------------------------------------
-# Format: each entry = {
-#   "course": str,
-#   "day":   "Mon"|"Tue"|"Wed"|"Thu"|"Fri"|"Sat",
-#   "slot":  1-6  (slot number from timetable header)
-#   "room":  str  (as printed in PDF)
-#   "cohort":str  (which student cohort)
-#   "half":  None | "H1" | "H2"   (half-semester courses)
-# }
-# Slot times:
-#   1 → 08:30–09:55   2 → 10:05–11:30  3 → 11:40–13:05
-#   4 → 14:00–15:25   5 → 15:35–17:00  6 → 17:10–18:40
+import os
+import json
 
 SLOT_TIMES = {
     1: ("08:30", "09:55"),
@@ -353,153 +344,66 @@ SLOT_TIMES = {
     6: ("17:10", "18:40"),
 }
 
-# Lab slot on Mon/Fri afternoons: 14:00–17:00
 LAB_SLOT_TIME = ("14:00", "17:00")
+TIMETABLE: List[Dict[str, Any]] = []
 
-TIMETABLE: List[Dict[str, Any]] = [
-    # ── MONDAY ──────────────────────────────────────────────────────────────
-    # Slot 1
-    {"course": "Computing in Sciences II", "day": "Mon", "slot": 1, "room": "H101", "cohort": "UG1_CND", "half": "H2"},
-    {"course": "Differential Equations",   "day": "Mon", "slot": 1, "room": "H102", "cohort": "UG1",     "half": None},
-    {"course": "Learning and Memory",       "day": "Mon", "slot": 1, "room": "H103", "cohort": "UG3_CSD", "half": None},
-    {"course": "Making of Contemporary World","day":"Mon","slot": 1, "room": "H104", "cohort": "UG1_CHD", "half": None},
-    {"course": "Design and Analysis of SW", "day": "Mon", "slot": 1, "room": "H105", "cohort": "UG2",     "half": None},
-    {"course": "Advanced Structural Analysis","day":"Mon","slot": 1, "room": "H103", "cohort": "UG3",    "half": None},
-    {"course": "Optimization Methods",      "day": "Mon", "slot": 1, "room": "H104", "cohort": "UG2",     "half": None},
-    {"course": "Earthquake Engineering",    "day": "Mon", "slot": 1, "room": "H203", "cohort": "UG3",     "half": None},
-    {"course": "CMOS Oscillator Design",    "day": "Mon", "slot": 1, "room": "H301", "cohort": "UG4",     "half": None},
-    {"course": "Intro to IoT",              "day": "Mon", "slot": 1, "room": "H205", "cohort": "UG1_ECE", "half": None},
-    {"course": "Computer Systems Org (B)",  "day": "Mon", "slot": 1, "room": "H205", "cohort": "UG1_CSE", "half": None},
-    {"course": "Physics of Soft Condensed","day": "Mon", "slot": 1, "room": "H301", "cohort": "PhD",      "half": None},
-    {"course": "Analog Electronic Circuits","day":"Mon", "slot": 1, "room": "SH2",  "cohort": "UG1_ECE", "half": None},
-    {"course": "Communication Theory",      "day": "Mon", "slot": 1, "room": "SH3",  "cohort": "UG2_ECE", "half": None},
-    # Slot 2
-    {"course": "Basics of Ethics",           "day": "Mon", "slot": 2, "room": "H101", "cohort": "UG1",    "half": None},
-    {"course": "Introduction to Linguistics II","day":"Mon","slot":2,"room": "H102", "cohort": "UG1_CLD", "half": None},
-    {"course": "Mathematics of Information", "day": "Mon", "slot": 2, "room": "H101", "cohort": "UG2",    "half": "H1"},
-    {"course": "Intro to Human Sciences (B)","day": "Mon", "slot": 2, "room": "H105", "cohort": "UG2_CSE","half": None},
-    {"course": "Machine Learning Nat Sci",   "day": "Mon", "slot": 2, "room": "H202", "cohort": "MS",     "half": None},
-    {"course": "Topics Discrete Math",       "day": "Mon", "slot": 2, "room": "H203", "cohort": "MS",     "half": None},
-    {"course": "Responsible & Safe AI",      "day": "Mon", "slot": 2, "room": "H204", "cohort": "UG4",    "half": None},
-    {"course": "Statistical Methods in AI",  "day": "Mon", "slot": 2, "room": "H105", "cohort": "MS",     "half": None},
-    {"course": "Foundations Trustworthy Parallel","day":"Mon","slot":2,"room":"H301","cohort":"MS",        "half": "H2"},
-    # Slot 3
-    {"course": "Intro to Spatial Sciences",  "day": "Mon", "slot": 3, "room": "H102", "cohort": "UG2",    "half": "H2"},
-    {"course": "Advanced Algorithms",        "day": "Mon", "slot": 3, "room": "H103", "cohort": "MS",     "half": None},
-    {"course": "Thermodynamics",             "day": "Mon", "slot": 3, "room": "H104", "cohort": "UG1_CND","half": "H1"},
-    {"course": "Topics in RL",               "day": "Mon", "slot": 3, "room": "H104", "cohort": "PhD",    "half": None},
-    {"course": "Behavioral Research Stat",   "day": "Mon", "slot": 3, "room": "H105", "cohort": "UG3",    "half": None},
-    {"course": "Organic Chemistry",          "day": "Mon", "slot": 3, "room": "H201", "cohort": "UG1_CND","half": "H2"},
-    {"course": "Art Vision & Feelings",      "day": "Mon", "slot": 3, "room": "H201", "cohort": "MS",     "half": "H2"},
-    {"course": "Computational Psycholinguistics","day":"Mon","slot":3,"room":"H202","cohort":"PhD",        "half": None},
-    {"course": "Intro Human Sciences (A)",   "day": "Mon", "slot": 3, "room": "H205", "cohort": "UG2_ECE","half": None},
-    {"course": "Disaster Management",        "day": "Mon", "slot": 3, "room": "H301", "cohort": "UG3",    "half": None},
-    {"course": "Speech Signal Processing",   "day": "Mon", "slot": 3, "room": "H302", "cohort": "PhD",    "half": None},
-    {"course": "Intro Processor Architecture","day":"Mon", "slot": 3, "room": "SH2",  "cohort": "UG2_ECE","half": "H1"},
-    # Slot 4
-    {"course": "Applications of Language Models","day":"Mon","slot":4,"room":"H101","cohort":"MS",        "half": None},
-    {"course": "Robotics Planning Navigation","day":"Mon", "slot": 4, "room": "H102", "cohort": "MS",     "half": None},
-    {"course": "Intro Info Security",        "day": "Mon", "slot": 4, "room": "H103", "cohort": "UG2",    "half": "H1"},
-    {"course": "Growth and Development",     "day": "Mon", "slot": 4, "room": "H103", "cohort": "UG2",    "half": None},
-    {"course": "Digital Signal Analysis",    "day": "Mon", "slot": 4, "room": "H103", "cohort": "UG3_ECE","half": "H2"},
-    {"course": "Molecular Biology",          "day": "Mon", "slot": 4, "room": "H201", "cohort": "PhD",    "half": None},
-    {"course": "Science II (UG3 ECE)",       "day": "Mon", "slot": 4, "room": "H103", "cohort": "UG3_ECE","half": None},
-    {"course": "Statistical Methods in AI",  "day": "Mon", "slot": 4, "room": "SH1",  "cohort": "UG2",    "half": None},
-    {"course": "Parallel Computing",         "day": "Mon", "slot": 4, "room": "SH2",  "cohort": "MS",     "half": None},
-    # Slot 6
-    {"course": "Law Technology Digital Governance","day":"Mon","slot":6,"room":"H201","cohort":"UG4",      "half": None},
-    {"course": "Information & Communication","day": "Mon", "slot": 6, "room": "SH2",  "cohort": "UG2_ECE","half": None},
-    # ── TUESDAY ──────────────────────────────────────────────────────────────
-    {"course": "Virtual Reality Systems",    "day": "Tue", "slot": 1, "room": "H101", "cohort": "UG4",    "half": "H"},
-    {"course": "Cognitive Science and AI",   "day": "Tue", "slot": 1, "room": "H102", "cohort": "MS",     "half": None},
-    {"course": "Compilers",                  "day": "Tue", "slot": 1, "room": "H103", "cohort": "UG3_CSE","half": None},
-    {"course": "Introduction to Game Theory","day": "Tue", "slot": 1, "room": "H104", "cohort": "UG3",    "half": None},
-    {"course": "Intro to Statistical Signal","day": "Tue", "slot": 1, "room": "H103", "cohort": "UG2_ECE","half": "H2"},
-    {"course": "Intro VLSI and Embedded",    "day": "Tue", "slot": 1, "room": "H103", "cohort": "UG2_ECE","half": "H1"},
-    {"course": "Spatial Data Sciences",      "day": "Tue", "slot": 1, "room": "H202", "cohort": "MS",     "half": None},
-    {"course": "Quantum Algorithms",         "day": "Tue", "slot": 1, "room": "H203", "cohort": "PhD",    "half": None},
-    {"course": "Mathematical Methods Sci",   "day": "Tue", "slot": 1, "room": "H202", "cohort": "PhD",    "half": None},
-    {"course": "Analog IC Design",           "day": "Tue", "slot": 1, "room": "H204", "cohort": "UG4_ECE","half": None},
-    {"course": "Intro to Algorithms Eng",    "day": "Tue", "slot": 2, "room": "H101", "cohort": "UG2",    "half": "H2"},
-    {"course": "Product Lifecycle Mgmt",     "day": "Tue", "slot": 2, "room": "H102", "cohort": "UG3",    "half": None},
-    {"course": "Numerical Algorithms",       "day": "Tue", "slot": 2, "room": "H103", "cohort": "UG3",    "half": "H1"},
-    {"course": "Language and Power",         "day": "Tue", "slot": 2, "room": "H104", "cohort": "MS",     "half": "H1"},
-    {"course": "Data Systems",               "day": "Tue", "slot": 2, "room": "H105", "cohort": "UG3",    "half": None},
-    {"course": "Geospatial for Sustainable", "day": "Tue", "slot": 2, "room": "H201", "cohort": "PhD",    "half": None},
-    {"course": "Mathematics for Finance",    "day": "Tue", "slot": 2, "room": "H201", "cohort": "MS",     "half": None},
-    {"course": "Computational Linguistics 1","day": "Tue", "slot": 2, "room": "H201", "cohort": "UG1_CLD","half": None},
-    {"course": "Topics in Physics",          "day": "Tue", "slot": 2, "room": "H201", "cohort": "PhD",    "half": None},
-    {"course": "Biomolecular Structures",    "day": "Tue", "slot": 3, "room": "H103", "cohort": "PhD",    "half": "H1"},
-    {"course": "Intro Brain and Cognition",  "day": "Tue", "slot": 3, "room": "H103", "cohort": "UG3",    "half": "H2"},
-    {"course": "Statistical Mechanics",      "day": "Tue", "slot": 3, "room": "H102", "cohort": "PhD",    "half": "H2"},
-    {"course": "Quantum Info & Computation", "day": "Tue", "slot": 3, "room": "H101", "cohort": "PhD",    "half": "H1"},
-    {"course": "Intro Quantum Info",         "day": "Tue", "slot": 3, "room": "H101", "cohort": "UG3",    "half": "H1"},
-    {"course": "Performance Modelling CS",   "day": "Tue", "slot": 4, "room": "H102", "cohort": "MS",     "half": "H1"},
-    {"course": "Hydro Informatics & Climate","day": "Tue", "slot": 4, "room": "H104", "cohort": "PhD",    "half": None},
-    {"course": "Data Visualisation",         "day": "Tue", "slot": 4, "room": "H105", "cohort": "UG2",    "half": "H1"},
-    {"course": "AI and Human Rights",        "day": "Tue", "slot": 4, "room": "H204", "cohort": "UG4",    "half": "H1"},
-    {"course": "Ethics and Digital Society", "day": "Tue", "slot": 4, "room": "H203", "cohort": "UG3",    "half": "H1"},
-    {"course": "Evaluation Methods NLP",     "day": "Tue", "slot": 4, "room": "H203", "cohort": "MS",     "half": "H2"},
-    {"course": "Intro to Robotics Percep.",  "day": "Tue", "slot": 4, "room": "H203", "cohort": "MS",     "half": None},
-    {"course": "Technology Product Entre.",  "day": "Tue", "slot": 4, "room": "H202", "cohort": "UG3",    "half": None},
-    {"course": "Sustained Growth Strategy",  "day": "Tue", "slot": 5, "room": "H201", "cohort": "UG3",    "half": "H1"},
-    {"course": "Sustainable Growth Startup", "day": "Tue", "slot": 5, "room": "H201", "cohort": "UG3",    "half": "H1"},
-    {"course": "Theories Nationalism",       "day": "Tue", "slot": 5, "room": "H202", "cohort": "MS",     "half": None},
-    {"course": "Principles Info Security",   "day": "Tue", "slot": 5, "room": "H105", "cohort": "UG3",    "half": None},
-    # ── WEDNESDAY ───────────────────────────────────────────────────────────
-    {"course": "Intro to Software Systems",  "day": "Wed", "slot": 3, "room": "H205", "cohort": "UG1_CSE","half": "H"},
-    {"course": "Design & Analysis SW Sys (T)","day":"Wed","slot": 3, "room": "H205", "cohort": "UG2",     "half": None},
-    {"course": "Intro Human Sciences (A)(T)","day": "Wed", "slot": 3, "room": "H205", "cohort": "UG2_ECE","half": None},
-    {"course": "ADBI Tutorial",              "day": "Wed", "slot": 3, "room": "H301", "cohort": "UG3",    "half": None},
-    {"course": "Info Theoretic Methods (T)", "day": "Wed", "slot": 3, "room": "B4-304","cohort": "MS",    "half": None},
-    {"course": "Info & Communication (T)",   "day": "Wed", "slot": 3, "room": "SH1",  "cohort": "UG2_ECE","half": None},
-    {"course": "Intro Processor Arch (T)",   "day": "Wed", "slot": 3, "room": "SH3",  "cohort": "UG2_ECE","half": None},
-    {"course": "Communication Theory (T)",   "day": "Wed", "slot": 3, "room": "CR1",  "cohort": "UG2_ECE","half": None},
-    {"course": "Data Visualisation Lab",     "day": "Wed", "slot": 2, "room": "H205", "cohort": "UG2",    "half": "H1"},
-    # ── THURSDAY ────────────────────────────────────────────────────────────
-    {"course": "Computing in Sciences II",   "day": "Thu", "slot": 1, "room": "H101", "cohort": "UG1_CND","half": "H2"},
-    {"course": "Differential Equations",     "day": "Thu", "slot": 1, "room": "H102", "cohort": "UG1",    "half": None},
-    {"course": "Design and Analysis of SW",  "day": "Thu", "slot": 1, "room": "H105", "cohort": "UG2",    "half": None},
-    {"course": "Machine Learning Nat Sci",   "day": "Thu", "slot": 2, "room": "H202", "cohort": "MS",     "half": None},
-    {"course": "Topics Discrete Math",       "day": "Thu", "slot": 2, "room": "H203", "cohort": "MS",     "half": None},
-    {"course": "Responsible & Safe AI",      "day": "Thu", "slot": 2, "room": "H204", "cohort": "UG4",    "half": None},
-    {"course": "Statistical Methods in AI",  "day": "Thu", "slot": 2, "room": "H105", "cohort": "MS",     "half": None},
-    {"course": "Analog IC Design",           "day": "Thu", "slot": 4, "room": "H204", "cohort": "UG4_ECE","half": None},
-    {"course": "Intro to Algorithms Eng",    "day": "Thu", "slot": 4, "room": "H101", "cohort": "UG2",    "half": "H2"},
-    {"course": "Linear Algebra (T) G6",      "day": "Thu", "slot": 4, "room": "SH1",  "cohort": "UG1",    "half": None},
-    {"course": "DSA Tutorial G1,G4",         "day": "Thu", "slot": 4, "room": "H101", "cohort": "UG1",    "half": None},
-    {"course": "DSA Tutorial G2,G5",         "day": "Thu", "slot": 4, "room": "H301", "cohort": "UG1",    "half": None},
-    {"course": "Intro to IoT LAB",           "day": "Thu", "slot": 4, "room": "H205", "cohort": "UG1_ECE","half": None},
-    {"course": "CSO Tutorial G1-G5",         "day": "Thu", "slot": 3, "room": "H102", "cohort": "UG1_CSE","half": None},
-    # ── FRIDAY ───────────────────────────────────────────────────────────────
-    {"course": "Virtual Reality Systems",    "day": "Fri", "slot": 1, "room": "H101", "cohort": "UG4",    "half": "H"},
-    {"course": "Cognitive Science and AI",   "day": "Fri", "slot": 1, "room": "H102", "cohort": "MS",     "half": None},
-    {"course": "Compilers",                  "day": "Fri", "slot": 1, "room": "H103", "cohort": "UG3_CSE","half": None},
-    {"course": "Intro to Game Theory",       "day": "Fri", "slot": 1, "room": "H104", "cohort": "UG3",    "half": None},
-    {"course": "Data Systems",               "day": "Fri", "slot": 2, "room": "H105", "cohort": "UG3",    "half": None},
-    {"course": "Geospatial for Sustainable", "day": "Fri", "slot": 2, "room": "H201", "cohort": "PhD",    "half": None},
-    {"course": "Mathematics for Finance",    "day": "Fri", "slot": 2, "room": "H201", "cohort": "MS",     "half": None},
-    {"course": "Intro to Software Systems",  "day": "Fri", "slot": 3, "room": "H205", "cohort": "UG1_CSE","half": "H"},
-    {"course": "Compilers Tutorial",         "day": "Fri", "slot": 3, "room": "H103", "cohort": "UG3_CSE","half": None},
-    {"course": "Intro Human Sciences (A)(T)","day": "Fri", "slot": 3, "room": "H205", "cohort": "UG2",    "half": None},
-    {"course": "DSA LAB (C) G9-G12",        "day": "Fri", "slot": 4, "room": "TL1", "cohort": "UG1",     "half": None},
-    {"course": "AEC Tutorial",               "day": "Fri", "slot": 4, "room": "H203", "cohort": "UG1_ECE","half": None},
-    {"course": "Communication Theory (T)",   "day": "Fri", "slot": 4, "room": "CR1",  "cohort": "UG2_ECE","half": None},
-    {"course": "El. Workshop II LAB",        "day": "Fri", "slot": 2, "room": "N-104", "cohort": "UG1_ECE","half": None},
-    {"course": "Science Lab II",             "day": "Fri", "slot": 3, "room": "A3-301","cohort": "UG1_CND","half": None},
-    # ── SATURDAY ─────────────────────────────────────────────────────────────
-    {"course": "Communication Theory (T)",   "day": "Sat", "slot": 3, "room": "CR1",  "cohort": "UG2_ECE","half": None},
-    {"course": "IQIC Tutorial",              "day": "Sat", "slot": 3, "room": "H102", "cohort": "PhD",    "half": None},
-    {"course": "Makeup slot UG1",            "day": "Sat", "slot": 6, "room": "SH3",  "cohort": "UG1",    "half": None},
-    {"course": "DSA LAB evening",            "day": "Tue", "slot": 6, "room": "TL1",  "cohort": "UG1",    "half": None},
-    # ── MONDAY Labs ──────────────────────────────────────────────────────────
-    {"course": "DSA LAB (A) G1-G4",         "day": "Mon", "slot": 4, "room": "TL1",  "cohort": "UG1",    "half": None},
-    {"course": "Electronic Workshop II",     "day": "Mon", "slot": 4, "room": "N-104", "cohort": "UG1_ECE","half": None},
-    # ── TUESDAY Labs ─────────────────────────────────────────────────────────
-    {"course": "DSA LAB (B) G5-G8",         "day": "Tue", "slot": 4, "room": "TL1",  "cohort": "UG1",    "half": None},
-    {"course": "El. Workshop II (Tue)",      "day": "Tue", "slot": 2, "room": "N-104", "cohort": "UG1_ECE","half": None},
-    {"course": "Science Lab II (Tue)",       "day": "Tue", "slot": 3, "room": "A3-301","cohort": "UG1_CND","half": None},
-]
+DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "campus_data_real.json")
+try:
+    with open(DATA_PATH, "r") as f:
+        real_data = json.load(f)
+        
+    for room in real_data.get("rooms", []):
+        if room == "Unknown": continue
+        
+        target_key = "himalaya"
+        if room.startswith("SH"): target_key = "himalaya_sh"
+        elif room.startswith("N-"): target_key = "new_academic_labs"
+        elif room.startswith("TL"): target_key = "tutorial_labs"
+        elif room.startswith("B4") or room.startswith("B6"): target_key = "b_block"
+        elif room.startswith("CR"): target_key = "cr_block"
+        elif room.startswith("A3"): target_key = "a3_block"
+            
+        for b in CAMPUS_BUILDINGS:
+            if b["key"] == target_key:
+                if not any(r[0] == room for f in b["floors"] for r in f["rooms"]):
+                    b["floors"][0]["rooms"].append((room, 90, "lecture" if target_key == "himalaya" else "lab"))
+                break
+
+    for b in real_data.get("bookings", []):
+        slot_str = str(b.get("slot", "1"))
+        slot_n = 1
+        for s in range(1, 7):
+            if str(s) in slot_str:
+                slot_n = s
+                break
+        
+        course = b.get("raw_text", "")
+        cohort = "MS"
+        if "UG1" in course: cohort = "UG1"
+        elif "UG2" in course: cohort = "UG2"
+        elif "UG3" in course: cohort = "UG3"
+        elif "UG4" in course: cohort = "UG4"
+        elif "PhD" in course: cohort = "PhD"
+        
+        day_str = b.get("day", "Mon")
+        if "Mon" in day_str: day_str = "Mon"
+        elif "Tue" in day_str: day_str = "Tue"
+        elif "Wed" in day_str: day_str = "Wed"
+        elif "Thu" in day_str: day_str = "Thu"
+        elif "Fri" in day_str: day_str = "Fri"
+        elif "Sat" in day_str: day_str = "Sat"
+        else: day_str = "Mon"
+        
+        TIMETABLE.append({
+            "course": course,
+            "day": day_str,
+            "slot": slot_n,
+            "room": b.get("room", "Unknown"),
+            "cohort": cohort,
+            "half": None
+        })
+except Exception as e:
+    print(f"Warning: Could not load real data: {e}")
 
 # Cohort average attendance (used as expectedAttendance in bookings)
 COHORT_ATTENDANCE = {
@@ -691,6 +595,55 @@ class CampusSeeder:
 
         print(f"    ✓ {created} bookings created, {skipped} skipped (room not found or error)")
 
+    # ── step 5 : sync static frontend config ──────────────────────────────────
+    
+    def sync_frontend_seed(self) -> None:
+        print("  Syncing configuration to frontend static seed …")
+        out = {
+          "schemaVersion": 1,
+          "configs": [{
+              "id": "cfg-IIITH-main",
+              "campusName": "IIITH — Main Campus",
+              "center": { "lat": 17.4464, "lng": 78.3487 },
+              "radiusMeters": 450,
+              "buildings": [],
+              "gates": [],
+              "displays": [{"id": "disp-1", "name": "Display — Main Junction", "lat": 17.44698, "lng": 78.34812, "routeMode": "normal", "activeMessage": "All routes operational"}],
+              "timetables": [],
+              "rules": [],
+              "createdAt": "2026-04-22T00:00:00.000Z",
+              "updatedAt": "2026-04-22T00:00:00.000Z"
+          }]
+        }
+        for b in CAMPUS_BUILDINGS:
+            b_out = {
+                "id": b["key"],
+                "name": b["name"],
+                "category": b["category"],
+                "position": {"lat": b["lat"], "lng": b["lng"]},
+                "floors": []
+            }
+            for f_idx, f in enumerate(b["floors"]):
+                f_out = {"floorNumber": f_idx, "rooms": []}
+                for r in f.get("rooms", []):
+                    f_out["rooms"].append({
+                        "id": r[0].replace(" ", "_").replace(".", "_") + f"_{f_idx}",
+                        "name": r[0],
+                        "capacity": r[1],
+                        "roomType": r[2],
+                        "equipment": {"pc": True, "projector": True}
+                    })
+                b_out["floors"].append(f_out)
+            out["configs"][0]["buildings"].append(b_out)
+            
+        frontend_path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "src", "data", "campusConfig.seed.json")
+        try:
+            with open(frontend_path, "w") as f:
+                json.dump(out, f, indent=2)
+            print(f"    ✓ Synced {len(CAMPUS_BUILDINGS)} buildings to {frontend_path}")
+        except Exception as e:
+            print(f"    ✗ Failed to sync frontend: {e}")
+
     # ── run ─────────────────────────────────────────────────────────────────
 
     def run(self, reset: bool = False) -> None:
@@ -706,6 +659,7 @@ class CampusSeeder:
         self.seed_buildings()
         self.seed_event_types()
         self.seed_timetable()
+        self.sync_frontend_seed()
         print()
         print("✅  Campus seed complete.")
         print(f"   Site    : IIIT Hyderabad Campus ({self.site_id})")

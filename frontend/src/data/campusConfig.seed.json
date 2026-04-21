@@ -3,15 +3,3506 @@
   "configs": [
     {
       "id": "cfg-IIITH-main",
-      "campusName": "IIITH — Main Campus",
-      "center": { "lat": 17.4464, "lng": 78.3487 },
-      "radiusMeters": 400,
-      "buildings": [],
+      "campusName": "IIITH \u2014 Main Campus",
+      "center": {
+        "lat": 17.4464,
+        "lng": 78.3487
+      },
+      "radiusMeters": 450,
+      "buildings": [
+        {
+          "id": "himalaya",
+          "name": "Himalaya",
+          "category": "classroom",
+          "position": {
+            "lat": 17.44544,
+            "lng": 78.34913
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "H101_0",
+                  "name": "H101",
+                  "capacity": 120,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "H102_0",
+                  "name": "H102",
+                  "capacity": 100,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "H103_0",
+                  "name": "H103",
+                  "capacity": 90,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "H104_0",
+                  "name": "H104",
+                  "capacity": 80,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "H105_0",
+                  "name": "H105",
+                  "capacity": 70,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "H303_0",
+                  "name": "H303",
+                  "capacity": 90,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "H304_0",
+                  "name": "H304",
+                  "capacity": 90,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 1,
+              "rooms": [
+                {
+                  "id": "H201_1",
+                  "name": "H201",
+                  "capacity": 100,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "H202_1",
+                  "name": "H202",
+                  "capacity": 90,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "H203_1",
+                  "name": "H203",
+                  "capacity": 100,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "H204_1",
+                  "name": "H204",
+                  "capacity": 80,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "H205_1",
+                  "name": "H205",
+                  "capacity": 70,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 2,
+              "rooms": [
+                {
+                  "id": "H301_2",
+                  "name": "H301",
+                  "capacity": 80,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "H302_2",
+                  "name": "H302",
+                  "capacity": 70,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "himalaya_sh",
+          "name": "Himalaya (SH Halls)",
+          "category": "classroom",
+          "position": {
+            "lat": 17.44548,
+            "lng": 78.34918
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "SH1_0",
+                  "name": "SH1",
+                  "capacity": 250,
+                  "roomType": "auditorium",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "SH2_0",
+                  "name": "SH2",
+                  "capacity": 200,
+                  "roomType": "auditorium",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "SH3_0",
+                  "name": "SH3",
+                  "capacity": 180,
+                  "roomType": "auditorium",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "new_academic_labs",
+          "name": "New Academic Block (N-Block)",
+          "category": "lab",
+          "position": {
+            "lat": 17.4452,
+            "lng": 78.349
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "N-104_0",
+                  "name": "N-104",
+                  "capacity": 60,
+                  "roomType": "lab",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "N-114_0",
+                  "name": "N-114",
+                  "capacity": 50,
+                  "roomType": "lab",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "N-125_0",
+                  "name": "N-125",
+                  "capacity": 50,
+                  "roomType": "lab",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tutorial_labs",
+          "name": "Tutorial Labs Block",
+          "category": "lab",
+          "position": {
+            "lat": 17.44535,
+            "lng": 78.34905
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "TL1_0",
+                  "name": "TL1",
+                  "capacity": 40,
+                  "roomType": "tutorial",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "TL2_0",
+                  "name": "TL2",
+                  "capacity": 40,
+                  "roomType": "tutorial",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "TL3_0",
+                  "name": "TL3",
+                  "capacity": 40,
+                  "roomType": "tutorial",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b_block",
+          "name": "B-Block",
+          "category": "lab",
+          "position": {
+            "lat": 17.4451,
+            "lng": 78.3487
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "B4-304_0",
+                  "name": "B4-304",
+                  "capacity": 60,
+                  "roomType": "tutorial",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "B4-302_0",
+                  "name": "B4-302",
+                  "capacity": 50,
+                  "roomType": "tutorial",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "B6-309_0",
+                  "name": "B6-309",
+                  "capacity": 60,
+                  "roomType": "lab",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "B4302_0",
+                  "name": "B4302",
+                  "capacity": 90,
+                  "roomType": "lab",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "B4304_0",
+                  "name": "B4304",
+                  "capacity": 90,
+                  "roomType": "lab",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cr_block",
+          "name": "CR Block",
+          "category": "classroom",
+          "position": {
+            "lat": 17.4451,
+            "lng": 78.3488
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "CR1_0",
+                  "name": "CR1",
+                  "capacity": 80,
+                  "roomType": "lecture",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "a3_block",
+          "name": "A3 Block (Science Labs)",
+          "category": "lab",
+          "position": {
+            "lat": 17.44505,
+            "lng": 78.3486
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "A3-301_0",
+                  "name": "A3-301",
+                  "capacity": 45,
+                  "roomType": "lab",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "t_hub",
+          "name": "T-Hub",
+          "category": "research",
+          "position": {
+            "lat": 17.44568,
+            "lng": 78.34882
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "TH-Open-Lab_0",
+                  "name": "TH-Open-Lab",
+                  "capacity": 80,
+                  "roomType": "lab",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "TH-Meeting_0",
+                  "name": "TH-Meeting",
+                  "capacity": 30,
+                  "roomType": "conference",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 1,
+              "rooms": [
+                {
+                  "id": "TH-Research-1_1",
+                  "name": "TH-Research-1",
+                  "capacity": 40,
+                  "roomType": "lab",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "TH-Research-2_1",
+                  "name": "TH-Research-2",
+                  "capacity": 40,
+                  "roomType": "lab",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "academic_office",
+          "name": "Academic Office",
+          "category": "research",
+          "position": {
+            "lat": 17.44495,
+            "lng": 78.34989
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "AO-Lab-1_0",
+                  "name": "AO-Lab-1",
+                  "capacity": 50,
+                  "roomType": "lab",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "AO-Lab-2_0",
+                  "name": "AO-Lab-2",
+                  "capacity": 50,
+                  "roomType": "lab",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "AO-Office_0",
+                  "name": "AO-Office",
+                  "capacity": 30,
+                  "roomType": "office",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "new_boys_hostel",
+          "name": "New Boys Hostel (NBH)",
+          "category": "hostel",
+          "position": {
+            "lat": 17.44716,
+            "lng": 78.3476
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "NBH-101_0",
+                  "name": "NBH-101",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-102_0",
+                  "name": "NBH-102",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-103_0",
+                  "name": "NBH-103",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-104_0",
+                  "name": "NBH-104",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-105_0",
+                  "name": "NBH-105",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-106_0",
+                  "name": "NBH-106",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-107_0",
+                  "name": "NBH-107",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-108_0",
+                  "name": "NBH-108",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-109_0",
+                  "name": "NBH-109",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-110_0",
+                  "name": "NBH-110",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-111_0",
+                  "name": "NBH-111",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-112_0",
+                  "name": "NBH-112",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-113_0",
+                  "name": "NBH-113",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-114_0",
+                  "name": "NBH-114",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-115_0",
+                  "name": "NBH-115",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-116_0",
+                  "name": "NBH-116",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-117_0",
+                  "name": "NBH-117",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-118_0",
+                  "name": "NBH-118",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-119_0",
+                  "name": "NBH-119",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-120_0",
+                  "name": "NBH-120",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 1,
+              "rooms": [
+                {
+                  "id": "NBH-201_1",
+                  "name": "NBH-201",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-202_1",
+                  "name": "NBH-202",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-203_1",
+                  "name": "NBH-203",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-204_1",
+                  "name": "NBH-204",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-205_1",
+                  "name": "NBH-205",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-206_1",
+                  "name": "NBH-206",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-207_1",
+                  "name": "NBH-207",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-208_1",
+                  "name": "NBH-208",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-209_1",
+                  "name": "NBH-209",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-210_1",
+                  "name": "NBH-210",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-211_1",
+                  "name": "NBH-211",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-212_1",
+                  "name": "NBH-212",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-213_1",
+                  "name": "NBH-213",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-214_1",
+                  "name": "NBH-214",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-215_1",
+                  "name": "NBH-215",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-216_1",
+                  "name": "NBH-216",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-217_1",
+                  "name": "NBH-217",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-218_1",
+                  "name": "NBH-218",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-219_1",
+                  "name": "NBH-219",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-220_1",
+                  "name": "NBH-220",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 2,
+              "rooms": [
+                {
+                  "id": "NBH-301_2",
+                  "name": "NBH-301",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-302_2",
+                  "name": "NBH-302",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-303_2",
+                  "name": "NBH-303",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-304_2",
+                  "name": "NBH-304",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-305_2",
+                  "name": "NBH-305",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-306_2",
+                  "name": "NBH-306",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-307_2",
+                  "name": "NBH-307",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-308_2",
+                  "name": "NBH-308",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-309_2",
+                  "name": "NBH-309",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-310_2",
+                  "name": "NBH-310",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-311_2",
+                  "name": "NBH-311",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-312_2",
+                  "name": "NBH-312",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-313_2",
+                  "name": "NBH-313",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-314_2",
+                  "name": "NBH-314",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-315_2",
+                  "name": "NBH-315",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-316_2",
+                  "name": "NBH-316",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-317_2",
+                  "name": "NBH-317",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-318_2",
+                  "name": "NBH-318",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-319_2",
+                  "name": "NBH-319",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-320_2",
+                  "name": "NBH-320",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 3,
+              "rooms": [
+                {
+                  "id": "NBH-401_3",
+                  "name": "NBH-401",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-402_3",
+                  "name": "NBH-402",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-403_3",
+                  "name": "NBH-403",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-404_3",
+                  "name": "NBH-404",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-405_3",
+                  "name": "NBH-405",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-406_3",
+                  "name": "NBH-406",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-407_3",
+                  "name": "NBH-407",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-408_3",
+                  "name": "NBH-408",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-409_3",
+                  "name": "NBH-409",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-410_3",
+                  "name": "NBH-410",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-411_3",
+                  "name": "NBH-411",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-412_3",
+                  "name": "NBH-412",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-413_3",
+                  "name": "NBH-413",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-414_3",
+                  "name": "NBH-414",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-415_3",
+                  "name": "NBH-415",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-416_3",
+                  "name": "NBH-416",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-417_3",
+                  "name": "NBH-417",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-418_3",
+                  "name": "NBH-418",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-419_3",
+                  "name": "NBH-419",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "NBH-420_3",
+                  "name": "NBH-420",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "obh_ff",
+          "name": "OBH-FF",
+          "category": "hostel",
+          "position": {
+            "lat": 17.44476,
+            "lng": 78.34572
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "OBH-F1-01_0",
+                  "name": "OBH-F1-01",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-02_0",
+                  "name": "OBH-F1-02",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-03_0",
+                  "name": "OBH-F1-03",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-04_0",
+                  "name": "OBH-F1-04",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-05_0",
+                  "name": "OBH-F1-05",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-06_0",
+                  "name": "OBH-F1-06",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-07_0",
+                  "name": "OBH-F1-07",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-08_0",
+                  "name": "OBH-F1-08",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-09_0",
+                  "name": "OBH-F1-09",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-10_0",
+                  "name": "OBH-F1-10",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-11_0",
+                  "name": "OBH-F1-11",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-12_0",
+                  "name": "OBH-F1-12",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-13_0",
+                  "name": "OBH-F1-13",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-14_0",
+                  "name": "OBH-F1-14",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F1-15_0",
+                  "name": "OBH-F1-15",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 1,
+              "rooms": [
+                {
+                  "id": "OBH-F2-01_1",
+                  "name": "OBH-F2-01",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-02_1",
+                  "name": "OBH-F2-02",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-03_1",
+                  "name": "OBH-F2-03",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-04_1",
+                  "name": "OBH-F2-04",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-05_1",
+                  "name": "OBH-F2-05",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-06_1",
+                  "name": "OBH-F2-06",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-07_1",
+                  "name": "OBH-F2-07",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-08_1",
+                  "name": "OBH-F2-08",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-09_1",
+                  "name": "OBH-F2-09",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-10_1",
+                  "name": "OBH-F2-10",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-11_1",
+                  "name": "OBH-F2-11",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-12_1",
+                  "name": "OBH-F2-12",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-13_1",
+                  "name": "OBH-F2-13",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-14_1",
+                  "name": "OBH-F2-14",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F2-15_1",
+                  "name": "OBH-F2-15",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 2,
+              "rooms": [
+                {
+                  "id": "OBH-F3-01_2",
+                  "name": "OBH-F3-01",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-02_2",
+                  "name": "OBH-F3-02",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-03_2",
+                  "name": "OBH-F3-03",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-04_2",
+                  "name": "OBH-F3-04",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-05_2",
+                  "name": "OBH-F3-05",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-06_2",
+                  "name": "OBH-F3-06",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-07_2",
+                  "name": "OBH-F3-07",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-08_2",
+                  "name": "OBH-F3-08",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-09_2",
+                  "name": "OBH-F3-09",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-10_2",
+                  "name": "OBH-F3-10",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-11_2",
+                  "name": "OBH-F3-11",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-12_2",
+                  "name": "OBH-F3-12",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-13_2",
+                  "name": "OBH-F3-13",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-14_2",
+                  "name": "OBH-F3-14",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "OBH-F3-15_2",
+                  "name": "OBH-F3-15",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "bakul_nivas",
+          "name": "Bakul Nivas",
+          "category": "hostel",
+          "position": {
+            "lat": 17.44819,
+            "lng": 78.3485
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "BN-101_0",
+                  "name": "BN-101",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-102_0",
+                  "name": "BN-102",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-103_0",
+                  "name": "BN-103",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-104_0",
+                  "name": "BN-104",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-105_0",
+                  "name": "BN-105",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-106_0",
+                  "name": "BN-106",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-107_0",
+                  "name": "BN-107",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-108_0",
+                  "name": "BN-108",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-109_0",
+                  "name": "BN-109",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-110_0",
+                  "name": "BN-110",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-111_0",
+                  "name": "BN-111",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-112_0",
+                  "name": "BN-112",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-113_0",
+                  "name": "BN-113",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-114_0",
+                  "name": "BN-114",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-115_0",
+                  "name": "BN-115",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 1,
+              "rooms": [
+                {
+                  "id": "BN-201_1",
+                  "name": "BN-201",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-202_1",
+                  "name": "BN-202",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-203_1",
+                  "name": "BN-203",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-204_1",
+                  "name": "BN-204",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-205_1",
+                  "name": "BN-205",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-206_1",
+                  "name": "BN-206",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-207_1",
+                  "name": "BN-207",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-208_1",
+                  "name": "BN-208",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-209_1",
+                  "name": "BN-209",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-210_1",
+                  "name": "BN-210",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-211_1",
+                  "name": "BN-211",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-212_1",
+                  "name": "BN-212",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-213_1",
+                  "name": "BN-213",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-214_1",
+                  "name": "BN-214",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-215_1",
+                  "name": "BN-215",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 2,
+              "rooms": [
+                {
+                  "id": "BN-301_2",
+                  "name": "BN-301",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-302_2",
+                  "name": "BN-302",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-303_2",
+                  "name": "BN-303",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-304_2",
+                  "name": "BN-304",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-305_2",
+                  "name": "BN-305",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-306_2",
+                  "name": "BN-306",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-307_2",
+                  "name": "BN-307",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-308_2",
+                  "name": "BN-308",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-309_2",
+                  "name": "BN-309",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-310_2",
+                  "name": "BN-310",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-311_2",
+                  "name": "BN-311",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-312_2",
+                  "name": "BN-312",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-313_2",
+                  "name": "BN-313",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-314_2",
+                  "name": "BN-314",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BN-315_2",
+                  "name": "BN-315",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "girls_hostel",
+          "name": "Girls Hostel",
+          "category": "girls_hostel",
+          "position": {
+            "lat": 17.44757,
+            "lng": 78.34741
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "GH-101_0",
+                  "name": "GH-101",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-102_0",
+                  "name": "GH-102",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-103_0",
+                  "name": "GH-103",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-104_0",
+                  "name": "GH-104",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-105_0",
+                  "name": "GH-105",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-106_0",
+                  "name": "GH-106",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-107_0",
+                  "name": "GH-107",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-108_0",
+                  "name": "GH-108",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-109_0",
+                  "name": "GH-109",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-110_0",
+                  "name": "GH-110",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-111_0",
+                  "name": "GH-111",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-112_0",
+                  "name": "GH-112",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-113_0",
+                  "name": "GH-113",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-114_0",
+                  "name": "GH-114",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-115_0",
+                  "name": "GH-115",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-116_0",
+                  "name": "GH-116",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-117_0",
+                  "name": "GH-117",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-118_0",
+                  "name": "GH-118",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-119_0",
+                  "name": "GH-119",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-120_0",
+                  "name": "GH-120",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 1,
+              "rooms": [
+                {
+                  "id": "GH-201_1",
+                  "name": "GH-201",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-202_1",
+                  "name": "GH-202",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-203_1",
+                  "name": "GH-203",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-204_1",
+                  "name": "GH-204",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-205_1",
+                  "name": "GH-205",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-206_1",
+                  "name": "GH-206",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-207_1",
+                  "name": "GH-207",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-208_1",
+                  "name": "GH-208",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-209_1",
+                  "name": "GH-209",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-210_1",
+                  "name": "GH-210",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-211_1",
+                  "name": "GH-211",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-212_1",
+                  "name": "GH-212",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-213_1",
+                  "name": "GH-213",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-214_1",
+                  "name": "GH-214",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-215_1",
+                  "name": "GH-215",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-216_1",
+                  "name": "GH-216",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-217_1",
+                  "name": "GH-217",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-218_1",
+                  "name": "GH-218",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-219_1",
+                  "name": "GH-219",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-220_1",
+                  "name": "GH-220",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 2,
+              "rooms": [
+                {
+                  "id": "GH-301_2",
+                  "name": "GH-301",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-302_2",
+                  "name": "GH-302",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-303_2",
+                  "name": "GH-303",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-304_2",
+                  "name": "GH-304",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-305_2",
+                  "name": "GH-305",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-306_2",
+                  "name": "GH-306",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-307_2",
+                  "name": "GH-307",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-308_2",
+                  "name": "GH-308",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-309_2",
+                  "name": "GH-309",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-310_2",
+                  "name": "GH-310",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-311_2",
+                  "name": "GH-311",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-312_2",
+                  "name": "GH-312",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-313_2",
+                  "name": "GH-313",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-314_2",
+                  "name": "GH-314",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-315_2",
+                  "name": "GH-315",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-316_2",
+                  "name": "GH-316",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-317_2",
+                  "name": "GH-317",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-318_2",
+                  "name": "GH-318",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-319_2",
+                  "name": "GH-319",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-320_2",
+                  "name": "GH-320",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 3,
+              "rooms": [
+                {
+                  "id": "GH-401_3",
+                  "name": "GH-401",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-402_3",
+                  "name": "GH-402",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-403_3",
+                  "name": "GH-403",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-404_3",
+                  "name": "GH-404",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-405_3",
+                  "name": "GH-405",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-406_3",
+                  "name": "GH-406",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-407_3",
+                  "name": "GH-407",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-408_3",
+                  "name": "GH-408",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-409_3",
+                  "name": "GH-409",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-410_3",
+                  "name": "GH-410",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-411_3",
+                  "name": "GH-411",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-412_3",
+                  "name": "GH-412",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-413_3",
+                  "name": "GH-413",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-414_3",
+                  "name": "GH-414",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-415_3",
+                  "name": "GH-415",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-416_3",
+                  "name": "GH-416",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-417_3",
+                  "name": "GH-417",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-418_3",
+                  "name": "GH-418",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-419_3",
+                  "name": "GH-419",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "GH-420_3",
+                  "name": "GH-420",
+                  "capacity": 2,
+                  "roomType": "bedroom",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "block_e_fsq",
+          "name": "Block E, Faculty and Staff Quarters",
+          "category": "residential",
+          "position": {
+            "lat": 17.44434,
+            "lng": 78.34796
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "BE-101_0",
+                  "name": "BE-101",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-102_0",
+                  "name": "BE-102",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-103_0",
+                  "name": "BE-103",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-104_0",
+                  "name": "BE-104",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-105_0",
+                  "name": "BE-105",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-106_0",
+                  "name": "BE-106",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-107_0",
+                  "name": "BE-107",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-108_0",
+                  "name": "BE-108",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 1,
+              "rooms": [
+                {
+                  "id": "BE-201_1",
+                  "name": "BE-201",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-202_1",
+                  "name": "BE-202",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-203_1",
+                  "name": "BE-203",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-204_1",
+                  "name": "BE-204",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-205_1",
+                  "name": "BE-205",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-206_1",
+                  "name": "BE-206",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-207_1",
+                  "name": "BE-207",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-208_1",
+                  "name": "BE-208",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            },
+            {
+              "floorNumber": 2,
+              "rooms": [
+                {
+                  "id": "BE-301_2",
+                  "name": "BE-301",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-302_2",
+                  "name": "BE-302",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-303_2",
+                  "name": "BE-303",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-304_2",
+                  "name": "BE-304",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-305_2",
+                  "name": "BE-305",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-306_2",
+                  "name": "BE-306",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-307_2",
+                  "name": "BE-307",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                },
+                {
+                  "id": "BE-308_2",
+                  "name": "BE-308",
+                  "capacity": 3,
+                  "roomType": "apartment",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "juice_canteen",
+          "name": "Juice Canteen",
+          "category": "canteen",
+          "position": {
+            "lat": 17.44793,
+            "lng": 78.34758
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "JC-Dining_0",
+                  "name": "JC-Dining",
+                  "capacity": 150,
+                  "roomType": "canteen",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "basketball_canteen",
+          "name": "Basketball Canteen",
+          "category": "canteen",
+          "position": {
+            "lat": 17.44785,
+            "lng": 78.34753
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "BC-Dining_0",
+                  "name": "BC-Dining",
+                  "capacity": 120,
+                  "roomType": "canteen",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "amphitheater",
+          "name": "Amphitheater",
+          "category": "venue",
+          "position": {
+            "lat": 17.44797,
+            "lng": 78.34791
+          },
+          "floors": [
+            {
+              "floorNumber": 0,
+              "rooms": [
+                {
+                  "id": "Amph-Main_0",
+                  "name": "Amph-Main",
+                  "capacity": 1000,
+                  "roomType": "arena",
+                  "equipment": {
+                    "pc": true,
+                    "projector": true
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
       "gates": [],
       "displays": [
         {
           "id": "disp-1",
-          "name": "Display — Main Junction",
+          "name": "Display \u2014 Main Junction",
           "lat": 17.44698,
           "lng": 78.34812,
           "routeMode": "normal",
@@ -20,8 +3511,8 @@
       ],
       "timetables": [],
       "rules": [],
-      "createdAt": "2025-01-01T00:00:00.000Z",
-      "updatedAt": "2025-01-01T00:00:00.000Z"
+      "createdAt": "2026-04-22T00:00:00.000Z",
+      "updatedAt": "2026-04-22T00:00:00.000Z"
     }
   ]
 }
