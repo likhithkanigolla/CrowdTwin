@@ -2,7 +2,7 @@
   "origin_lng": 78.3474024,
   "origin_lat": 17.44856695,
   "scale": 3e-05,
-  "updated_at": "2026-04-21T11:16:09.881478",
+  "updated_at": "2026-04-22T00:08:56.647542",
   "boundary_source": "selected_area",
   "scene_file": "/Users/likhithkanigolla/IIITH/code-files/Digital-Twin/Crowd/backend/uploads/pedsim_scene_from_map.xml",
   "demoapp_scene_file": "/Users/likhithkanigolla/IIITH/code-files/Digital-Twin/Crowd/pedsim/ecosystem/demoapp/scene.xml",

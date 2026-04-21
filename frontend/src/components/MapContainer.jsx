@@ -1880,46 +1880,11 @@ export default function MapContainer({
                     return;
                 }
 
-                const totalPeople = Math.max(0, Number(payload?.total_people) || 0);
-                const desiredAgents = Math.max(40, Math.min(220, Math.round(totalPeople / 7)));
+                // Note: We deliberately DO NOT generate synthetic agents here anymore,
+                // because spawning them at random points between cameras was confusing.
+                // We only display the camera point clusters instead.
                 const allAgents = Array.isArray(simulator.agents) ? simulator.agents : [];
-                const staticAgents = allAgents.filter((agent) => !isSyntheticAgent(agent));
-                const syntheticAgents = allAgents.filter(isSyntheticAgent);
-
-                const activeSynthetic = syntheticAgents.filter((agent) => agent.state === 'MOVING');
-                const recycledSynthetic = syntheticAgents.filter((agent) => agent.state !== 'MOVING');
-                const nextSynthetic = [...activeSynthetic];
-
-                while (nextSynthetic.length > desiredAgents) {
-                    nextSynthetic.pop();
-                }
-
-                const missing = Math.max(0, desiredAgents - nextSynthetic.length);
-                const recycledQueue = [...recycledSynthetic];
-
-                for (let index = 0; index < missing; index++) {
-                    let nextAgent = recycledQueue.pop();
-                    if (!nextAgent) {
-                        syntheticAgentSeqRef.current += 1;
-                        nextAgent = createSyntheticAgent(simulator, cameras, syntheticAgentSeqRef.current);
-                    } else {
-                        const refreshed = createSyntheticAgent(simulator, cameras, syntheticAgentSeqRef.current + index + 1);
-                        if (refreshed) {
-                            nextAgent = {
-                                ...refreshed,
-                                id: nextAgent.id,
-                            };
-                        } else {
-                            nextAgent = null;
-                        }
-                    }
-
-                    if (nextAgent) {
-                        nextSynthetic.push(nextAgent);
-                    }
-                }
-
-                simulator.agents = [...staticAgents, ...nextSynthetic];
+                simulator.agents = allAgents.filter((agent) => !isSyntheticAgent(agent));
                 simulator._updateLayer();
                 simulator.modelLayer?.updateAgents(simulator.agents);
             } catch (error) {

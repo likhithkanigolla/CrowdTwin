@@ -1161,10 +1161,19 @@ def ingest_synthetic_node_data(payload: Dict[str, Any]):
             )
             conn.commit()
 
-    for zone, total in zone_totals.items():
-        building_occupancy_store[zone] = BuildingOccupancyUpdate(
-            building_name=zone,
-            current_occupancy=total,
+    for item in raw_readings:
+        ...
+        location_name = str(item.get("location_name") or camera_id or "camera")
+        ...
+
+    # Now populate building occupancy directly from individual camera counts,
+    # mapping location_name -> count instead of zone -> total.
+    for row in db_rows:
+        loc_name = row[2]  # location_name
+        people = row[6]    # people_count
+        building_occupancy_store[loc_name] = BuildingOccupancyUpdate(
+            building_name=loc_name,
+            current_occupancy=people,
             capacity=None,
             last_updated=generated_at,
         )
