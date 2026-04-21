@@ -19,16 +19,18 @@ import GateRoadControlPanel from "./GateRoadControlPanel";
 import DisplayRoutePanel from "./DisplayRoutePanel";
 import RuleAutomationPanel from "./RuleAutomationPanel";
 import ActionQueueAuditPanel from "./ActionQueueAuditPanel";
+import VirtualActuationPanel from "./VirtualActuationPanel";
 import { Button } from "@/components/ui/button";
 import {
   Download, Upload, RotateCcw, Sun, Moon, PanelLeftOpen, PanelRightOpen,
   PanelLeftClose, PanelRightClose, Activity, CalendarClock, Building2, Route,
-  Monitor, Bot, ListChecks, Loader2, RefreshCw, Layers, Zap,
+  Monitor, Bot, ListChecks, Loader2, RefreshCw, Layers, Zap, SlidersHorizontal,
 } from "lucide-react";
 
 const DEFAULT_CENTER = { lng: 78.3487, lat: 17.4464 };
 
 const RIGHT_TABS = [
+  { key: "virtual",  label: "Control",  Icon: SlidersHorizontal },
   { key: "gates",    label: "Gates",    Icon: Route   },
   { key: "displays", label: "Displays", Icon: Monitor },
   { key: "rules",    label: "Rules",    Icon: Bot     },
@@ -48,7 +50,7 @@ export default function ActuationControlWorkspace() {
   const [theme, setTheme] = useState("light");
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
-  const [rightTab, setRightTab] = useState("gates");
+  const [rightTab, setRightTab] = useState("virtual");
   const [timetableOpen, setTimetableOpen] = useState(false);
   const [highlightRoadId, setHighlightRoadId] = useState(null);
   const [mapIssue, setMapIssue] = useState("");
@@ -277,6 +279,13 @@ export default function ActuationControlWorkspace() {
           </div>
 
           <div className="mt-2 flex-1 overflow-y-auto pl-1">
+            {rightTab === "virtual" && (
+              <VirtualActuationPanel
+                config={activeConfig}
+                store={store}
+                audit={audit}
+              />
+            )}
             {rightTab === "gates" && (
               <GateRoadControlPanel
                 config={activeConfig}

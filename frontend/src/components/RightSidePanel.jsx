@@ -4,6 +4,7 @@ import {
     fetchCongestion, 
     suggestBuilding,
     getCameraFeed,
+    getSyntheticDashboard,
     controlRoad,
     getRoadStatus,
     getAvailableRoads,
@@ -2417,6 +2418,29 @@ export default function RightSidePanel({
         };
         loadCongestion();
     }, [Math.floor(simTime)]);
+
+    useEffect(() => {
+        if (mode !== 'visualize') return;
+
+        let cancelled = false;
+        const loadSynthetic = async () => {
+            try {
+                const data = await getSyntheticDashboard(15);
+                if (!cancelled && data?.category_occupancy && Object.keys(data.category_occupancy).length > 0) {
+                    setCategoryOccupancy(data.category_occupancy);
+                }
+            } catch (err) {
+                // Synthetic providers may not be running; keep fallback occupancy.
+            }
+        };
+
+        loadSynthetic();
+        const intervalId = setInterval(loadSynthetic, 5000);
+        return () => {
+            cancelled = true;
+            clearInterval(intervalId);
+        };
+    }, [mode]);
 
     // Prefer live occupancy from simulator when available
     const effectiveOccupancy = (liveCategoryOccupancy && Object.keys(liveCategoryOccupancy).length > 0)

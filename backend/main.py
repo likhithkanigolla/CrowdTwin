@@ -5,13 +5,15 @@ import os
 import csv
 import json
 import random
+import sqlite3
 import subprocess
 import sys
+import threading
 import time
 from io import StringIO
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from schemas import (
     Event,
@@ -260,10 +262,175 @@ REPO_ROOT = os.path.dirname(BACKEND_DIR)
 # Create uploads directory if it doesn't exist
 UPLOADS_DIR = os.path.join(BACKEND_DIR, "uploads")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
+SYNTHETIC_DB_PATH = os.path.join(UPLOADS_DIR, "synthetic_nodes.db")
 PEDSIM_TRANSFORM_PATH = os.path.join(UPLOADS_DIR, "pedsim_scene_transform.json")
 PEDSIM_SCENE_EXPORT_PATH = os.path.join(UPLOADS_DIR, "pedsim_scene_from_map.xml")
 PEDSIM_SPAWN_GROUPS_PATH = os.path.join(UPLOADS_DIR, "pedsim_spawn_groups.json")
 PEDSIM_DEMOAPP_SCENE_PATH = os.path.join(REPO_ROOT, "pedsim", "ecosystem", "demoapp", "scene.xml")
+
+synthetic_db_lock = threading.Lock()
+
+
+def _synthetic_db_conn() -> sqlite3.Connection:
+    connection = sqlite3.connect(SYNTHETIC_DB_PATH, timeout=30.0, check_same_thread=False)
+    connection.row_factory = sqlite3.Row
+    return connection
+
+
+def _init_synthetic_db():
+    with synthetic_db_lock:
+        with _synthetic_db_conn() as conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS synthetic_camera_readings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    node_id TEXT NOT NULL,
+                    camera_id TEXT NOT NULL,
+                    location_name TEXT NOT NULL,
+                    zone TEXT NOT NULL,
+                    lat REAL NOT NULL,
+                    lng REAL NOT NULL,
+                    people_count INTEGER NOT NULL,
+                    direction TEXT,
+                    generated_at TEXT NOT NULL,
+                    inserted_at TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_synthetic_camera_generated
+                ON synthetic_camera_readings (camera_id, generated_at)
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_synthetic_zone_generated
+                ON synthetic_camera_readings (zone, generated_at)
+                """
+            )
+            conn.commit()
+
+
+def _rows_to_camera_payload(rows: List[sqlite3.Row]) -> List[Dict[str, Any]]:
+    payload = []
+    for row in rows:
+        payload.append({
+            "camera_id": row["camera_id"],
+            "location_name": row["location_name"],
+            "lat": float(row["lat"]),
+            "lng": float(row["lng"]),
+            "people_count": int(row["people_count"]),
+            "direction": row["direction"],
+            "timestamp": row["generated_at"],
+            "zone": row["zone"],
+            "node_id": row["node_id"],
+        })
+    return payload
+
+
+def _latest_camera_rows_from_db(window_minutes: Optional[int] = 15) -> List[sqlite3.Row]:
+    if window_minutes is None:
+        query = """
+            SELECT readings.*
+            FROM synthetic_camera_readings readings
+            JOIN (
+                SELECT camera_id, MAX(generated_at) AS max_generated_at
+                FROM synthetic_camera_readings
+                GROUP BY camera_id
+            ) latest
+              ON latest.camera_id = readings.camera_id
+             AND latest.max_generated_at = readings.generated_at
+            ORDER BY readings.camera_id
+        """
+        params: tuple[Any, ...] = ()
+    else:
+        cutoff = (datetime.utcnow() - timedelta(minutes=max(1, window_minutes))).isoformat()
+        query = """
+            SELECT readings.*
+            FROM synthetic_camera_readings readings
+            JOIN (
+                SELECT camera_id, MAX(generated_at) AS max_generated_at
+                FROM synthetic_camera_readings
+                WHERE generated_at >= ?
+                GROUP BY camera_id
+            ) latest
+              ON latest.camera_id = readings.camera_id
+             AND latest.max_generated_at = readings.generated_at
+            ORDER BY readings.camera_id
+        """
+        params = (cutoff,)
+
+    with synthetic_db_lock:
+        with _synthetic_db_conn() as conn:
+            return conn.execute(query, params).fetchall()
+
+
+def _latest_camera_row_from_db(camera_id: str) -> Optional[sqlite3.Row]:
+    query = """
+        SELECT *
+        FROM synthetic_camera_readings
+        WHERE camera_id = ?
+        ORDER BY generated_at DESC, inserted_at DESC, id DESC
+        LIMIT 1
+    """
+
+    with synthetic_db_lock:
+        with _synthetic_db_conn() as conn:
+            return conn.execute(query, (camera_id,)).fetchone()
+
+
+def _camera_payload_to_db_rows(cameras: List[CameraData], node_id: str, generated_at: str, inserted_at: str) -> tuple[list[tuple[Any, ...]], Dict[str, int]]:
+    rows: list[tuple[Any, ...]] = []
+    zone_totals: Dict[str, int] = {}
+
+    for camera in cameras:
+        location_name = camera.location_name or camera.camera_id
+        zone = infer_building_category(location_name) or infer_building_category(camera.camera_id) or "other"
+
+        rows.append((
+            node_id,
+            camera.camera_id,
+            location_name,
+            zone,
+            float(camera.lat),
+            float(camera.lng),
+            int(camera.people_count),
+            camera.direction,
+            camera.timestamp or generated_at,
+            inserted_at,
+        ))
+
+        zone_totals[zone] = zone_totals.get(zone, 0) + int(camera.people_count)
+
+    return rows, zone_totals
+
+
+def _persist_camera_batch(cameras: List[CameraData], node_id: str, generated_at: Optional[str] = None) -> Dict[str, int]:
+    if not cameras:
+        return {}
+
+    effective_generated_at = generated_at or datetime.utcnow().isoformat()
+    inserted_at = datetime.utcnow().isoformat()
+    rows, zone_totals = _camera_payload_to_db_rows(cameras, node_id, effective_generated_at, inserted_at)
+
+    with synthetic_db_lock:
+        with _synthetic_db_conn() as conn:
+            conn.executemany(
+                """
+                INSERT INTO synthetic_camera_readings (
+                    node_id, camera_id, location_name, zone, lat, lng,
+                    people_count, direction, generated_at, inserted_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                rows,
+            )
+            conn.commit()
+
+    return zone_totals
+
+
+_init_synthetic_db()
 
 pedsim_scene_transform_store: Dict[str, Any] = {
     "origin_lng": 78.3487,
@@ -862,8 +1029,11 @@ def receive_camera_feed(feed: CameraFeedUpdate):
     Receive live camera feed data from sensors.
     Cameras are placed at building entrances and roads.
     """
-    timestamp = feed.timestamp or datetime.now().isoformat()
+    timestamp = feed.timestamp or datetime.utcnow().isoformat()
     updated_cameras = []
+
+    if feed.cameras:
+        _persist_camera_batch(feed.cameras, node_id="camera-feed", generated_at=timestamp)
     
     for camera in feed.cameras:
         camera_data_store[camera.camera_id] = camera
@@ -880,18 +1050,31 @@ def receive_camera_feed(feed: CameraFeedUpdate):
 @app.get("/camera-feed")
 def get_all_camera_data():
     """Get current data from all cameras"""
+    rows = _latest_camera_rows_from_db(window_minutes=None)
+    cameras = _rows_to_camera_payload(rows)
+
+    if not cameras and camera_data_store:
+        cameras = [camera.dict() for camera in camera_data_store.values()]
+
     return {
-        "cameras": list(camera_data_store.values()),
-        "total_cameras": len(camera_data_store)
+        "cameras": cameras,
+        "total_cameras": len(cameras)
     }
 
 
 @app.get("/camera-feed/{camera_id}")
 def get_camera_data(camera_id: str):
     """Get data from a specific camera"""
-    if camera_id not in camera_data_store:
-        raise HTTPException(status_code=404, detail=f"Camera {camera_id} not found")
-    return camera_data_store[camera_id]
+    row = _latest_camera_row_from_db(camera_id)
+    if row is not None:
+        payload = _rows_to_camera_payload([row])
+        if payload:
+            return payload[0]
+
+    if camera_id in camera_data_store:
+        return camera_data_store[camera_id]
+
+    raise HTTPException(status_code=404, detail=f"Camera {camera_id} not found")
 
 
 @app.post("/building-occupancy")
@@ -910,6 +1093,112 @@ def get_all_building_occupancy():
     return {
         "buildings": {k: v.dict() for k, v in building_occupancy_store.items()},
         "total_buildings": len(building_occupancy_store)
+    }
+
+
+@app.post("/synthetic/nodes/ingest")
+def ingest_synthetic_node_data(payload: Dict[str, Any]):
+    """Ingest synthetic node readings and persist them to SQLite for dashboard consumption."""
+    node_id = str(payload.get("node_id") or "unknown-node")
+    generated_at = str(payload.get("generated_at") or datetime.utcnow().isoformat())
+    raw_readings = payload.get("readings") or []
+
+    if not isinstance(raw_readings, list) or len(raw_readings) == 0:
+        raise HTTPException(status_code=400, detail="readings must be a non-empty list")
+
+    camera_readings: List[CameraData] = []
+    db_rows: list[tuple[Any, ...]] = []
+    zone_totals: Dict[str, int] = {}
+
+    for item in raw_readings:
+        try:
+            camera_id = str(item.get("camera_id") or "")
+            location_name = str(item.get("location_name") or camera_id or "camera")
+            zone = str(item.get("zone") or "other")
+            lat = float(item.get("lat"))
+            lng = float(item.get("lng"))
+            people_count = max(0, int(item.get("people_count") or 0))
+            direction = item.get("direction")
+            if not camera_id:
+                raise ValueError("camera_id is required")
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid reading payload: {exc}")
+
+        camera_data_store[camera_id] = CameraData(
+            camera_id=camera_id,
+            location_name=location_name,
+            lat=lat,
+            lng=lng,
+            people_count=people_count,
+            direction=str(direction) if direction is not None else None,
+            timestamp=generated_at,
+        )
+        camera_readings.append(camera_data_store[camera_id])
+        db_rows.append((
+            node_id,
+            camera_id,
+            location_name,
+            zone,
+            lat,
+            lng,
+            people_count,
+            str(direction) if direction is not None else None,
+            generated_at,
+            datetime.utcnow().isoformat(),
+        ))
+        zone_totals[zone] = zone_totals.get(zone, 0) + people_count
+
+    with synthetic_db_lock:
+        with _synthetic_db_conn() as conn:
+            conn.executemany(
+                """
+                INSERT INTO synthetic_camera_readings (
+                    node_id, camera_id, location_name, zone, lat, lng,
+                    people_count, direction, generated_at, inserted_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                db_rows,
+            )
+            conn.commit()
+
+    for zone, total in zone_totals.items():
+        building_occupancy_store[zone] = BuildingOccupancyUpdate(
+            building_name=zone,
+            current_occupancy=total,
+            capacity=None,
+            last_updated=generated_at,
+        )
+
+    return {
+        "message": "Synthetic node data ingested",
+        "node_id": node_id,
+        "inserted_rows": len(db_rows),
+        "generated_at": generated_at,
+    }
+
+
+@app.get("/synthetic/dashboard")
+def get_synthetic_dashboard(window_minutes: int = 15):
+    """Fetch latest synthetic occupancy and camera snapshots for visualization dashboards."""
+    rows = _latest_camera_rows_from_db(window_minutes=window_minutes)
+    cameras = _rows_to_camera_payload(rows)
+
+    category_occupancy: Dict[str, int] = {}
+    for camera in cameras:
+        zone = str(camera.get("zone") or "other")
+        category_occupancy[zone] = category_occupancy.get(zone, 0) + int(camera.get("people_count") or 0)
+
+    latest_timestamp = None
+    if cameras:
+        latest_timestamp = max(str(camera.get("timestamp") or "") for camera in cameras)
+
+    return {
+        "category_occupancy": category_occupancy,
+        "cameras": cameras,
+        "camera_count": len(cameras),
+        "total_people": sum(category_occupancy.values()),
+        "latest_timestamp": latest_timestamp,
+        "window_minutes": max(1, int(window_minutes)),
     }
 
 
