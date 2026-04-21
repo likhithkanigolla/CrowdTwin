@@ -150,6 +150,10 @@ export async function getBuildingOccupancy() {
   return requestJson('/building-occupancy');
 }
 
+export async function getSyntheticDashboard(windowMinutes = 15) {
+  return requestJson(`/synthetic/dashboard?window_minutes=${windowMinutes}`);
+}
+
 // ==================== ACTUATION MODE APIs ====================
 
 export async function controlRoad(roadId, status, reason = null, roadName = null, closedBy = null) {

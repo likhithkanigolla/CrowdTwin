@@ -1,74 +1,358 @@
 {
-  "updated_at": "2026-04-17T05:05:35.046682",
+  "updated_at": "2026-04-21T02:02:55.505556",
   "total_agents": 120,
   "groups": [
     {
       "group_index": 0,
       "agent_id_start": 0,
-      "agent_id_end": 39,
+      "agent_id_end": 14,
       "cohort_id": "pedsim",
       "color": null,
       "start_index": 0,
-      "waypoint_id": "p4",
-      "count": 40
+      "waypoint_id": "p31",
+      "count": 15
     },
     {
       "group_index": 1,
-      "agent_id_start": 40,
-      "agent_id_end": 79,
+      "agent_id_start": 15,
+      "agent_id_end": 29,
       "cohort_id": "pedsim",
       "color": null,
       "start_index": 1,
-      "waypoint_id": "p5",
-      "count": 40
+      "waypoint_id": "p32",
+      "count": 15
     },
     {
       "group_index": 2,
-      "agent_id_start": 80,
-      "agent_id_end": 119,
+      "agent_id_start": 30,
+      "agent_id_end": 44,
       "cohort_id": "pedsim",
       "color": null,
       "start_index": 2,
-      "waypoint_id": "p7",
-      "count": 40
+      "waypoint_id": "p35",
+      "count": 15
+    },
+    {
+      "group_index": 3,
+      "agent_id_start": 45,
+      "agent_id_end": 59,
+      "cohort_id": "pedsim",
+      "color": null,
+      "start_index": 3,
+      "waypoint_id": "p36",
+      "count": 15
+    },
+    {
+      "group_index": 4,
+      "agent_id_start": 60,
+      "agent_id_end": 74,
+      "cohort_id": "pedsim",
+      "color": null,
+      "start_index": 4,
+      "waypoint_id": "p41",
+      "count": 15
+    },
+    {
+      "group_index": 5,
+      "agent_id_start": 75,
+      "agent_id_end": 89,
+      "cohort_id": "pedsim",
+      "color": null,
+      "start_index": 5,
+      "waypoint_id": "p42",
+      "count": 15
+    },
+    {
+      "group_index": 6,
+      "agent_id_start": 90,
+      "agent_id_end": 104,
+      "cohort_id": "pedsim",
+      "color": null,
+      "start_index": 6,
+      "waypoint_id": "p46",
+      "count": 15
+    },
+    {
+      "group_index": 7,
+      "agent_id_start": 105,
+      "agent_id_end": 119,
+      "cohort_id": "pedsim",
+      "color": null,
+      "start_index": 7,
+      "waypoint_id": "p48",
+      "count": 15
     }
   ],
   "spawn_points": [
     {
       "index": 0,
-      "waypoint_id": "p4",
-      "x": -33.33,
-      "y": 26.67
+      "waypoint_id": "p31",
+      "x": 69.72,
+      "y": 55.38
     },
     {
       "index": 1,
-      "waypoint_id": "p5",
-      "x": -13.33,
-      "y": 6.67
+      "waypoint_id": "p32",
+      "x": 61.21,
+      "y": 65.27
     },
     {
       "index": 2,
-      "waypoint_id": "p7",
-      "x": 33.33,
-      "y": -26.67
+      "waypoint_id": "p35",
+      "x": 30.07,
+      "y": 100.2
     },
     {
       "index": 3,
-      "waypoint_id": "p8",
-      "x": -30.0,
-      "y": -25.0
+      "waypoint_id": "p36",
+      "x": -38.83,
+      "y": 104.54
     },
     {
       "index": 4,
-      "waypoint_id": "p10",
-      "x": 15.0,
-      "y": 1.67
+      "waypoint_id": "p41",
+      "x": 97.93,
+      "y": 124.95
     },
     {
       "index": 5,
-      "waypoint_id": "p11",
-      "x": 31.67,
-      "y": 15.0
+      "waypoint_id": "p42",
+      "x": 89.51,
+      "y": 117.83
+    },
+    {
+      "index": 6,
+      "waypoint_id": "p46",
+      "x": 81.7,
+      "y": 141.26
+    },
+    {
+      "index": 7,
+      "waypoint_id": "p48",
+      "x": 18.59,
+      "y": 91.08
+    },
+    {
+      "index": 8,
+      "waypoint_id": "p49",
+      "x": 7.27,
+      "y": 81.97
+    },
+    {
+      "index": 9,
+      "waypoint_id": "p50",
+      "x": -3.93,
+      "y": 72.65
+    },
+    {
+      "index": 10,
+      "waypoint_id": "p52",
+      "x": 9.52,
+      "y": 94.77
+    },
+    {
+      "index": 11,
+      "waypoint_id": "p54",
+      "x": -3.63,
+      "y": 82.23
+    },
+    {
+      "index": 12,
+      "waypoint_id": "p59",
+      "x": 11.96,
+      "y": 56.19
+    },
+    {
+      "index": 13,
+      "waypoint_id": "p61",
+      "x": 89.24,
+      "y": 71.2
+    },
+    {
+      "index": 14,
+      "waypoint_id": "p63",
+      "x": 79.33,
+      "y": 73.26
+    },
+    {
+      "index": 15,
+      "waypoint_id": "p65",
+      "x": 77.22,
+      "y": 61.36
+    },
+    {
+      "index": 16,
+      "waypoint_id": "p66",
+      "x": 120.44,
+      "y": 100.78
+    },
+    {
+      "index": 17,
+      "waypoint_id": "p67",
+      "x": 107.29,
+      "y": 114.93
+    },
+    {
+      "index": 18,
+      "waypoint_id": "p70",
+      "x": 65.47,
+      "y": 158.02
+    },
+    {
+      "index": 19,
+      "waypoint_id": "p71",
+      "x": 123.9,
+      "y": 92.55
+    },
+    {
+      "index": 20,
+      "waypoint_id": "p73",
+      "x": 131.49,
+      "y": 86.39
+    },
+    {
+      "index": 21,
+      "waypoint_id": "p77",
+      "x": 113.58,
+      "y": 91.64
+    },
+    {
+      "index": 22,
+      "waypoint_id": "p86",
+      "x": 105.99,
+      "y": 81.21
+    },
+    {
+      "index": 23,
+      "waypoint_id": "p95",
+      "x": 91.32,
+      "y": 82.66
+    },
+    {
+      "index": 24,
+      "waypoint_id": "p107",
+      "x": 55.28,
+      "y": 58.83
+    },
+    {
+      "index": 25,
+      "waypoint_id": "p109",
+      "x": 63.02,
+      "y": 49.76
+    },
+    {
+      "index": 26,
+      "waypoint_id": "p112",
+      "x": 104.38,
+      "y": 94.22
+    },
+    {
+      "index": 27,
+      "waypoint_id": "p124",
+      "x": -180.61,
+      "y": 99.65
+    },
+    {
+      "index": 28,
+      "waypoint_id": "p125",
+      "x": -167.67,
+      "y": 84.82
+    },
+    {
+      "index": 29,
+      "waypoint_id": "p126",
+      "x": -58.43,
+      "y": -42.69
+    },
+    {
+      "index": 30,
+      "waypoint_id": "p127",
+      "x": -14.55,
+      "y": -5.28
+    },
+    {
+      "index": 31,
+      "waypoint_id": "p128",
+      "x": 7.9,
+      "y": 13.87
+    },
+    {
+      "index": 32,
+      "waypoint_id": "p129",
+      "x": -171.83,
+      "y": -197.73
+    },
+    {
+      "index": 33,
+      "waypoint_id": "p130",
+      "x": -88.62,
+      "y": -103.12
+    },
+    {
+      "index": 34,
+      "waypoint_id": "p131",
+      "x": 16.7,
+      "y": -41.46
+    },
+    {
+      "index": 35,
+      "waypoint_id": "p133",
+      "x": 180.61,
+      "y": 115.9
+    },
+    {
+      "index": 36,
+      "waypoint_id": "p134",
+      "x": -75.43,
+      "y": -22.39
+    },
+    {
+      "index": 37,
+      "waypoint_id": "p138",
+      "x": -30.05,
+      "y": 55.81
+    },
+    {
+      "index": 38,
+      "waypoint_id": "p139",
+      "x": 34.87,
+      "y": -18.63
+    },
+    {
+      "index": 39,
+      "waypoint_id": "p141",
+      "x": -145.92,
+      "y": 179.99
+    },
+    {
+      "index": 40,
+      "waypoint_id": "p144",
+      "x": 13.8,
+      "y": 2.98
+    },
+    {
+      "index": 41,
+      "waypoint_id": "p151",
+      "x": 19.1,
+      "y": -3.42
+    },
+    {
+      "index": 42,
+      "waypoint_id": "p154",
+      "x": -14.65,
+      "y": 34.93
+    },
+    {
+      "index": 43,
+      "waypoint_id": "p155",
+      "x": 40.93,
+      "y": -12.7
+    },
+    {
+      "index": 44,
+      "waypoint_id": "p159",
+      "x": 29.0,
+      "y": -24.39
     }
   ]
 }

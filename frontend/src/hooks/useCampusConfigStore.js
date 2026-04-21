@@ -28,6 +28,24 @@ function migrateLegacyCampusIdentity(id, campusName) {
   return { id: nextId, campusName: nextCampusName };
 }
 
+function normalizeVirtualActuation(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  return {
+    classroomTests: source.classroomTests && typeof source.classroomTests === 'object' ? source.classroomTests : {},
+    professors: Array.isArray(source.professors) ? source.professors : [],
+    gateSimulation: {
+      profile: String(source?.gateSimulation?.profile || 'lecture_change'),
+      lastRunAt: source?.gateSimulation?.lastRunAt || null,
+    },
+    routeProfile: String(source.routeProfile || 'normal'),
+    controlPanel: {
+      operatorName: String(source?.controlPanel?.operatorName || 'Campus Operator'),
+      autoSyncDisplays: source?.controlPanel?.autoSyncDisplays !== false,
+      updatedAt: source?.controlPanel?.updatedAt || null,
+    },
+  };
+}
+
 function normalizeConfig(config) {
   const centerLat = toFiniteNumber(config?.center?.lat, 17.4464);
   const centerLng = toFiniteNumber(config?.center?.lng, 78.3487);
@@ -49,6 +67,7 @@ function normalizeConfig(config) {
     displays: Array.isArray(config?.displays) ? config.displays : [],
     timetables: Array.isArray(config?.timetables) ? config.timetables : [],
     rules: Array.isArray(config?.rules) ? config.rules : [],
+    virtualActuation: normalizeVirtualActuation(config?.virtualActuation),
     createdAt: config?.createdAt || nowIso(),
     updatedAt: nowIso(),
   };

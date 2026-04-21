@@ -6,7 +6,7 @@ import { CrowdSimulator, COHORTS } from '../engine/CrowdSimulator';
 import { ModelLayer } from '../engine/ModelLayer';
 import { SimulationDB } from '../engine/SimulationDB';
 import { buildPedSimSceneGeoJSON } from '../data/pedsimScene';
-import { getAvailableRoads, registerRoads, getBuildingOccupancy, exportPedSimSceneFromMap } from '../api';
+import { getAvailableRoads, registerRoads, getBuildingOccupancy, getSyntheticDashboard, exportPedSimSceneFromMap, postCameraFeed } from '../api';
 
 // Subtle semantic colors — not too vivid, realistic-looking at night
 const SEMANTIC_COLORS = {
@@ -138,47 +138,95 @@ const stableRandom = (() => {
     };
 })();
 
-// Generate a small deterministic set of camera positions at key buildings
-const generateCameraPositions = (buildings) => {
+// Generate a campus-wide set of camera positions across buildings and roads
+const generateCameraPositions = (buildings, pathways, targetCount = 220) => {
     const positions = [];
+    const seen = new Set();
     let cameraId = 0;
     const startTime = performance.now();
 
-    const priorityCategories = new Set(['gates', 'admin', 'academics', 'canteens', 'hostels']);
-    const prioritizedBuildings = buildings.features
-        .filter(feature => priorityCategories.has(feature.properties?.category))
+    const addCamera = (camera) => {
+        if (!camera || !Number.isFinite(camera.lng) || !Number.isFinite(camera.lat)) return;
+        const key = `${camera.type || 'camera'}:${camera.lng.toFixed(6)}:${camera.lat.toFixed(6)}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        positions.push({
+            id: camera.id || `cam_${cameraId++}`,
+            lng: camera.lng,
+            lat: camera.lat,
+            type: camera.type || 'building_entrance',
+            name: camera.name || `Camera ${cameraId}`,
+            direction: camera.direction || 'bidirectional',
+            zone: camera.zone || 'other',
+        });
+    };
+
+    const categoryOrder = ['gates', 'admin', 'academics', 'canteens', 'hostels', 'recreation', 'other'];
+    const buildingFeatures = Array.isArray(buildings?.features) ? [...buildings.features] : [];
+
+    buildingFeatures
         .sort((a, b) => {
-            const categoryOrder = ['gates', 'admin', 'academics', 'canteens', 'hostels'];
-            const categoryDiff = categoryOrder.indexOf(a.properties?.category) - categoryOrder.indexOf(b.properties?.category);
+            const categoryDiff = categoryOrder.indexOf(a.properties?.category || 'other') - categoryOrder.indexOf(b.properties?.category || 'other');
             if (categoryDiff !== 0) return categoryDiff;
             return String(a.properties?.name || '').localeCompare(String(b.properties?.name || ''));
         })
-        .slice(0, 18);
+        .forEach((feature) => {
+            const perimeterPoint = getPerimeterCameraPoint(feature);
+            const fallbackCenter = feature.properties?.center;
+            const center = perimeterPoint || (
+                Array.isArray(fallbackCenter)
+                    ? { lng: fallbackCenter[0], lat: fallbackCenter[1] }
+                    : fallbackCenter
+            );
+            const name = feature.properties?.name || feature.properties?.['addr:housename'] || 'Building';
+            const category = feature.properties?.category || 'other';
 
-    // Place cameras only at key building edges
-    prioritizedBuildings.forEach(feature => {
-        const perimeterPoint = getPerimeterCameraPoint(feature);
-        const fallbackCenter = feature.properties?.center;
-        const center = perimeterPoint || (
-            Array.isArray(fallbackCenter)
-                ? { lng: fallbackCenter[0], lat: fallbackCenter[1] }
-                : fallbackCenter
-        );
-        const name = feature.properties?.name || feature.properties?.['addr:housename'] || 'Building';
-        if (center) {
-            positions.push({
-                id: `cam_bldg_${cameraId++}`,
-                lng: center.lng,
-                lat: center.lat,
+            addCamera({
+                lng: center?.lng,
+                lat: center?.lat,
                 type: 'building_entrance',
                 name: `${name} Entrance`,
-                direction: 'bidirectional'
+                direction: 'bidirectional',
+                zone: category,
             });
-        }
+        });
+
+    const pathwayFeatures = Array.isArray(pathways?.features) ? pathways.features : [];
+    pathwayFeatures.forEach((feature, featureIndex) => {
+        const geometry = feature?.geometry;
+        const roadName = feature.properties?.road_name || feature.properties?.name || feature.properties?.highway || `Path ${featureIndex + 1}`;
+        const lines = geometry?.type === 'LineString'
+            ? [geometry.coordinates]
+            : geometry?.type === 'MultiLineString'
+                ? geometry.coordinates
+                : [];
+
+        lines.forEach((line, lineIndex) => {
+            const coords = (Array.isArray(line) ? line : [])
+                .filter((point) => Array.isArray(point) && point.length >= 2)
+                .map((point) => [Number(point[0]), Number(point[1])])
+                .filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat));
+
+            if (coords.length < 2) return;
+
+            const step = Math.max(1, Math.ceil(coords.length / 6));
+            for (let index = 0; index < coords.length - 1 && positions.length < targetCount; index += step) {
+                const startPoint = coords[index];
+                const endPoint = coords[Math.min(index + 1, coords.length - 1)];
+                addCamera({
+                    lng: (startPoint[0] + endPoint[0]) / 2,
+                    lat: (startPoint[1] + endPoint[1]) / 2,
+                    type: 'road_watch',
+                    name: `${roadName} ${lineIndex + 1}`,
+                    direction: 'bidirectional',
+                    zone: feature.properties?.category || 'other',
+                });
+            }
+        });
     });
 
-    console.log(`🎥 Generated ${cameraId} cameras in ${(performance.now() - startTime).toFixed(2)}ms`);
-    return positions;
+    console.log(`🎥 Generated ${positions.length} campus cameras in ${(performance.now() - startTime).toFixed(2)}ms`);
+    return positions.slice(0, targetCount);
 };
 
 const buildCameraFeatures = (positions) => ({
@@ -213,6 +261,71 @@ const buildCameraPoleLines = (positions) => ({
         }
     }))
 });
+
+const SYNTHETIC_AGENT_PREFIX = 'synthetic-live';
+const SYNTHETIC_ZONE_COLORS = {
+    hostels: '#2563eb',
+    academics: '#dc2626',
+    canteens: '#ea580c',
+    gates: '#16a34a',
+    admin: '#7c3aed',
+    other: '#6366f1'
+};
+
+const createSyntheticAgent = (simulator, cameras, sequence) => {
+    if (!simulator || !simulator.navGraph || !Array.isArray(cameras) || cameras.length < 2) return null;
+
+    const source = cameras[Math.floor(stableRandom() * cameras.length)];
+    let target = cameras[Math.floor(stableRandom() * cameras.length)];
+    let retries = 0;
+    while (target?.camera_id === source?.camera_id && retries < 6) {
+        target = cameras[Math.floor(stableRandom() * cameras.length)];
+        retries += 1;
+    }
+
+    const start = {
+        lng: Number(source?.lng) + (stableRandom() - 0.5) * 0.00005,
+        lat: Number(source?.lat) + (stableRandom() - 0.5) * 0.00005,
+    };
+    const end = {
+        lng: Number(target?.lng) + (stableRandom() - 0.5) * 0.00005,
+        lat: Number(target?.lat) + (stableRandom() - 0.5) * 0.00005,
+    };
+
+    if (!Number.isFinite(start.lng) || !Number.isFinite(start.lat) || !Number.isFinite(end.lng) || !Number.isFinite(end.lat)) {
+        return null;
+    }
+
+    let path = simulator.navGraph.findPath(start, end);
+    if (!Array.isArray(path) || path.length < 2) {
+        path = [start, end];
+    }
+
+    const routeColor = SYNTHETIC_ZONE_COLORS[String(source?.zone || 'other')] || SYNTHETIC_ZONE_COLORS.other;
+
+    return {
+        id: `${SYNTHETIC_AGENT_PREFIX}-${Date.now()}-${sequence}-${Math.floor(stableRandom() * 100000)}`,
+        cohortId: 'synthetic',
+        color: routeColor,
+        path,
+        pathIndex: 0,
+        lng: path[0].lng,
+        lat: path[0].lat,
+        progress: stableRandom() * 0.35,
+        speed: 0.00000003 * (0.9 + stableRandom() * 1.2),
+        walkPhase: stableRandom() * Math.PI * 2,
+        state: 'MOVING',
+        targetBuilding: null,
+        currentBuilding: null,
+        insideUntil: null,
+        insideUntilSimTime: null,
+        groupId: `syn-${source?.camera_id || 'cam'}-${target?.camera_id || 'cam'}`,
+        followsSchedule: false,
+        lastScheduleHour: simulator.simTime,
+    };
+};
+
+const isSyntheticAgent = (agent) => String(agent?.id || '').startsWith(SYNTHETIC_AGENT_PREFIX);
 
 // Generate streetlight positions along pathways at regular intervals
 const generateStreetlightPositions = (pathways, intervalMeters = 30) => {
@@ -652,6 +765,9 @@ export default function MapContainer({
     const mapOriginRef = useRef({ lng: 78.3487, lat: 17.4464 });
     const crowdVisibilityStateRef = useRef('');
     const roadStatusByIdRef = useRef({});
+    const syntheticCamerasRef = useRef([]);
+    const syntheticAgentSeqRef = useRef(0);
+    const cameraFeedSignatureRef = useRef('');
     const sceneExportStateRef = useRef({ signature: '', inFlight: false });
     const [loading, setLoading] = useState(false);
 
@@ -913,8 +1029,9 @@ export default function MapContainer({
         const agentCount = simulator?.agents?.length || 0;
         // Keep crowd layers enabled in simulate mode so live PedSim dots can appear immediately.
         const showAgents = currentMode !== 'actuate';
+        const show2DAgents = currentMode === 'simulate';
         const opacity = isSimulationMode ? 0.95 : currentMode === 'visualize' ? 0.9 : 0.95;
-        const snapshot = `${currentMode}|${showAgents}|${isSimActive}|${agentCount}`;
+        const snapshot = `${currentMode}|${showAgents}|${show2DAgents}|${isSimActive}|${agentCount}`;
         const safeSetVisibility = (layerId, value) => {
             try {
                 if (!map.getLayer(layerId)) return;
@@ -937,17 +1054,18 @@ export default function MapContainer({
                 reason,
                 mode: currentMode,
                 showAgents,
+                show2DAgents,
                 isSimulationActive: isSimActive,
                 agentCount,
             });
             crowdVisibilityStateRef.current = snapshot;
         }
 
-        const symbolVisibility = showAgents ? 'visible' : 'none';
+        const symbolVisibility = show2DAgents ? 'visible' : 'none';
         safeSetVisibility('crowd-agents-layer', symbolVisibility);
 
         ['crowd-agents-dot', 'crowd-agents-glow'].forEach((layerId) => {
-            const circleVisibility = showAgents ? 'visible' : 'none';
+            const circleVisibility = show2DAgents ? 'visible' : 'none';
             safeSetVisibility(layerId, circleVisibility);
         });
 
@@ -1223,7 +1341,7 @@ export default function MapContainer({
                 });
 
                 // Camera positions for visualization mode
-                const cameraPositions = generateCameraPositions(filteredBuildings, pathways, 100);
+                const cameraPositions = generateCameraPositions(allBuildingsRef.current || filteredBuildings, allPathwaysRef.current || pathways, 220);
                 const cameraData = buildCameraFeatures(cameraPositions);
                 const poleData = buildCameraPoleLines(cameraPositions);
                 console.log('✅ Cameras:', cameraPositions.length, 'Poles:', poleData.features.length);
@@ -1236,6 +1354,16 @@ export default function MapContainer({
 
                 map.addSource('cameras', { type: 'geojson', data: cameraData });
                 map.addSource('camera-poles', { type: 'geojson', data: poleData });
+
+                const cameraFeedSignature = cameraPositions
+                    .map((camera) => `${camera.id}:${camera.lng.toFixed(6)}:${camera.lat.toFixed(6)}:${camera.type}`)
+                    .join('|');
+                if (cameraFeedSignatureRef.current !== cameraFeedSignature) {
+                    cameraFeedSignatureRef.current = cameraFeedSignature;
+                    void postCameraFeed(cameraPositions).catch((error) => {
+                        console.warn('Failed to persist camera feed to backend:', error);
+                    });
+                }
 
                 if (modelLayerRef.current) {
                     modelLayerRef.current.placeCameras(cameraPositions);
@@ -1454,11 +1582,6 @@ export default function MapContainer({
 
             // Notify parent about simulator instance for live occupancy data
             if (onSimulatorReady) onSimulatorReady(sim);
-
-            // Populate green areas with stationary agents only in visualization mode
-            if (currentMode === 'visualize') {
-                sim.populateGreenAreas(filteredGreenAreas);
-            }
 
             syncCrowdLayerVisibility('map-data-loaded');
 
@@ -1696,7 +1819,7 @@ export default function MapContainer({
             const sim = simRef.current;
             
             if (currentMode === 'visualize') {
-                // Visualization mode: Static agents based on camera/sensor data
+                // Visualization mode uses synthetic node data but renders moving people models.
                 sim.setMode('visualize');
             } else if (currentMode === 'actuate') {
                 // Actuation mode: Hide agents (focus on road controls)
@@ -1710,6 +1833,96 @@ export default function MapContainer({
 
         console.log(`MapContainer: Mode changed to ${currentMode}`);
 
+    }, [currentMode]);
+
+    // Visualization mode: map synthetic node readings to moving human agents.
+    useEffect(() => {
+        if (currentMode !== 'visualize') return;
+
+        let cancelled = false;
+        let fetchTimer = null;
+
+        const fetchSynthetic = async () => {
+            try {
+                const payload = await getSyntheticDashboard(15);
+                if (cancelled) return;
+
+                const simulator = simRef.current;
+                if (!simulator || !simulator.navGraph) return;
+
+                const cameras = Array.isArray(payload?.cameras)
+                    ? payload.cameras.filter((camera) => Number(camera?.people_count) > 0)
+                    : [];
+                syntheticCamerasRef.current = cameras;
+
+                if (cameras.length < 2) {
+                    simulator.agents = simulator.agents.filter((agent) => !isSyntheticAgent(agent));
+                    simulator._updateLayer();
+                    simulator.modelLayer?.updateAgents(simulator.agents);
+                    return;
+                }
+
+                const totalPeople = Math.max(0, Number(payload?.total_people) || 0);
+                const desiredAgents = Math.max(40, Math.min(220, Math.round(totalPeople / 7)));
+                const allAgents = Array.isArray(simulator.agents) ? simulator.agents : [];
+                const staticAgents = allAgents.filter((agent) => !isSyntheticAgent(agent));
+                const syntheticAgents = allAgents.filter(isSyntheticAgent);
+
+                const activeSynthetic = syntheticAgents.filter((agent) => agent.state === 'MOVING');
+                const recycledSynthetic = syntheticAgents.filter((agent) => agent.state !== 'MOVING');
+                const nextSynthetic = [...activeSynthetic];
+
+                while (nextSynthetic.length > desiredAgents) {
+                    nextSynthetic.pop();
+                }
+
+                const missing = Math.max(0, desiredAgents - nextSynthetic.length);
+                const recycledQueue = [...recycledSynthetic];
+
+                for (let index = 0; index < missing; index++) {
+                    let nextAgent = recycledQueue.pop();
+                    if (!nextAgent) {
+                        syntheticAgentSeqRef.current += 1;
+                        nextAgent = createSyntheticAgent(simulator, cameras, syntheticAgentSeqRef.current);
+                    } else {
+                        const refreshed = createSyntheticAgent(simulator, cameras, syntheticAgentSeqRef.current + index + 1);
+                        if (refreshed) {
+                            nextAgent = {
+                                ...refreshed,
+                                id: nextAgent.id,
+                            };
+                        } else {
+                            nextAgent = null;
+                        }
+                    }
+
+                    if (nextAgent) {
+                        nextSynthetic.push(nextAgent);
+                    }
+                }
+
+                simulator.agents = [...staticAgents, ...nextSynthetic];
+                simulator._updateLayer();
+                simulator.modelLayer?.updateAgents(simulator.agents);
+            } catch (error) {
+                // Keep previous snapshot when backend is temporarily unavailable.
+            }
+        };
+
+        fetchSynthetic();
+        fetchTimer = setInterval(fetchSynthetic, 4500);
+
+        return () => {
+            cancelled = true;
+            if (fetchTimer) clearInterval(fetchTimer);
+
+            const simulator = simRef.current;
+            if (simulator) {
+                simulator.agents = simulator.agents.filter((agent) => !isSyntheticAgent(agent));
+                simulator._updateLayer();
+                simulator.modelLayer?.updateAgents(simulator.agents);
+            }
+        };
     }, [currentMode]);
 
     // Update last feed time display in visualization mode
@@ -1954,9 +2167,6 @@ export default function MapContainer({
                     sim.modelLayer = modelLayerRef.current || null;
                     sim.init(mapRef.current, pathways, filteredBuildings, selectedArea);
                     sim.setMode(currentMode);
-                    if (currentMode === 'visualize') {
-                        sim.populateGreenAreas(filteredGreenAreas);
-                    }
 
                     // Notify parent about new simulator instance
                     if (onSimulatorReady) onSimulatorReady(sim);
