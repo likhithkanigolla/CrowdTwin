@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { 
-    createEvent, 
-    fetchCongestion, 
+import {
+    createEvent,
+    fetchCongestion,
     suggestBuilding,
     getCameraFeed,
     getSyntheticDashboard,
@@ -16,6 +16,7 @@ import {
     createSimulationConfig,
     evaluateSimulation
 } from '../api';
+import LiveCameraPanel from './LiveCameraPanel';
 
 const SEVERITY_COLORS = {
     critical: '#ef4444',
@@ -406,10 +407,10 @@ function VisualizePanel({ mode, simTime, formatTime, categoryOccupancy, onSimula
                 textAlign: 'center'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{ 
-                        width: '8px', 
-                        height: '8px', 
-                        borderRadius: '50%', 
+                    <span style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
                         background: '#10b981',
                         animation: 'pulse 2s infinite'
                     }}></span>
@@ -452,90 +453,6 @@ function VisualizePanel({ mode, simTime, formatTime, categoryOccupancy, onSimula
                 </div>
             </div>
 
-            {/* Camera Feed Section */}
-            <div>
-                <button
-                    onClick={() => setShowCameras(!showCameras)}
-                    style={{
-                        width: '100%',
-                        background: 'rgba(239, 68, 68, 0.08)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        padding: '8px 10px',
-                        borderRadius: '5px',
-                        color: '#fca5a5',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                    }}
-                >
-                    <span>📹 Camera Tracking</span>
-                    <span>{showCameras ? '▼' : '▶'}</span>
-                </button>
-                {showCameras && (
-                    <div style={{ marginTop: '8px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                        <div style={{ 
-                            padding: '8px', 
-                            background: 'rgba(0,0,0,0.2)', 
-                            borderRadius: '4px',
-                            marginBottom: '8px'
-                        }}>
-                            📍 Cameras placed at building entrances and road segments track people movement between locations.
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {Object.entries(categoryOccupancy).map(([zone, count]) => (
-                                <div key={zone} style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    padding: '6px 8px',
-                                    background: 'rgba(255,255,255,0.03)',
-                                    borderRadius: '4px'
-                                }}>
-                                    <span style={{ textTransform: 'capitalize' }}>📹 {zone}</span>
-                                    <span style={{ 
-                                        color: count > 100 ? '#ef4444' : count > 50 ? '#f59e0b' : '#10b981',
-                                        fontWeight: 600 
-                                    }}>
-                                        {count} people
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Zone Occupancy from Live Data */}
-            {Object.keys(categoryOccupancy).length > 0 && (
-                <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>
-                        📊 Real-Time Zone Occupancy
-                    </div>
-                    <div style={{ fontSize: '0.75rem' }}>
-                        {Object.entries(categoryOccupancy).map(([cat, count]) => {
-                            const max = 600;
-                            const pct = Math.min(100, (count / max) * 100);
-                            const color = pct > 70 ? '#ef4444' : pct > 40 ? '#f59e0b' : '#10b981';
-                            return (
-                                <div key={cat} style={{ marginBottom: '6px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                                        <span style={{ textTransform: 'capitalize', color: 'var(--text-secondary)' }}>{cat}</span>
-                                        <span style={{ color, fontWeight: 600 }}>{count}</span>
-                                    </div>
-                                    <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '2px', height: '4px', overflow: 'hidden' }}>
-                                        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: '2px', transition: 'width 0.5s ease' }} />
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
             {/* Note about hidden agents */}
             <div style={{
                 padding: '10px',
@@ -546,6 +463,10 @@ function VisualizePanel({ mode, simTime, formatTime, categoryOccupancy, onSimula
                 color: 'var(--text-secondary)'
             }}>
                 💡 <strong>Note:</strong> People inside buildings are hidden from view. Only movement between camera points is tracked.
+            </div>
+
+            <div style={{ marginTop: '16px' }}>
+                <LiveCameraPanel />
             </div>
         </div>
     );
@@ -560,20 +481,20 @@ function ActuatePanel({ simTime, formatTime, congestionAlerts, actuationEvents, 
     const [showRoadControl, setShowRoadControl] = useState(true);
     const [showClassroom, setShowClassroom] = useState(false);
     const [showRules, setShowRules] = useState(false);
-    
+
     // Road control state
     const [roadStatus, setRoadStatus] = useState([]);
     const [availableRoads, setAvailableRoads] = useState([]);
     const [selectedRoad, setSelectedRoad] = useState('');
     const [roadAction, setRoadAction] = useState('soft_closed');
     const [roadReason, setRoadReason] = useState('');
-    
+
     // Classroom requirements state
     const [classroomId, setClassroomId] = useState('');
     const [classroomDate, setClassroomDate] = useState('');
     const [classroomTime, setClassroomTime] = useState('');
     const [classroomReqs, setClassroomReqs] = useState('');
-    
+
     // User role (would come from auth in production)
     const [userRole, setUserRole] = useState('admin');
     const isAdmin = userRole === 'admin';
@@ -607,10 +528,10 @@ function ActuatePanel({ simTime, formatTime, congestionAlerts, actuationEvents, 
             // Find the road name from availableRoads
             const roadInfo = availableRoads.find(r => r.road_id === selectedRoad);
             const roadName = roadInfo?.road_name || selectedRoad;
-            
+
             // Update backend
             await controlRoad(selectedRoad, roadAction, roadReason, roadName, userRole);
-            
+
             // Notify simulator to apply road closure
             if (onSimulatorAction) {
                 if (roadAction === 'open') {
@@ -619,9 +540,9 @@ function ActuatePanel({ simTime, formatTime, congestionAlerts, actuationEvents, 
                     onSimulatorAction({ type: 'road_closure', road_id: selectedRoad, status: roadAction });
                 }
             }
-            
+
             await refreshRoads();
-            
+
             setSelectedRoad('');
             setRoadReason('');
         } catch (err) {
@@ -739,149 +660,149 @@ function ActuatePanel({ simTime, formatTime, congestionAlerts, actuationEvents, 
 
             {/* Road Control Section */}
             {userRole === 'admin' && (
-            <div>
-                <button
-                    onClick={() => setShowRoadControl(!showRoadControl)}
-                    style={{
-                        width: '100%',
-                        background: 'rgba(239, 68, 68, 0.08)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        padding: '8px 10px',
-                        borderRadius: '5px',
-                        color: '#fca5a5',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                    }}
-                >
-                    <span>🚧 Road Control</span>
-                    <span>{showRoadControl ? '▼' : '▶'}</span>
-                </button>
-                {showRoadControl && (
-                    <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <select
-                            value={selectedRoad}
-                            onChange={e => setSelectedRoad(e.target.value)}
-                            disabled={!isAdmin}
-                            style={{
-                                padding: '6px 8px',
-                                borderRadius: '4px',
-                                border: '1px solid rgba(255,255,255,0.2)',
-                                background: 'rgba(0,0,0,0.3)',
-                                color: '#fff',
-                                fontSize: '0.75rem'
-                            }}
-                        >
-                            <option value="">Select Road...</option>
-                            {availableRoads.length > 0 ? (
-                                availableRoads.map(road => (
-                                    <option key={road.road_id} value={road.road_id}>
-                                        {road.road_name} {road.status !== 'open' ? `(${road.status})` : ''}
-                                    </option>
-                                ))
-                            ) : (
-                                <>
-                                    <option value="main_road_1">Main Road 1</option>
-                                    <option value="main_road_2">Main Road 2</option>
-                                    <option value="academic_lane">Academic Lane</option>
-                                    <option value="hostel_road">Hostel Road</option>
-                                    <option value="canteen_path">Canteen Path</option>
-                                </>
-                            )}
-                        </select>
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                            {[
-                                { value: 'open', label: '✅ Open', color: '#10b981' },
-                                { value: 'soft_closed', label: '⚠️ Soft Close', color: '#f59e0b' },
-                                { value: 'hard_closed', label: '🚫 Hard Close', color: '#ef4444' }
-                            ].map(opt => (
-                                <button
-                                    key={opt.value}
-                                    onClick={() => setRoadAction(opt.value)}
-                                    disabled={!isAdmin || (opt.value === 'hard_closed' && userRole === 'student')}
-                                    style={{
-                                        flex: 1,
-                                        padding: '4px',
-                                        background: roadAction === opt.value ? `${opt.color}30` : 'transparent',
-                                        border: `1px solid ${opt.color}`,
-                                        color: opt.color,
-                                        borderRadius: '4px',
-                                        cursor: (!isAdmin || (opt.value === 'hard_closed' && userRole === 'student')) ? 'not-allowed' : 'pointer',
-                                        fontSize: '0.6rem',
-                                        fontWeight: 600,
-                                        opacity: (!isAdmin || (opt.value === 'hard_closed' && userRole === 'student')) ? 0.5 : 1
-                                    }}
-                                >
-                                    {opt.label}
-                                </button>
-                            ))}
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Reason (e.g., Repair work)"
-                            value={roadReason}
-                            onChange={e => setRoadReason(e.target.value)}
-                            disabled={!isAdmin}
-                            style={{
-                                padding: '6px 8px',
-                                borderRadius: '4px',
-                                border: '1px solid rgba(255,255,255,0.2)',
-                                background: 'rgba(0,0,0,0.3)',
-                                color: '#fff',
-                                fontSize: '0.75rem'
-                            }}
-                        />
-                        <button
-                            onClick={handleRoadControl}
-                            disabled={!selectedRoad || !isAdmin}
-                            style={{
-                                padding: '8px',
-                                background: (selectedRoad && isAdmin) ? '#8b5cf6' : 'rgba(255,255,255,0.1)',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: (selectedRoad && isAdmin) ? 'pointer' : 'not-allowed',
-                                fontWeight: 'bold',
-                                fontSize: '0.75rem'
-                            }}
-                        >
-                            Apply Road Control
-                        </button>
-                        
-                        {/* Current Road Status */}
-                        {roadStatus.length > 0 && (
-                            <div style={{ marginTop: '8px' }}>
-                                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                                    Active Road Controls:
-                                </div>
-                                {roadStatus.map((road, i) => (
-                                    <div key={i} style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        padding: '4px 8px',
-                                        background: road.status === 'hard_closed' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
-                                        borderRadius: '4px',
-                                        fontSize: '0.65rem',
-                                        marginBottom: '4px'
-                                    }}>
-                                        <span>{road.road_name || road.road_id}</span>
-                                        <span style={{ 
-                                            color: road.status === 'hard_closed' ? '#ef4444' : '#f59e0b'
-                                        }}>
-                                            {road.status}
-                                        </span>
-                                    </div>
+                <div>
+                    <button
+                        onClick={() => setShowRoadControl(!showRoadControl)}
+                        style={{
+                            width: '100%',
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            padding: '8px 10px',
+                            borderRadius: '5px',
+                            color: '#fca5a5',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}
+                    >
+                        <span>🚧 Road Control</span>
+                        <span>{showRoadControl ? '▼' : '▶'}</span>
+                    </button>
+                    {showRoadControl && (
+                        <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <select
+                                value={selectedRoad}
+                                onChange={e => setSelectedRoad(e.target.value)}
+                                disabled={!isAdmin}
+                                style={{
+                                    padding: '6px 8px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    color: '#fff',
+                                    fontSize: '0.75rem'
+                                }}
+                            >
+                                <option value="">Select Road...</option>
+                                {availableRoads.length > 0 ? (
+                                    availableRoads.map(road => (
+                                        <option key={road.road_id} value={road.road_id}>
+                                            {road.road_name} {road.status !== 'open' ? `(${road.status})` : ''}
+                                        </option>
+                                    ))
+                                ) : (
+                                    <>
+                                        <option value="main_road_1">Main Road 1</option>
+                                        <option value="main_road_2">Main Road 2</option>
+                                        <option value="academic_lane">Academic Lane</option>
+                                        <option value="hostel_road">Hostel Road</option>
+                                        <option value="canteen_path">Canteen Path</option>
+                                    </>
+                                )}
+                            </select>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                                {[
+                                    { value: 'open', label: '✅ Open', color: '#10b981' },
+                                    { value: 'soft_closed', label: '⚠️ Soft Close', color: '#f59e0b' },
+                                    { value: 'hard_closed', label: '🚫 Hard Close', color: '#ef4444' }
+                                ].map(opt => (
+                                    <button
+                                        key={opt.value}
+                                        onClick={() => setRoadAction(opt.value)}
+                                        disabled={!isAdmin || (opt.value === 'hard_closed' && userRole === 'student')}
+                                        style={{
+                                            flex: 1,
+                                            padding: '4px',
+                                            background: roadAction === opt.value ? `${opt.color}30` : 'transparent',
+                                            border: `1px solid ${opt.color}`,
+                                            color: opt.color,
+                                            borderRadius: '4px',
+                                            cursor: (!isAdmin || (opt.value === 'hard_closed' && userRole === 'student')) ? 'not-allowed' : 'pointer',
+                                            fontSize: '0.6rem',
+                                            fontWeight: 600,
+                                            opacity: (!isAdmin || (opt.value === 'hard_closed' && userRole === 'student')) ? 0.5 : 1
+                                        }}
+                                    >
+                                        {opt.label}
+                                    </button>
                                 ))}
                             </div>
-                        )}
-                    </div>
-                )}
-            </div>
+                            <input
+                                type="text"
+                                placeholder="Reason (e.g., Repair work)"
+                                value={roadReason}
+                                onChange={e => setRoadReason(e.target.value)}
+                                disabled={!isAdmin}
+                                style={{
+                                    padding: '6px 8px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    color: '#fff',
+                                    fontSize: '0.75rem'
+                                }}
+                            />
+                            <button
+                                onClick={handleRoadControl}
+                                disabled={!selectedRoad || !isAdmin}
+                                style={{
+                                    padding: '8px',
+                                    background: (selectedRoad && isAdmin) ? '#8b5cf6' : 'rgba(255,255,255,0.1)',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: (selectedRoad && isAdmin) ? 'pointer' : 'not-allowed',
+                                    fontWeight: 'bold',
+                                    fontSize: '0.75rem'
+                                }}
+                            >
+                                Apply Road Control
+                            </button>
+
+                            {/* Current Road Status */}
+                            {roadStatus.length > 0 && (
+                                <div style={{ marginTop: '8px' }}>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                        Active Road Controls:
+                                    </div>
+                                    {roadStatus.map((road, i) => (
+                                        <div key={i} style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            padding: '4px 8px',
+                                            background: road.status === 'hard_closed' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                                            borderRadius: '4px',
+                                            fontSize: '0.65rem',
+                                            marginBottom: '4px'
+                                        }}>
+                                            <span>{road.road_name || road.road_id}</span>
+                                            <span style={{
+                                                color: road.status === 'hard_closed' ? '#ef4444' : '#f59e0b'
+                                            }}>
+                                                {road.status}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             )}
 
             {/* Classroom Requirements (Faculty only) */}
@@ -1136,7 +1057,7 @@ function SimulatePanel({
     const [showSpawnConfig, setShowSpawnConfig] = useState(true);
     const [showEvaluation, setShowEvaluation] = useState(false);
     const [isSimulationActive, setIsSimulationActive] = useState(false);
-    
+
     // Schedule builder state
     const [scheduleEntries, setScheduleEntries] = useState([]);
     const [entryTime, setEntryTime] = useState('08:00');
@@ -1144,7 +1065,7 @@ function SimulatePanel({
     const [entryTo, setEntryTo] = useState('');
     const [entryCohort, setEntryCohort] = useState('ug1');
     const [entryCount, setEntryCount] = useState(100);
-    
+
     // Road closure config for simulation
     const [simRoadClosures, setSimRoadClosures] = useState([]);
     const [simRoad, setSimRoad] = useState('');
@@ -1155,7 +1076,7 @@ function SimulatePanel({
     const [pedSimPopulation, setPedSimPopulation] = useState(120);
     const [pedSimRuleFollowRatio, setPedSimRuleFollowRatio] = useState(0.8);
     const [pedSimAgentSpeed, setPedSimAgentSpeed] = useState(1.3);
-    
+
     // Evaluation results
     const [evalResults, setEvalResults] = useState(null);
     const [evalLoading, setEvalLoading] = useState(false);
@@ -1397,7 +1318,7 @@ function SimulatePanel({
                     : scheduleEntries.reduce((sum, e) => sum + (Number(e.count) || 0), 0),
                 actuation_rules_enabled: true
             };
-            
+
             const results = await evaluateSimulation(config);
             setEvalResults(results);
         } catch (err) {
@@ -1571,7 +1492,7 @@ function SimulatePanel({
                         {formatTime(simTime)}
                     </span>
                 </div>
-                
+
                 {/* Time Controls */}
                 <input
                     type="range"
@@ -1806,7 +1727,7 @@ function SimulatePanel({
                                 + Add
                             </button>
                         </div>
-                        
+
                         {/* Schedule Entries List */}
                         {scheduleEntries.length > 0 && (
                             <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
@@ -2058,7 +1979,7 @@ function SimulatePanel({
                             fontSize: '0.65rem',
                             color: 'var(--text-secondary)'
                         }}>
-                            💡 <strong>Soft Close:</strong> System can auto-open if too crowded. <br/>
+                            💡 <strong>Soft Close:</strong> System can auto-open if too crowded. <br />
                             🚫 <strong>Hard Close:</strong> Road stays closed (repair work etc).
                         </div>
                         <div style={{ display: 'flex', gap: '4px' }}>
@@ -2113,7 +2034,7 @@ function SimulatePanel({
                                 +
                             </button>
                         </div>
-                        
+
                         {simRoadClosures.map(road => (
                             <div key={road.id} style={{
                                 display: 'flex',
@@ -2184,7 +2105,7 @@ function SimulatePanel({
                         >
                             {evalLoading ? '⏳ Analyzing...' : '🔍 Run Analysis'}
                         </button>
-                        
+
                         {evalResults && (
                             <div style={{
                                 background: evalResults.feasible ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
@@ -2203,7 +2124,7 @@ function SimulatePanel({
                                 }}>
                                     {evalResults.feasible ? '✅ Scenario Feasible' : '❌ Issues Found'}
                                 </div>
-                                
+
                                 {evalResults.issues?.length > 0 && (
                                     <div style={{ fontSize: '0.7rem' }}>
                                         {evalResults.issues.map((issue, i) => (
@@ -2220,7 +2141,7 @@ function SimulatePanel({
                                         ))}
                                     </div>
                                 )}
-                                
+
                                 {evalResults.auto_fixes?.length > 0 && (
                                     <div style={{ marginTop: '8px' }}>
                                         <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600, marginBottom: '4px' }}>

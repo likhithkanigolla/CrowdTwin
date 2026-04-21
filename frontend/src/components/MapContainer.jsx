@@ -6,7 +6,7 @@ import { CrowdSimulator, COHORTS } from '../engine/CrowdSimulator';
 import { ModelLayer } from '../engine/ModelLayer';
 import { SimulationDB } from '../engine/SimulationDB';
 import { buildPedSimSceneGeoJSON } from '../data/pedsimScene';
-import { getAvailableRoads, registerRoads, getBuildingOccupancy, getSyntheticDashboard, exportPedSimSceneFromMap, postCameraFeed } from '../api';
+import { getAvailableRoads, registerRoads, getBuildingOccupancy, getSyntheticDashboard, getSyntheticCameras, exportPedSimSceneFromMap, postCameraFeed } from '../api';
 
 // Subtle semantic colors — not too vivid, realistic-looking at night
 const SEMANTIC_COLORS = {
@@ -233,11 +233,11 @@ const buildCameraFeatures = (positions) => ({
     type: 'FeatureCollection',
     features: positions.map((p) => ({
         type: 'Feature',
-        properties: { 
-            id: p.id, 
-            type: p.type, 
+        properties: {
+            id: p.id,
+            type: p.type,
             name: p.name,
-            direction: p.direction 
+            direction: p.direction
         },
         geometry: { type: 'Point', coordinates: [p.lng, p.lat] }
     }))
@@ -248,7 +248,7 @@ const buildCameraPoleLines = (positions) => ({
     type: 'FeatureCollection',
     features: positions.map((p) => ({
         type: 'Feature',
-        properties: { 
+        properties: {
             id: p.id,
             camera_id: p.id
         },
@@ -1436,16 +1436,16 @@ export default function MapContainer({
 
                 // Road/pathway interactions - show road name on hover
                 let roadPopup = null;
-                
+
                 map.on('mouseenter', 'pathways-layer', e => {
                     map.getCanvas().style.cursor = 'crosshair';
-                    
+
                     if (e.features.length) {
                         const feature = e.features[0];
                         const roadName = feature.properties.road_name ||
-                                        feature.properties.name ||
-                                        feature.properties.highway ||
-                                        'Unnamed Road';
+                            feature.properties.name ||
+                            feature.properties.highway ||
+                            'Unnamed Road';
                         const roadType = feature.properties.highway || 'path';
                         const roadId = feature.properties.road_id;
                         const roadStatus = roadStatusByIdRef.current[roadId] || 'open';
@@ -1459,10 +1459,10 @@ export default function MapContainer({
                             : roadStatus === 'soft_closed'
                                 ? '#f59e0b'
                                 : '#10b981';
-                        
+
                         // Create popup with road info
                         if (roadPopup) roadPopup.remove();
-                        
+
                         roadPopup = new maplibregl.Popup({
                             closeButton: false,
                             closeOnClick: false,
@@ -1479,13 +1479,13 @@ export default function MapContainer({
                             .addTo(map);
                     }
                 });
-                
+
                 map.on('mousemove', 'pathways-layer', e => {
                     if (roadPopup && e.features.length) {
                         roadPopup.setLngLat(e.lngLat);
                     }
                 });
-                
+
                 map.on('mouseleave', 'pathways-layer', () => {
                     map.getCanvas().style.cursor = '';
                     if (roadPopup) {
@@ -1493,11 +1493,11 @@ export default function MapContainer({
                         roadPopup = null;
                     }
                 });
-                
+
                 // Store road names for actuation panel
                 const roadsToRegister = [];
                 const seenRoads = new Set();
-                
+
                 pathways.features.forEach(f => {
                     const roadId = f.properties?.road_id;
                     const roadName = f.properties?.road_name;
@@ -1506,7 +1506,7 @@ export default function MapContainer({
                     if (!String(roadId || '').startsWith('service_')) {
                         return;
                     }
-                    
+
                     if (roadId && !seenRoads.has(roadId)) {
                         seenRoads.add(roadId);
                         roadsToRegister.push({
@@ -1536,7 +1536,7 @@ export default function MapContainer({
                         feature.properties.road_label = String(serviceNumber);
                     });
                 }
-                
+
                 // Register roads with backend
                 if (roadsToRegister.length > 0) {
                     registerRoads(roadsToRegister).catch(err => {
@@ -1544,7 +1544,7 @@ export default function MapContainer({
                     });
                     console.log(`MapContainer: Registered ${roadsToRegister.length} roads with backend`);
                 }
-                
+
                 // Expose roads to parent via simulator
                 if (simRef.current) {
                     simRef.current._availableRoads = roadsToRegister.map(r => r.road_id);
@@ -1835,7 +1835,7 @@ export default function MapContainer({
         // Handle crowd simulation based on mode
         if (simRef.current) {
             const sim = simRef.current;
-            
+
             if (currentMode === 'visualize') {
                 // Visualization mode uses synthetic node data but renders moving people models.
                 sim.setMode('visualize');
@@ -1862,7 +1862,7 @@ export default function MapContainer({
 
         const fetchSynthetic = async () => {
             try {
-                const payload = await getSyntheticDashboard(15);
+                const payload = await getSyntheticCameras(1);
                 if (cancelled) return;
 
                 const simulator = simRef.current;
@@ -1928,7 +1928,7 @@ export default function MapContainer({
         };
 
         fetchSynthetic();
-        fetchTimer = setInterval(fetchSynthetic, 4500);
+        fetchTimer = setInterval(fetchSynthetic, 2000);
 
         return () => {
             cancelled = true;
@@ -1950,14 +1950,14 @@ export default function MapContainer({
         const updateLastFeedTime = async () => {
             try {
                 const data = await getBuildingOccupancy();
-                
+
                 // Get the most recent timestamp from building occupancy data
                 if (data.buildings && Object.keys(data.buildings).length > 0) {
                     const timestamps = Object.values(data.buildings)
                         .map(b => new Date(b.last_updated))
                         .filter(t => !isNaN(t.getTime()))
                         .sort((a, b) => b - a);
-                    
+
                     if (timestamps.length > 0) {
                         const lastTime = timestamps[0];
                         const timeStr = lastTime.toLocaleTimeString('en-US', {
@@ -1966,7 +1966,7 @@ export default function MapContainer({
                             second: undefined,
                             hour12: true
                         });
-                        
+
                         const lastFeedEl = document.getElementById('last-feed-time');
                         if (lastFeedEl) {
                             lastFeedEl.textContent = timeStr;
@@ -1981,7 +1981,7 @@ export default function MapContainer({
         // Update immediately and then every 5 seconds
         updateLastFeedTime();
         const interval = setInterval(updateLastFeedTime, 5000);
-        
+
         return () => clearInterval(interval);
 
     }, [currentMode]);

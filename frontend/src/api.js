@@ -154,6 +154,16 @@ export async function getSyntheticDashboard(windowMinutes = 15) {
   return requestJson(`/synthetic/dashboard?window_minutes=${windowMinutes}`);
 }
 
+// Returns the latest reading per camera (no time window filter)
+export async function getSyntheticLatest() {
+  return requestJson(`/synthetic/nodes/latest`);
+}
+
+// Convenience alias with small window for the live panel
+export async function getSyntheticCameras(windowMinutes = 2) {
+  return requestJson(`/synthetic/dashboard?window_minutes=${windowMinutes}`);
+}
+
 // ==================== ACTUATION MODE APIs ====================
 
 export async function controlRoad(roadId, status, reason = null, roadName = null, closedBy = null) {
