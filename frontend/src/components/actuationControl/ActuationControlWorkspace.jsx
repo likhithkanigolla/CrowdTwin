@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import {
   Download, Upload, RotateCcw, Sun, Moon, PanelLeftOpen, PanelRightOpen,
   PanelLeftClose, PanelRightClose, Activity, CalendarClock, Building2, Route,
-  Monitor, Bot, ListChecks, Loader2, RefreshCw,
+  Monitor, Bot, ListChecks, Loader2, RefreshCw, Layers, Zap,
 } from "lucide-react";
 
 const DEFAULT_CENTER = { lng: 78.3487, lat: 17.4464 };
@@ -120,7 +120,7 @@ export default function ActuationControlWorkspace() {
               <Activity className="h-4 w-4" />
             </div>
             <div>
-              <div className="text-sm font-semibold tracking-tight">CrowdTwin · Actuation Control</div>
+              <div className="text-sm font-semibold tracking-tight">CrowdTwin</div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 {activeConfig?.campusName || "No campus selected"}
               </div>
@@ -133,6 +133,7 @@ export default function ActuationControlWorkspace() {
               variant={location.pathname === '/visualize' ? 'secondary' : 'ghost'}
               onClick={() => navigate('/visualize')}
             >
+              <Layers className="mr-1 h-3.5 w-3.5" />
               Visualize
             </Button>
             <Button
@@ -140,6 +141,7 @@ export default function ActuationControlWorkspace() {
               variant={location.pathname === '/actuate' ? 'secondary' : 'ghost'}
               onClick={() => navigate('/actuate')}
             >
+              <Zap className="mr-1 h-3.5 w-3.5" />
               Actuate
             </Button>
             <Button
@@ -147,6 +149,7 @@ export default function ActuationControlWorkspace() {
               variant={location.pathname === '/simulate' ? 'secondary' : 'ghost'}
               onClick={() => navigate('/simulate')}
             >
+              <Activity className="mr-1 h-3.5 w-3.5" />
               Simulate
             </Button>
           </div>

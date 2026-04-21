@@ -31,6 +31,16 @@ from schemas import (
     PedSimSceneFromMapRequest,
     PedSimRuntimeStartRequest,
     UserRole,
+    SiteCreate,
+    BuildingCreate,
+    RoomCreate,
+    RoomFacilitiesUpsertRequest,
+    EventTypeCreate,
+    EventProfileCreate,
+    BookingCreate,
+    OccupancySignalCreate,
+    AllocationRunRequest,
+    ManualOverrideRequest,
 )
 from logic import (
     ai_suggest_building,
@@ -44,6 +54,29 @@ from logic import (
     _normalize_csv_row,
     _build_movements_for_row,
     infer_building_category,
+)
+from allocation_engine import (
+    sites_store,
+    buildings_store,
+    rooms_store,
+    facility_types_store,
+    event_types_store,
+    event_profiles_store,
+    bookings_store,
+    booking_rooms_store,
+    occupancy_signals_store,
+    create_site,
+    create_building,
+    create_room,
+    upsert_room_facilities,
+    create_event_type,
+    create_event_profile,
+    create_booking,
+    create_occupancy_signal,
+    run_allocation,
+    get_allocation_run,
+    manual_override,
+    seed_default_data,
 )
 
 app = FastAPI(title="Digital Twin Backend")
@@ -557,6 +590,7 @@ def _restore_schedule_on_startup():
     if not os.path.exists(filepath):
         return
     try:
+        seed_default_data(force=False)
         with open(filepath, 'r', encoding='utf-8-sig') as f:
             text = f.read()
         plan = _build_movement_plan_from_rows(text)
@@ -1768,6 +1802,139 @@ def build_pedsim_scene_from_map(payload: PedSimSceneFromMapRequest):
         "rule_follow_ratio": follow_ratio,
         "agent_speed": agent_speed,
         "scene_transform": dict(pedsim_scene_transform_store),
+    }
+
+
+# ==================== EVENT ROOM ALLOCATION API ====================
+
+@app.post("/sites")
+def create_site_endpoint(payload: SiteCreate):
+    try:
+        return create_site(payload.dict())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/buildings")
+def create_building_endpoint(payload: BuildingCreate):
+    try:
+        return create_building(payload.dict())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/rooms")
+def create_room_endpoint(payload: RoomCreate):
+    try:
+        return create_room(payload.dict())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/rooms/{room_id}/facilities")
+def upsert_room_facilities_endpoint(room_id: str, payload: RoomFacilitiesUpsertRequest):
+    try:
+        return upsert_room_facilities(
+            room_id,
+            [row.dict() for row in payload.facilities],
+            [row.dict() for row in payload.proximities],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/event-types")
+def create_event_type_endpoint(payload: EventTypeCreate):
+    try:
+        return create_event_type(payload.dict())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/event-profiles")
+def create_event_profile_endpoint(payload: EventProfileCreate):
+    try:
+        return create_event_profile(payload.dict())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/bookings")
+def create_booking_endpoint(payload: BookingCreate):
+    try:
+        return create_booking(payload.dict())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/occupancy-signals")
+def create_occupancy_signal_endpoint(payload: OccupancySignalCreate):
+    try:
+        return create_occupancy_signal(payload.dict())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/allocations/run")
+def run_allocation_endpoint(payload: AllocationRunRequest):
+    if payload.bookingId is None:
+        if payload.expectedAttendance is None or payload.startAt is None or payload.endAt is None:
+            raise HTTPException(
+                status_code=400,
+                detail="expectedAttendance, startAt, and endAt are required when bookingId is not supplied",
+            )
+        if payload.eventTypeId is None and payload.customEventType is None:
+            raise HTTPException(
+                status_code=400,
+                detail="eventTypeId or customEventType is required when bookingId is not supplied",
+            )
+
+    try:
+        allocation_input = payload.dict()
+        allocation_input["complianceMode"] = payload.complianceMode.value
+        return run_allocation(allocation_input)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/allocations/{run_id}")
+def get_allocation_run_endpoint(run_id: str):
+    try:
+        return get_allocation_run(run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@app.post("/allocations/{run_id}/manual-override")
+def manual_override_endpoint(run_id: str, payload: ManualOverrideRequest):
+    try:
+        return manual_override(
+            run_id=run_id,
+            chosen_candidate_key=payload.chosenCandidateKey,
+            overridden_by=payload.overriddenBy,
+            reason=payload.reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/allocations/seed")
+def seed_allocation_data(force: bool = False):
+    return seed_default_data(force=force)
+
+
+@app.get("/allocations/catalog")
+def get_allocation_catalog():
+    return {
+        "sites": list(sites_store.values()),
+        "buildings": list(buildings_store.values()),
+        "rooms": list(rooms_store.values()),
+        "facilityTypes": list(facility_types_store.values()),
+        "eventTypes": list(event_types_store.values()),
+        "eventProfiles": list(event_profiles_store.values()),
+        "bookings": list(bookings_store.values()),
+        "bookingRooms": booking_rooms_store,
+        "occupancySignals": occupancy_signals_store,
     }
 
 

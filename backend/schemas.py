@@ -259,3 +259,101 @@ class RouterResponse(BaseModel):
     quality: Dict[str, Any] = Field(default_factory=dict)
     fallback: Dict[str, Any] = Field(default_factory=dict)
     audit: Dict[str, Any] = Field(default_factory=dict)
+
+
+# ==================== EVENT ROOM ALLOCATION SCHEMAS ====================
+
+
+class ComplianceMode(str, Enum):
+    STRICT = "STRICT"
+    ADVISORY = "ADVISORY"
+
+
+class SiteCreate(BaseModel):
+    name: str
+    geoBoundary: Optional[Dict[str, Any]] = None
+
+
+class BuildingCreate(BaseModel):
+    siteId: str
+    name: str
+    location: Optional[Dict[str, float]] = None
+
+
+class RoomCreate(BaseModel):
+    buildingId: str
+    name: str
+    floor: Optional[str] = "NA"
+    capacity: int
+    roomType: Optional[str] = "general"
+    status: Optional[str] = "available"
+    accessibilityScore: Optional[float] = 0.7
+    estimatedCost: Optional[float] = 0.0
+
+
+class RoomFacilityInput(BaseModel):
+    facilityTypeId: str
+    count: int = 0
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class RoomProximityInput(BaseModel):
+    facilityTypeId: str
+    nearestDistanceMeters: float
+
+
+class RoomFacilitiesUpsertRequest(BaseModel):
+    facilities: List[RoomFacilityInput] = Field(default_factory=list)
+    proximities: List[RoomProximityInput] = Field(default_factory=list)
+
+
+class EventTypeCreate(BaseModel):
+    name: str
+    isCustom: bool = False
+
+
+class EventProfileCreate(BaseModel):
+    eventTypeId: str
+    configJson: Dict[str, Any]
+
+
+class BookingCreate(BaseModel):
+    eventName: str
+    eventTypeId: str
+    expectedAttendance: int
+    startAt: str
+    endAt: str
+    siteScope: List[str] = Field(default_factory=list)
+    buildingScope: List[str] = Field(default_factory=list)
+    status: Optional[str] = "pending"
+
+
+class OccupancySignalCreate(BaseModel):
+    roomId: str
+    ts: Optional[str] = None
+    currentOccupancy: int = 0
+    predictedOccupancy: int = 0
+    confidence: float = 0.8
+
+
+class AllocationRunRequest(BaseModel):
+    bookingId: Optional[str] = None
+    eventName: Optional[str] = None
+    eventTypeId: Optional[str] = None
+    customEventType: Optional[str] = None
+    eventProfileConfig: Optional[Dict[str, Any]] = None
+    expectedAttendance: Optional[int] = None
+    startAt: Optional[str] = None
+    endAt: Optional[str] = None
+    siteScope: List[str] = Field(default_factory=list)
+    buildingScope: List[str] = Field(default_factory=list)
+    complianceMode: ComplianceMode = ComplianceMode.ADVISORY
+    priorityPreset: str = "balanced"
+    maxRooms: int = 3
+    requestedBy: str = "system"
+
+
+class ManualOverrideRequest(BaseModel):
+    chosenCandidateKey: str
+    overriddenBy: str
+    reason: str

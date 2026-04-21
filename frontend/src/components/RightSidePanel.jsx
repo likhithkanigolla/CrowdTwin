@@ -1435,8 +1435,8 @@ function SimulatePanel({
         <div style={panelStyle}>
             <PedSimBoundaryPreview selectedArea={selectedArea} previewBoundary={mapBoundaryPreview} />
             <div style={{
-                background: 'rgba(15, 23, 42, 0.55)',
-                border: '1px solid rgba(59, 130, 246, 0.28)',
+                background: 'rgba(15, 23, 42, 0.82)',
+                border: '1px solid rgba(59, 130, 246, 0.42)',
                 borderRadius: '8px',
                 padding: '10px',
                 fontSize: '0.68rem',
@@ -1483,8 +1483,8 @@ function SimulatePanel({
                 )}
 
                 <div style={{
-                    background: 'rgba(30, 41, 59, 0.55)',
-                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    background: 'rgba(30, 41, 59, 0.8)',
+                    border: '1px solid rgba(148, 163, 184, 0.35)',
                     borderRadius: '6px',
                     padding: '8px',
                 }}>
@@ -1501,7 +1501,7 @@ function SimulatePanel({
                 </div>
             </div>
             <div style={{
-                background: 'rgba(15, 23, 42, 0.55)',
+                background: 'rgba(15, 23, 42, 0.82)',
                 border: `1px solid ${runtimeRunning ? 'rgba(34,197,94,0.35)' : 'rgba(148,163,184,0.28)'}`,
                 borderRadius: '8px',
                 padding: '10px',
@@ -1554,8 +1554,8 @@ function SimulatePanel({
             </div>
             {/* Sandbox Header */}
             <div style={{
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15))',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.24), rgba(59, 130, 246, 0.24))',
+                border: '1px solid rgba(16, 185, 129, 0.45)',
                 borderRadius: '8px',
                 padding: '12px'
             }}>
@@ -1585,7 +1585,7 @@ function SimulatePanel({
                     marginTop: '8px',
                     padding: '8px',
                     borderRadius: '6px',
-                    background: 'rgba(15, 23, 42, 0.45)',
+                    background: 'rgba(15, 23, 42, 0.72)',
                     border: '1px solid rgba(148, 163, 184, 0.22)',
                     display: 'flex',
                     flexDirection: 'column',
@@ -1610,7 +1610,7 @@ function SimulatePanel({
                                 padding: '4px 6px',
                                 borderRadius: '4px',
                                 border: '1px solid rgba(148, 163, 184, 0.32)',
-                                background: 'rgba(15, 23, 42, 0.7)',
+                                background: 'rgba(15, 23, 42, 0.88)',
                                 color: '#e2e8f0',
                                 fontSize: '0.68rem',
                                 textAlign: 'right',
@@ -1631,7 +1631,7 @@ function SimulatePanel({
                                     padding: '4px 6px',
                                     borderRadius: '4px',
                                     border: '1px solid rgba(148, 163, 184, 0.32)',
-                                    background: 'rgba(15, 23, 42, 0.7)',
+                                    background: 'rgba(15, 23, 42, 0.88)',
                                     color: '#e2e8f0',
                                     fontSize: '0.68rem',
                                     textAlign: 'right',
@@ -1686,8 +1686,8 @@ function SimulatePanel({
                     onClick={() => setShowSchedule(!showSchedule)}
                     style={{
                         width: '100%',
-                        background: 'rgba(59, 130, 246, 0.08)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        background: 'rgba(59, 130, 246, 0.16)',
+                        border: '1px solid rgba(59, 130, 246, 0.42)',
                         padding: '8px 10px',
                         borderRadius: '5px',
                         color: '#93c5fd',
@@ -1847,8 +1847,8 @@ function SimulatePanel({
                     onClick={() => setShowSpawnConfig(!showSpawnConfig)}
                     style={{
                         width: '100%',
-                        background: 'rgba(16, 185, 129, 0.08)',
-                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        background: 'rgba(16, 185, 129, 0.16)',
+                        border: '1px solid rgba(16, 185, 129, 0.42)',
                         padding: '8px 10px',
                         borderRadius: '5px',
                         color: '#6ee7b7',
@@ -2031,8 +2031,8 @@ function SimulatePanel({
                     onClick={() => setShowRoadConfig(!showRoadConfig)}
                     style={{
                         width: '100%',
-                        background: 'rgba(245, 158, 11, 0.08)',
-                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        background: 'rgba(245, 158, 11, 0.16)',
+                        border: '1px solid rgba(245, 158, 11, 0.42)',
                         padding: '8px 10px',
                         borderRadius: '5px',
                         color: '#fbbf24',
@@ -2148,8 +2148,8 @@ function SimulatePanel({
                     onClick={() => setShowEvaluation(!showEvaluation)}
                     style={{
                         width: '100%',
-                        background: 'rgba(139, 92, 246, 0.08)',
-                        border: '1px solid rgba(139, 92, 246, 0.3)',
+                        background: 'rgba(139, 92, 246, 0.16)',
+                        border: '1px solid rgba(139, 92, 246, 0.42)',
                         padding: '8px 10px',
                         borderRadius: '5px',
                         color: '#c4b5fd',
@@ -2427,11 +2427,12 @@ export default function RightSidePanel({
     const getModeHeader = () => {
         switch (mode) {
             case 'visualize':
-                return { icon: '📊', title: 'Analytics', subtitle: 'Real-time metrics' };
+                // return { icon: '📊', title: 'Analytics', subtitle: 'Real-time metrics' };
+                return {};
             case 'actuate':
                 return { icon: '⚡', title: 'Actuation', subtitle: 'Control systems' };
             case 'simulate':
-                return { icon: '🎮', title: 'Simulation', subtitle: 'Time control' };
+                return {};
             default:
                 return { icon: '🏙️', title: 'Digital Twin', subtitle: 'Campus view' };
         }

@@ -53,6 +53,10 @@ function App() {
   const [mapBoundaryPreview, setMapBoundaryPreview] = useState(null);
   const [pedsimSceneStatus, setPedSimSceneStatus] = useState(null);
   const [pedsimRuntimeStatus, setPedSimRuntimeStatus] = useState(null);
+  const [mapLat, setMapLat] = useState(17.4464);
+  const [mapLng, setMapLng] = useState(78.3487);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [teleportRequestId, setTeleportRequestId] = useState(0);
 
   // Focus area state (lifted from MapContainer)
   const [areaPoints, setAreaPoints] = useState([]);
@@ -134,6 +138,13 @@ function App() {
     setSelectedArea(null);
     setAreaPoints([]);
     setIsPlacingPoints(false);
+  };
+
+  const requestMapTeleport = () => {
+    if (!Number.isFinite(mapLat) || !Number.isFinite(mapLng)) {
+      return;
+    }
+    setTeleportRequestId((prev) => prev + 1);
   };
 
   // Handle simulator actions from RightSidePanel
@@ -445,10 +456,23 @@ function App() {
           setAreaPoints={setAreaPoints}
           selectedArea={selectedArea}
           setSelectedArea={setSelectedArea}
+          mapLat={mapLat}
+          mapLng={mapLng}
+          onMapLoadingChange={setMapLoading}
+          teleportRequestId={teleportRequestId}
         />
 
         <div className="ui-layer">
-          <ModeToggle currentMode={currentMode} setMode={setMode} />
+          <ModeToggle
+            currentMode={currentMode}
+            setMode={setMode}
+            mapLat={mapLat}
+            mapLng={mapLng}
+            setMapLat={setMapLat}
+            setMapLng={setMapLng}
+            mapLoading={mapLoading}
+            onTeleport={requestMapTeleport}
+          />
 
           {selectedBuilding && (
             <BuildingPanel

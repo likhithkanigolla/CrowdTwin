@@ -171,6 +171,58 @@ python main.py
 
 Backend default URL: http://localhost:8904
 
+## 3.1) Run on a Server / Access From Another PC
+
+If you deploy CrowdTwin on a server and open it from another computer on the same network, use the server IP or hostname instead of `localhost`.
+
+### Backend
+
+The backend already binds to all interfaces by default (`0.0.0.0`), so the server is reachable from your PC as long as the port is open:
+
+```bash
+cd backend
+HOST=0.0.0.0 PORT=8904 python main.py
+```
+
+If you use a reverse proxy or different hostname, update `CORS_ORIGINS` so the browser origin is allowed:
+
+```bash
+export CORS_ORIGINS=http://SERVER_IP:5173,http://SERVER_HOSTNAME:5173
+```
+
+### Frontend
+
+For remote access, the frontend must point to the server API address, not `localhost`.
+
+```bash
+cd frontend
+VITE_API_BASE_URL=http://SERVER_IP:8904 npm run dev -- --host 0.0.0.0
+```
+
+If you are serving a production build, configure your web server or reverse proxy so `/api` routes go to the backend on port `8904`.
+
+### PedSim Bridge on Server
+
+Run the bridge on the same server and point it to the server backend URL:
+
+```bash
+cd backend
+PEDSIM_BACKEND_URL=http://SERVER_IP:8904 ./start_pedsim_bridge.sh
+```
+
+PedSim itself should still send UDP frames to the bridge on port `2222` (or your custom `PEDSIM_LISTEN_PORT`).
+
+### Ports to Open
+
+- Backend: `8904/tcp`
+- Frontend dev server: `5173/tcp` if you use `npm run dev`
+- PedSim bridge: `2222/udp`
+
+### Quick Rule
+
+- If the browser is on the same machine as the server and you use Vite dev server, `VITE_API_BASE_URL` can stay default if you use the Vite proxy.
+- If the browser is on a different PC, use the server IP/hostname and make sure CORS allows that origin.
+
 ## 4) PedSim Setup
 
 PedSim integration path in this project:

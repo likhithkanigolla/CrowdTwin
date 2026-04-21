@@ -640,7 +640,11 @@ export default function MapContainer({
     areaPoints,
     setAreaPoints,
     selectedArea,
-    setSelectedArea
+    setSelectedArea,
+    mapLat,
+    mapLng,
+    onMapLoadingChange,
+    teleportRequestId
 }) {
     const mapContainerRef = useRef(null);
     const mapRef = useRef(null);
@@ -654,9 +658,6 @@ export default function MapContainer({
     const roadStatusByIdRef = useRef({});
     const sceneExportStateRef = useRef({ signature: '', inFlight: false });
     const [loading, setLoading] = useState(false);
-
-    const [lng, setLng] = useState(78.3487);
-    const [lat, setLat] = useState(17.4464);
 
     // Helper function to check if a point is inside a polygon (ray casting algorithm)
     const isPointInPolygon = (point, polygon) => {
@@ -1548,11 +1549,14 @@ export default function MapContainer({
     useEffect(() => {
         if (mapRef.current) return;
 
+        const initialLng = Number.isFinite(mapLng) ? mapLng : 78.3487;
+        const initialLat = Number.isFinite(mapLat) ? mapLat : 17.4464;
+
         mapRef.current = new maplibregl.Map({
             container: mapContainerRef.current,
             // style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
             style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-            center: [lng, lat],
+            center: [initialLng, initialLat],
             zoom: 16.5,
             pitch: 58,
             bearing: -20,
@@ -1560,7 +1564,7 @@ export default function MapContainer({
         });
 
         mapRef.current.on('load', () => {
-            fetchOverpassData(mapRef.current, lng, lat);
+            fetchOverpassData(mapRef.current, initialLng, initialLat);
             // Initialize area selection layer with current selectedArea (if any)
             updateAreaSelectionLayer(mapRef.current, selectedArea);
             // Initialize point markers layer (must be inside load callback)
@@ -1570,6 +1574,20 @@ export default function MapContainer({
         // Navigation controls
         mapRef.current.addControl(new maplibregl.NavigationControl(), 'bottom-left');
     }, []);
+
+    useEffect(() => {
+        if (onMapLoadingChange) {
+            onMapLoadingChange(loading);
+        }
+    }, [loading, onMapLoadingChange]);
+
+    useEffect(() => {
+        if (!teleportRequestId || !mapRef.current) return;
+        if (!Number.isFinite(mapLat) || !Number.isFinite(mapLng)) return;
+
+        mapRef.current.jumpTo({ center: [mapLng, mapLat] });
+        fetchOverpassData(mapRef.current, mapLng, mapLat);
+    }, [teleportRequestId, mapLat, mapLng]);
 
     // Update simTime in sim engine and MapLibre sun
     useEffect(() => {
@@ -1815,15 +1833,6 @@ export default function MapContainer({
         const interval = setInterval(syncRoadClosures, 3000);
         return () => clearInterval(interval);
     }, []);
-
-
-    const handleTeleport = () => {
-        if (mapRef.current) {
-            mapRef.current.jumpTo({ center: [lng, lat] });
-            fetchOverpassData(mapRef.current, lng, lat);
-        }
-    };
-
     // Handle map click for placing points
     const handleMapClick = (e) => {
         if (!isPlacingPoints) return;
@@ -1977,24 +1986,6 @@ export default function MapContainer({
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
 
-            {/* Coordinate bar - positioned below mode toggle */}
-            <div className="glass-panel" style={{
-                position: 'absolute', top: '20px', left: '450px',
-                padding: '12px', zIndex: 100, display: 'flex', gap: '8px', alignItems: 'center'
-            }}>
-                {loading && <span style={{ marginRight: '8px', color: '#facc15', fontSize: '0.75rem' }}>⏳ Loading...</span>}
-                <input type="number" value={lat} onChange={e => setLat(parseFloat(e.target.value))}
-                    style={{ width: '90px', padding: '6px', borderRadius: '4px', border: 'none', background: 'rgba(0,0,0,0.4)', color: 'white', fontSize: '0.85rem' }}
-                    placeholder="LAT" />
-                <input type="number" value={lng} onChange={e => setLng(parseFloat(e.target.value))}
-                    style={{ width: '90px', padding: '6px', borderRadius: '4px', border: 'none', background: 'rgba(0,0,0,0.4)', color: 'white', fontSize: '0.85rem' }}
-                    placeholder="LNG" />
-                <button style={{ padding: '6px 14px', background: 'var(--accent-blue)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
-                    onClick={handleTeleport} disabled={loading}>
-                    Teleport
-                </button>
-            </div>
-
             {/* Point placement hint */}
             {isPlacingPoints && (
                 <div className="glass-panel" style={{
@@ -2032,7 +2023,7 @@ export default function MapContainer({
                                 <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Detected via cameras</span>
                             </div>
                         </div>
-                        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(148,163,184,0.35)' }}>
                             <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>LIVE FEED → LAST FEED</div>
                             <div id="last-feed-time" style={{ fontSize: '0.85rem', fontWeight: '600', color: '#60a5fa', marginTop: '4px' }}>
                                 Loading...
@@ -2040,7 +2031,7 @@ export default function MapContainer({
                         </div>
                     </>
                 )}
-                <div style={{ marginTop: currentMode !== 'visualize' ? '10px' : 10, paddingTop: currentMode !== 'visualize' ? '8px' : 8, borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                <div style={{ marginTop: currentMode !== 'visualize' ? '10px' : 10, paddingTop: currentMode !== 'visualize' ? '8px' : 8, borderTop: '1px solid rgba(148,163,184,0.35)', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                     BUILDINGS
                 </div>
                 {Object.entries(SEMANTIC_COLORS).map(([cat, color]) => (
