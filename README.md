@@ -5,6 +5,16 @@
   <i>Built for AMD Slingshot Hackathon 2026</i>
 </p>
 
+## AMD Slingshot Pitch Resources
+
+Slingshot is a national startup idea challenge that encourages students to build AI-powered solutions for real-world problems. Through mentorship and workshops, AMD helps students bring ideas to life and empowers the next generation to shape the future of AI.
+
+For your technical presentation flow, use:
+
+- `PITCH_DECK_TECHNICAL.md` for slide-by-slide technical content
+- `Project Submission Deck _ AMD Slingshot.pptx` for your existing visual deck
+
+
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Prototype-orange" />
   <img src="https://img.shields.io/badge/Version-v1.0-blue" />
