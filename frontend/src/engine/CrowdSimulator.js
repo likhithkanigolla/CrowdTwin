@@ -1174,7 +1174,14 @@ export class CrowdSimulator {
     const dt = this.lastTimestamp ? Math.min(timestamp - this.lastTimestamp, 100) : 16;
     this.lastTimestamp = timestamp;
 
-    // In visualization mode, continue normal movement updates.
+    // In visualization mode, render only camera-fed humans and do not advance paths.
+    if (this.currentMode === 'visualize') {
+      this._updateLayer();
+      if (this.modelLayer) {
+        this.modelLayer.updateAgents(this.agents);
+      }
+      return;
+    }
     
     // In ACTUATION mode, never show agents
     if (this.currentMode === 'actuate') {

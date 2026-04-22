@@ -263,42 +263,13 @@ export class ModelLayer {
     }
 
     placeCameras(cameraPositions) {
-        if (!this._cameraFallbackMat || !this.map) {
-            this._pendingCameraPositions = cameraPositions;
-            return;
-        }
-
-        this._doPlaceCameras(cameraPositions);
-    }
-
-    _doPlaceCameras(cameraPositions) {
-        if (!this.map) return;
-
+        // Camera overlay removed: keep the campus buildings elevated, but do not render
+        // additional camera sprites on top of the scene.
         this.cameraSprites.forEach(sprite => {
             this.scene.remove(sprite);
         });
         this.cameraSprites = [];
-
-        const center = this.map.getCenter();
-        const meterScale = maplibregl.MercatorCoordinate
-            .fromLngLat(center, 0)
-            .meterInMercatorCoordinateUnits();
-
-        const cameraScale = 16.0 * meterScale;
-        const count = Math.min(cameraPositions.length, 2000);
-
-        for (let i = 0; i < count; i++) {
-            const c = cameraPositions[i];
-            const merc = maplibregl.MercatorCoordinate.fromLngLat({ lng: c.lng, lat: c.lat }, 0);
-
-            const sprite = new THREE.Sprite(this._cameraFallbackMat);
-            sprite.position.set(merc.x, merc.y, merc.z + meterScale * 6);
-            sprite.scale.setScalar(cameraScale * 2.0);
-            sprite.renderOrder = 1000;
-            this.scene.add(sprite);
-            this.cameraSprites.push(sprite);
-        }
-
+        this._pendingCameraPositions = cameraPositions;
         if (this.map) this.map.triggerRepaint();
     }
 

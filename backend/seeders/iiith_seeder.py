@@ -13,9 +13,9 @@ Features:
   • Lunch / dinner canteen spikes at realistic times
 
 Usage:
-  python iiith_seeder.py
-  python iiith_seeder.py --backend http://localhost:8904 --interval 1 --campus-total 4000
-  python iiith_seeder.py --dry-run          # print counts, don't POST
+    python iiith_seeder.py
+    python iiith_seeder.py --backend http://localhost:8904 --interval 0.1 --campus-total 4000
+    python iiith_seeder.py --dry-run          # print counts, don't POST
 """
 
 from __future__ import annotations
@@ -384,7 +384,7 @@ async def run(backend: str, interval: float, campus_total: int, dry_run: bool) -
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="IIIT-H realistic campus camera seeder")
     p.add_argument("--backend",       default=DEFAULT_BACKEND,     help="Backend base URL")
-    p.add_argument("--interval",      type=float, default=1.0,     help="Seconds between updates (default 1)")
+    p.add_argument("--interval",      type=float, default=0.1,     help="Seconds between updates (default 0.1)")
     p.add_argument("--campus-total",  type=int,   default=CAMPUS_TOTAL_DEFAULT, help="Total campus population (default 4000)")
     p.add_argument("--dry-run",       action="store_true",          help="Print output without POSTing")
     return p.parse_args()

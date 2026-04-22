@@ -6,7 +6,7 @@ import { CrowdSimulator, COHORTS } from '../engine/CrowdSimulator';
 import { ModelLayer } from '../engine/ModelLayer';
 import { SimulationDB } from '../engine/SimulationDB';
 import { buildPedSimSceneGeoJSON } from '../data/pedsimScene';
-import { getAvailableRoads, registerRoads, getBuildingOccupancy, getSyntheticDashboard, getSyntheticCameras, exportPedSimSceneFromMap, postCameraFeed } from '../api';
+import { getAvailableRoads, registerRoads, getBuildingOccupancy, getSyntheticDashboard, getSyntheticCameras, exportPedSimSceneFromMap } from '../api';
 
 // Subtle semantic colors — not too vivid, realistic-looking at night
 const SEMANTIC_COLORS = {
@@ -263,69 +263,210 @@ const buildCameraPoleLines = (positions) => ({
 });
 
 const SYNTHETIC_AGENT_PREFIX = 'synthetic-live';
-const SYNTHETIC_ZONE_COLORS = {
-    hostels: '#2563eb',
-    academics: '#dc2626',
-    canteens: '#ea580c',
-    gates: '#16a34a',
-    admin: '#7c3aed',
-    other: '#6366f1'
+
+const CAMERA_ZONE_TO_BUILDING_CATEGORIES = {
+    hostel: ['hostels'],
+    girls_hostel: ['hostels'],
+    classroom: ['academics'],
+    research: ['admin', 'academics'],
+    lab: ['academics'],
+    canteen: ['canteens'],
+    residential: ['admin'],
+    venue: ['recreation'],
+    gate: ['gates'],
+    road: ['gates', 'other'],
+    other: ['other'],
 };
 
-const createSyntheticAgent = (simulator, cameras, sequence) => {
-    if (!simulator || !simulator.navGraph || !Array.isArray(cameras) || cameras.length < 2) return null;
+const normalizeCameraId = (camera) => camera?.camera_id || camera?.location_name || 'camera';
 
-    const source = cameras[Math.floor(stableRandom() * cameras.length)];
-    let target = cameras[Math.floor(stableRandom() * cameras.length)];
-    let retries = 0;
-    while (target?.camera_id === source?.camera_id && retries < 6) {
-        target = cameras[Math.floor(stableRandom() * cameras.length)];
-        retries += 1;
+const isSyntheticAgent = (agent) => String(agent?.id || '').startsWith(SYNTHETIC_AGENT_PREFIX);
+
+const createSeededRandom = (seedText) => {
+    let seed = 0;
+    const text = String(seedText || 'crowdtwin');
+
+    for (let index = 0; index < text.length; index += 1) {
+        seed = ((seed * 31) + text.charCodeAt(index)) >>> 0;
     }
 
-    const start = {
-        lng: Number(source?.lng) + (stableRandom() - 0.5) * 0.00005,
-        lat: Number(source?.lat) + (stableRandom() - 0.5) * 0.00005,
+    return () => {
+        seed = (1664525 * seed + 1013904223) >>> 0;
+        return seed / 4294967296;
     };
-    const end = {
-        lng: Number(target?.lng) + (stableRandom() - 0.5) * 0.00005,
-        lat: Number(target?.lat) + (stableRandom() - 0.5) * 0.00005,
-    };
+};
 
-    if (!Number.isFinite(start.lng) || !Number.isFinite(start.lat) || !Number.isFinite(end.lng) || !Number.isFinite(end.lat)) {
+const moveTowardPoint = (current, target, maxStep) => {
+    const dlng = target.lng - current.lng;
+    const dlat = target.lat - current.lat;
+    const distance = Math.hypot(dlng, dlat);
+
+    if (!Number.isFinite(distance) || distance <= maxStep) {
+        return { lng: target.lng, lat: target.lat, arrived: true };
+    }
+
+    const ratio = maxStep / distance;
+    return {
+        lng: current.lng + dlng * ratio,
+        lat: current.lat + dlat * ratio,
+        arrived: false,
+    };
+};
+
+const samplePointInRing = (ring, rng = Math.random) => {
+    if (!Array.isArray(ring) || ring.length < 4) return null;
+
+    let minLng = Infinity;
+    let maxLng = -Infinity;
+    let minLat = Infinity;
+    let maxLat = -Infinity;
+
+    ring.forEach(([lng, lat]) => {
+        if (lng < minLng) minLng = lng;
+        if (lng > maxLng) maxLng = lng;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+    });
+
+    if (!Number.isFinite(minLng) || !Number.isFinite(maxLng) || !Number.isFinite(minLat) || !Number.isFinite(maxLat)) {
         return null;
     }
 
-    let path = simulator.navGraph.findPath(start, end);
-    if (!Array.isArray(path) || path.length < 2) {
-        path = [start, end];
+    for (let attempt = 0; attempt < 24; attempt += 1) {
+        const lng = minLng + rng() * (maxLng - minLng);
+        const lat = minLat + rng() * (maxLat - minLat);
+        if (isPointInRing([lng, lat], ring)) {
+            return { lng, lat };
+        }
     }
 
-    const routeColor = SYNTHETIC_ZONE_COLORS[String(source?.zone || 'other')] || SYNTHETIC_ZONE_COLORS.other;
+    const centroid = ring.reduce((accumulator, point) => {
+        accumulator.lng += point[0];
+        accumulator.lat += point[1];
+        accumulator.count += 1;
+        return accumulator;
+    }, { lng: 0, lat: 0, count: 0 });
+
+    return centroid.count > 0
+        ? { lng: centroid.lng / centroid.count, lat: centroid.lat / centroid.count }
+        : null;
+};
+
+const samplePointInFeature = (feature, rng = Math.random) => {
+    const geometry = feature?.geometry;
+    if (!geometry) return null;
+
+    if (geometry.type === 'Polygon') {
+        return samplePointInRing(geometry.coordinates?.[0], rng);
+    }
+
+    if (geometry.type === 'MultiPolygon') {
+        const polygons = Array.isArray(geometry.coordinates) ? geometry.coordinates : [];
+        if (!polygons.length) return null;
+        const ring = polygons[Math.floor(rng() * polygons.length)]?.[0];
+        return samplePointInRing(ring, rng);
+    }
+
+    const center = feature?.properties?.center;
+    if (Array.isArray(center) && center.length >= 2) {
+        return { lng: center[0], lat: center[1] };
+    }
+
+    return null;
+};
+
+const sampleAnchorPoint = (camera, building, rng = Math.random) => {
+    const buildingPoint = samplePointInFeature(building, rng);
+    if (buildingPoint) return buildingPoint;
+
+    const cameraLng = Number(camera?.lng);
+    const cameraLat = Number(camera?.lat);
+    if (Number.isFinite(cameraLng) && Number.isFinite(cameraLat)) {
+        return {
+            lng: cameraLng + (rng() - 0.5) * 0.00004,
+            lat: cameraLat + (rng() - 0.5) * 0.00004,
+        };
+    }
+
+    return null;
+};
+
+const getCameraBuildingCandidates = (camera, buildings) => {
+    const features = Array.isArray(buildings?.features) ? buildings.features : [];
+    if (!camera || !features.length) return [];
+
+    const cameraName = String(camera.location_name || '').toLowerCase();
+    const exactMatches = features.filter((feature) => {
+        const buildingName = String(feature.properties?.name || '').toLowerCase();
+        const buildingNameAlt = String(feature.properties?.['addr:housename'] || '').toLowerCase();
+        return Boolean(
+            buildingName && cameraName && (buildingName.includes(cameraName) || cameraName.includes(buildingName))
+            || buildingNameAlt && cameraName && (buildingNameAlt.includes(cameraName) || cameraName.includes(buildingNameAlt))
+        );
+    });
+
+    if (exactMatches.length > 0) {
+        return exactMatches;
+    }
+
+    const categoryMatches = (CAMERA_ZONE_TO_BUILDING_CATEGORIES[camera.zone] || ['other'])
+        .flatMap((category) => features.filter((feature) => feature.properties?.category === category));
+
+    if (categoryMatches.length > 0) {
+        return categoryMatches;
+    }
+
+    return features;
+};
+
+const buildSyntheticAgentState = (camera, building, index) => {
+    const rng = createSeededRandom(`${normalizeCameraId(camera)}:${index}`);
+    const anchor = sampleAnchorPoint(camera, building, rng);
+    if (!anchor) return null;
+
+    const randomOffset = () => (rng() - 0.5) * 0.00003;
+    const start = {
+        lng: anchor.lng + randomOffset(),
+        lat: anchor.lat + randomOffset(),
+    };
 
     return {
-        id: `${SYNTHETIC_AGENT_PREFIX}-${Date.now()}-${sequence}-${Math.floor(stableRandom() * 100000)}`,
-        cohortId: 'synthetic',
-        color: routeColor,
-        path,
-        pathIndex: 0,
-        lng: path[0].lng,
-        lat: path[0].lat,
-        progress: stableRandom() * 0.35,
-        speed: 0.00000003 * (0.9 + stableRandom() * 1.2),
-        walkPhase: stableRandom() * Math.PI * 2,
-        state: 'MOVING',
-        targetBuilding: null,
-        currentBuilding: null,
-        insideUntil: null,
-        insideUntilSimTime: null,
-        groupId: `syn-${source?.camera_id || 'cam'}-${target?.camera_id || 'cam'}`,
-        followsSchedule: false,
-        lastScheduleHour: simulator.simTime,
+        id: `${SYNTHETIC_AGENT_PREFIX}-${normalizeCameraId(camera)}-${index}`,
+        cameraSource: normalizeCameraId(camera),
+        currentBuilding: building || null,
+        zone: camera.zone || 'other',
+        lng: start.lng,
+        lat: start.lat,
+        targetLng: anchor.lng,
+        targetLat: anchor.lat,
+        lastRetargetAt: performance.now(),
+        rngSeed: `${normalizeCameraId(camera)}:${index}`,
     };
 };
 
-const isSyntheticAgent = (agent) => String(agent?.id || '').startsWith(SYNTHETIC_AGENT_PREFIX);
+const advanceSyntheticAgentState = (state, camera, building) => {
+    const rng = createSeededRandom(`${state.rngSeed}:${Math.floor(performance.now() / 250)}`);
+    const currentPoint = { lng: state.lng, lat: state.lat };
+    const targetPoint = { lng: state.targetLng, lat: state.targetLat };
+    const step = 0.000004 + (rng() * 0.000003);
+    const moved = moveTowardPoint(currentPoint, targetPoint, step);
+
+    state.lng = moved.lng;
+    state.lat = moved.lat;
+    state.currentBuilding = building || state.currentBuilding || null;
+
+    const elapsed = performance.now() - state.lastRetargetAt;
+    if (moved.arrived || elapsed > 1800 + (rng() * 2200)) {
+        const nextAnchor = sampleAnchorPoint(camera, building, rng);
+        if (nextAnchor) {
+            state.targetLng = nextAnchor.lng + (rng() - 0.5) * 0.00002;
+            state.targetLat = nextAnchor.lat + (rng() - 0.5) * 0.00002;
+            state.lastRetargetAt = performance.now();
+        }
+    }
+
+    return state;
+};
 
 // Generate streetlight positions along pathways at regular intervals
 const generateStreetlightPositions = (pathways, intervalMeters = 30) => {
@@ -770,6 +911,7 @@ export default function MapContainer({
     const crowdVisibilityStateRef = useRef('');
     const roadStatusByIdRef = useRef({});
     const syntheticCamerasRef = useRef([]);
+    const syntheticAgentStateRef = useRef(new Map());
     const syntheticAgentSeqRef = useRef(0);
     const cameraFeedSignatureRef = useRef('');
     const sceneExportStateRef = useRef({ signature: '', inFlight: false });
@@ -787,7 +929,7 @@ export default function MapContainer({
             const [xi, yi] = ring[i];
             const [xj, yj] = ring[j];
 
-            if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+            if (((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1e-12) + xi)) {
                 inside = !inside;
             }
         }
@@ -1361,9 +1503,6 @@ export default function MapContainer({
                     .join('|');
                 if (cameraFeedSignatureRef.current !== cameraFeedSignature) {
                     cameraFeedSignatureRef.current = cameraFeedSignature;
-                    void postCameraFeed(cameraPositions).catch((error) => {
-                        console.warn('Failed to persist camera feed to backend:', error);
-                    });
                 }
 
                 if (modelLayerRef.current) {
@@ -1854,6 +1993,111 @@ export default function MapContainer({
     }, [currentMode]);
 
     // Visualization mode: map synthetic node readings to moving human agents.
+    // Helper: Match camera to closest building by name or proximity
+    const matchCameraToBuilding = (camera, buildings) => {
+        if (!camera || !buildings?.features) return null;
+
+        const cameraName = String(camera.location_name || '').toLowerCase();
+        const cameraLng = Number(camera.lng);
+        const cameraLat = Number(camera.lat);
+
+        // Try exact name match first
+        for (const building of buildings.features) {
+            const buildingName = String(building.properties?.name || '').toLowerCase();
+            const buildingNameAlt = String(building.properties?.['addr:housename'] || '').toLowerCase();
+            
+            if (buildingName.includes(cameraName) || cameraName.includes(buildingName) ||
+                buildingNameAlt.includes(cameraName) || cameraName.includes(buildingNameAlt)) {
+                return building;
+            }
+        }
+
+        // Fall back to closest building by distance
+        if (!Number.isFinite(cameraLng) || !Number.isFinite(cameraLat)) return null;
+
+        let closestBuilding = null;
+        let minDistance = Infinity;
+
+        for (const building of buildings.features) {
+            const center = building.properties?.center;
+            if (!Array.isArray(center) || center.length < 2) continue;
+
+            const buildingLng = center[0];
+            const buildingLat = center[1];
+            const dist = Math.hypot(cameraLng - buildingLng, cameraLat - buildingLat);
+
+            if (dist < minDistance) {
+                minDistance = dist;
+                closestBuilding = building;
+            }
+        }
+
+        return closestBuilding;
+    };
+
+    // Helper: Get or create agents for a camera across semantically matching buildings
+    const spawnAgentsFromCamera = (camera, buildings) => {
+        if (!camera) return [];
+
+        const targetCount = Math.max(0, Math.floor(Number(camera.people_count) || 0));
+        const cameraId = normalizeCameraId(camera);
+        const zoneColors = {
+            hostel: '#2563eb',
+            girls_hostel: '#8b5cf6',
+            classroom: '#dc2626',
+            research: '#f59e0b',
+            lab: '#f59e0b',
+            canteen: '#ea580c',
+            residential: '#94a3b8',
+            venue: '#ec4899',
+            gate: '#16a34a',
+            road: '#16a34a',
+            other: '#6366f1'
+        };
+
+        const agentColor = zoneColors[camera.zone] || zoneColors.other;
+        const candidateBuildings = getCameraBuildingCandidates(camera, buildings);
+        const currentStates = syntheticAgentStateRef.current.get(cameraId) || [];
+
+        if (candidateBuildings.length === 0) {
+            syntheticAgentStateRef.current.set(cameraId, currentStates);
+            return [];
+        }
+
+        while (currentStates.length < targetCount) {
+            const building = candidateBuildings[currentStates.length % candidateBuildings.length];
+            const nextState = buildSyntheticAgentState(camera, building, currentStates.length);
+            if (!nextState) break;
+            currentStates.push(nextState);
+        }
+
+        if (currentStates.length > targetCount) {
+            currentStates.length = targetCount;
+        }
+
+        const agents = currentStates.map((state) => {
+            const advancedState = advanceSyntheticAgentState(state, camera, state.currentBuilding);
+            return {
+                id: advancedState.id,
+                cohortId: 'synthetic',
+                color: agentColor,
+                path: [{ lng: advancedState.lng, lat: advancedState.lat }],
+                pathIndex: 0,
+                lng: advancedState.lng,
+                lat: advancedState.lat,
+                progress: 0,
+                speed: 0,
+                state: 'STATIONARY',
+                cameraSource: cameraId,
+                currentBuilding: state.currentBuilding || null,
+                targetBuilding: null,
+            };
+        });
+
+        syntheticAgentStateRef.current.set(cameraId, currentStates);
+        return agents;
+    };
+
     useEffect(() => {
         if (currentMode !== 'visualize') return;
 
@@ -1866,38 +2110,43 @@ export default function MapContainer({
                 if (cancelled) return;
 
                 const simulator = simRef.current;
-                if (!simulator || !simulator.navGraph) return;
+                if (!simulator) return;
+
+                const buildings = allBuildingsRef.current;
+                if (!buildings?.features) return;
 
                 const cameras = Array.isArray(payload?.cameras)
                     ? payload.cameras.filter((camera) => Number(camera?.people_count) > 0)
                     : [];
                 syntheticCamerasRef.current = cameras;
 
-                if (cameras.length < 2) {
-                    simulator.agents = simulator.agents.filter((agent) => !isSyntheticAgent(agent));
-                    simulator._updateLayer();
-                    simulator.modelLayer?.updateAgents(simulator.agents);
-                    return;
+                const nextStates = new Map();
+                const updatedAgents = [];
+                for (const camera of cameras) {
+                    const cameraAgents = spawnAgentsFromCamera(camera, buildings);
+                    updatedAgents.push(...cameraAgents);
+                    const cameraId = normalizeCameraId(camera);
+                    nextStates.set(cameraId, syntheticAgentStateRef.current.get(cameraId) || []);
                 }
 
-                // Note: We deliberately DO NOT generate synthetic agents here anymore,
-                // because spawning them at random points between cameras was confusing.
-                // We only display the camera point clusters instead.
-                const allAgents = Array.isArray(simulator.agents) ? simulator.agents : [];
-                simulator.agents = allAgents.filter((agent) => !isSyntheticAgent(agent));
+                syntheticAgentStateRef.current = nextStates;
+
+                simulator.agents = updatedAgents;
                 simulator._updateLayer();
                 simulator.modelLayer?.updateAgents(simulator.agents);
             } catch (error) {
+                console.debug('Visualization fetch error:', error);
                 // Keep previous snapshot when backend is temporarily unavailable.
             }
         };
 
         fetchSynthetic();
-        fetchTimer = setInterval(fetchSynthetic, 2000);
+        fetchTimer = setInterval(fetchSynthetic, 100);
 
         return () => {
             cancelled = true;
             if (fetchTimer) clearInterval(fetchTimer);
+            syntheticAgentStateRef.current = new Map();
 
             const simulator = simRef.current;
             if (simulator) {
