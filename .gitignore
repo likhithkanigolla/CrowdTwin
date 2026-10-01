@@ -8,3 +8,5 @@ digital-twin-backend/venv
 /__pycache__/
 venv/
 ~$Project Submission Deck _ AMD Slingshot.pptx
+backend/uploads/pedsim_scene_transform.json
+backend/uploads/pedsim_spawn_groups.json
